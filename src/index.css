@@ -1,0 +1,36 @@
+/* Custom overrides for Bootstrap */
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+#root {
+  width: 100%;
+}
+
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+
+.btn {
+  transition: all 0.2s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
