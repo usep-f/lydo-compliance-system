@@ -1,8 +1,24 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    
+    // Helper to check if user has admin role in 'users' collection
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Pending Users: Applicants can write, only Admins can read or delete
+    match /pending_users/{applicationId} {
+      allow create: if true; // anyone can submit an application
+      allow read, delete: if isAdmin();
+      allow update: if false; // applications cannot be tampered with
+    }
+
+    // Approved Users: Users can read their own data; Admins have full access
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
     }
   }
 }

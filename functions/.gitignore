@@ -1,0 +1,10 @@
+# Node modules
+node_modules/
+
+# Compiled files
+lib/
+
+# Local environment variables
+.env
+.env.*
+.env.local
