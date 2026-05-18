@@ -134,25 +134,32 @@ Verify or switch to your active Firebase project:
 firebase use lydo-compliance-system-ce8c3
 ```
 
-### 3. Deploy Frontend Changes
-Build and host the frontend website on Firebase Hosting:
+### 3. Deploy Everything (Frontend + Backend) 🌟 [FOOLPROOF ONE-LINER]
+If you have modified both frontend files and Cloud Functions (or updated `functions/.env` configurations), you must compile both and deploy everything simultaneously. Run this single command from the **root directory**:
 ```bash
-# Build the production bundle
+npm run build && cd functions && npm run build && cd .. && firebase deploy
+```
+*Why this works:* It compiles the frontend React code, enters the `functions` directory to compile the TypeScript Cloud Functions, returns to the root, and pushes everything live to Firebase in one go safely.
+
+### 4. Deploy Frontend Changes Only
+If you only made changes to the React frontend (e.g. dashboards, pages, stylesheets) and do not need to update Cloud Functions:
+```bash
+# Build the frontend production bundle
 npm run build
 
-# Deploy to Firebase Hosting
+# Deploy only the static site
 firebase deploy --only hosting
 ```
 
-### 4. Deploy Backend & Environment Variables
-If you edited `functions/src/index.ts` or updated `functions/.env` values, you must compile and redeploy the Cloud Functions:
+### 5. Deploy Backend (Cloud Functions) Only
+If you only edited your backend Cloud Functions (e.g. `functions/src/index.ts` or `functions/.env` environment configs) and did not make changes to your frontend React pages:
 ```bash
-# 1. Compile TypeScript
+# 1. Compile backend TypeScript
 cd functions
 npm run build
 cd ..
 
-# 2. Deploy Cloud Functions & Env Config
+# 2. Deploy only the Cloud Functions
 firebase deploy --only functions
 ```
 
