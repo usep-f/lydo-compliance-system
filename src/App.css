@@ -1,1 +1,106 @@
 /* App specific styles, relying mostly on Bootstrap now */
+
+/* Layout & Sidebar Styling */
+.dashboard-layout {
+  min-height: 100vh;
+}
+
+.sidebar-container {
+  width: 280px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.sidebar-brand-wrapper {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.tracking-wider {
+  letter-spacing: 0.08em;
+}
+
+/* Sidebar Nav Links */
+.sidebar-link {
+  font-size: 0.95rem;
+  padding: 10px 16px !important;
+  margin-bottom: 2px;
+  border-radius: 8px !important;
+}
+
+.sidebar-link .material-symbols-outlined {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-link:hover .material-symbols-outlined {
+  transform: translateX(3px);
+}
+
+/* Responsive Rules for screens <= 1000px */
+@media (max-width: 1000px) {
+  .sidebar-container {
+    display: none !important;
+  }
+  
+  .nav-desktop-tabs {
+    display: none !important;
+  }
+  
+  .nav-mobile-toggle {
+    display: block !important;
+  }
+  
+  .navbar-custom {
+    display: block !important;
+  }
+}
+
+/* Responsive Rules for screens > 1000px */
+@media (min-width: 1001px) {
+  /* Hide the top navbar on desktop when using the sidebar dashboard layout */
+  .dashboard-layout .navbar-custom {
+    display: none !important;
+  }
+
+  .sidebar-container {
+    display: flex !important;
+  }
+
+  .nav-desktop-tabs {
+    display: flex !important;
+  }
+  
+  .nav-mobile-toggle {
+    display: none !important;
+  }
+  
+  /* Ensure mobile collapse is hidden when window is resized to large */
+  .nav-mobile-collapse {
+    display: none !important;
+  }
+}
+
+/* Custom interactive styles for navbar tabs */
+.hover-bg-light:hover {
+  background-color: #f8f9fa;
+  color: #0d6efd !important;
+}
+
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Micro-interactions */
+.material-symbols-outlined {
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Custom spacing for buttons */
+.py-2-5 {
+  padding-top: 0.65rem !important;
+  padding-bottom: 0.65rem !important;
+}
