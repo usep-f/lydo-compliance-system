@@ -11,7 +11,7 @@ export interface NavigationSection {
   icon: string;
 }
 
-interface NavigationBarProps {
+interface DashboardNavbarProps {
   title: string;
   activeSection?: string;
   onSectionSelect?: (section: string) => void;
@@ -26,7 +26,7 @@ const DEFAULT_SECTIONS: NavigationSection[] = [
   { id: 'settings', label: 'User Settings', isImplemented: false, icon: 'settings' },
 ];
 
-const NavigationBar: React.FC<NavigationBarProps> = ({
+const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
   title,
   activeSection = 'applicants',
   onSectionSelect,
@@ -149,4 +149,4 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   );
 };
 
-export default NavigationBar;
+export default DashboardNavbar;

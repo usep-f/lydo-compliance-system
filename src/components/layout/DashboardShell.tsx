@@ -1,7 +1,7 @@
 import React from 'react';
 import { Container } from 'react-bootstrap';
-import NavigationBar from './NavigationBar';
-import Sidebar from './Sidebar';
+import DashboardNavbar from './DashboardNavbar';
+import DashboardSidebar from './DashboardSidebar';
 
 interface DashboardShellProps {
   title: string;
@@ -22,7 +22,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
     <div className="dashboard-layout d-flex min-vh-100 bg-light">
       {/* Left Sidebar: Desktop Only */}
       {onSectionSelect && activeSection && (
-        <Sidebar
+        <DashboardSidebar
           title={title}
           activeSection={activeSection}
           onSectionSelect={onSectionSelect}
@@ -32,7 +32,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
       {/* Main Content Area */}
       <div className="main-content-wrapper flex-grow-1 d-flex flex-column min-vh-100">
         {/* Top Navbar: Mobile Only (hidden on desktop screens > 1000px if sidebar is active) */}
-        <NavigationBar 
+        <DashboardNavbar 
           title={title} 
           activeSection={activeSection}
           onSectionSelect={onSectionSelect}

@@ -1,42 +1,134 @@
-/* App specific styles, relying mostly on Bootstrap now */
+/* ==========================================
+   PipelinePro Layout & Sidebar Overrides
+   ========================================== */
 
 /* Layout & Sidebar Styling */
 .dashboard-layout {
   min-height: 100vh;
+  background-color: #FAFAFA;
 }
 
 .sidebar-container {
-  width: 280px;
+  width: 260px;
   height: 100vh;
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex !important;
   flex-direction: column;
+  background-color: #FFFFFF !important;
+  border-right: 1px solid #E4E4E7 !important;
 }
 
 .sidebar-brand-wrapper {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background-color: #FFFFFF !important;
+  border-bottom: 1px solid #F4F4F5 !important;
+}
+
+.sidebar-brand-wrapper h4 {
+  font-family: var(--font-headline) !important;
+  font-weight: 700 !important;
+  font-size: 20px !important;
+  color: var(--primary) !important;
+  letter-spacing: -0.02em;
 }
 
 .tracking-wider {
   letter-spacing: 0.08em;
 }
 
-/* Sidebar Nav Links */
+/* Sidebar Nav Links - matches PipelinePro default list item */
 .sidebar-link {
-  font-size: 0.95rem;
-  padding: 10px 16px !important;
-  margin-bottom: 2px;
-  border-radius: 8px !important;
+  height: 44px !important;
+  padding: 10px 12px !important;
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #71717A !important;
+  background-color: transparent !important;
+  border-left: 2.5px solid transparent !important;
+  border-bottom: 1px solid #F4F4F5 !important;
+  border-radius: 0px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 0 !important;
+  transition: all 0.15s ease-in-out !important;
 }
 
 .sidebar-link .material-symbols-outlined {
+  font-size: 18px !important; /* 18px icon as in design */
   transition: transform 0.2s ease;
+  color: #A1A1AA;
+}
+
+.sidebar-link:hover {
+  background-color: #FAFAFA !important;
+  color: #18181B !important;
 }
 
 .sidebar-link:hover .material-symbols-outlined {
-  transform: translateX(3px);
+  color: #71717A;
+  transform: translateX(2px);
+}
+
+/* Selected state for sidebar links */
+.sidebar-link.bg-primary {
+  background-color: #EEF2FF !important;
+  color: var(--primary) !important;
+  border-left: 2.5px solid var(--primary) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+.sidebar-link.text-white {
+  color: var(--primary) !important;
+}
+
+.sidebar-link.bg-primary .material-symbols-outlined {
+  color: var(--primary) !important;
+}
+
+/* Desktop Navigation Tabs */
+.nav-desktop-tabs .nav-link {
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #71717A !important;
+  background-color: transparent !important;
+  border-bottom: 2.5px solid transparent !important;
+  border-radius: 0px !important;
+  padding: 8px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.nav-desktop-tabs .nav-link:hover {
+  background-color: #FAFAFA !important;
+  color: #18181B !important;
+}
+
+.nav-desktop-tabs .nav-link.bg-primary {
+  background-color: transparent !important;
+  color: var(--primary) !important;
+  border-bottom: 2.5px solid var(--primary) !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+.nav-desktop-tabs .nav-link.text-white {
+  color: var(--primary) !important;
+}
+
+/* Top Navbar custom branding */
+.brand-title {
+  font-family: var(--font-headline) !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  letter-spacing: -0.01em;
+  color: var(--primary) !important;
 }
 
 /* Responsive Rules for screens <= 1000px */
@@ -44,17 +136,19 @@
   .sidebar-container {
     display: none !important;
   }
-  
+
   .nav-desktop-tabs {
     display: none !important;
   }
-  
+
   .nav-mobile-toggle {
     display: block !important;
   }
-  
+
   .navbar-custom {
     display: block !important;
+    background-color: #FFFFFF !important;
+    border-bottom: 1px solid #E4E4E7 !important;
   }
 }
 
@@ -72,11 +166,11 @@
   .nav-desktop-tabs {
     display: flex !important;
   }
-  
+
   .nav-mobile-toggle {
     display: none !important;
   }
-  
+
   /* Ensure mobile collapse is hidden when window is resized to large */
   .nav-mobile-collapse {
     display: none !important;
@@ -85,12 +179,12 @@
 
 /* Custom interactive styles for navbar tabs */
 .hover-bg-light:hover {
-  background-color: #f8f9fa;
-  color: #0d6efd !important;
+  background-color: #FAFAFA;
+  color: #18181B !important;
 }
 
 .transition-all {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 /* Micro-interactions */

@@ -6,7 +6,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
-import AuthPage from './pages/AuthPage';
+import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
@@ -74,10 +74,7 @@ function App() {
       <Routes>
         <Route 
           path="/" 
-          element={
-            !user ? <AuthPage /> : 
-            (role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />)
-          } 
+          element={<HomePage />} 
         />
         
         <Route 

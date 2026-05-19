@@ -14,6 +14,7 @@ interface FormFieldProps {
   helpText?: string;
   error?: string;
   className?: string;
+  disabled?: boolean;
   children?: React.ReactNode;
 }
 
@@ -30,6 +31,7 @@ const FormField: React.FC<FormFieldProps> = ({
   helpText,
   error,
   className = 'mb-3',
+  disabled = false,
   children
 }) => {
   return (
@@ -45,6 +47,7 @@ const FormField: React.FC<FormFieldProps> = ({
         required={required}
         accept={accept}
         isInvalid={!!error}
+        disabled={disabled}
       />
       {helpText && <Form.Text className="text-muted">{helpText}</Form.Text>}
       {error && <Form.Control.Feedback type="invalid">{error}</Form.Control.Feedback>}

@@ -224,25 +224,25 @@ export default function AdminDashboard() {
             </Modal.Header>
             <Modal.Body className="p-0">
               <Row className="g-0 h-100" style={{ minHeight: '60vh' }}>
-                <Col md={4} className="bg-light p-4 border-end">
-                  <h5 className="fw-bold mb-4">Applicant Profile</h5>
+                <Col md={4} className="bg-light p-4 border-end" style={{ borderRight: '1px solid #E4E4E7 !important' }}>
+                  <h3 className="h5 fw-bold mb-4" style={{ fontFamily: 'var(--font-headline)' }}>Applicant Profile</h3>
                   
                   <div className="mb-3">
-                    <label className="text-muted small text-uppercase fw-bold">Full Name</label>
-                    <div className="fs-5">{selectedApp?.fullName}</div>
+                    <div className="overline-text text-muted mb-1">Full Name</div>
+                    <div className="body-large text-dark fw-semibold">{selectedApp?.fullName}</div>
                   </div>
                   
                   <div className="mb-3">
-                    <label className="text-muted small text-uppercase fw-bold">Email Address</label>
-                    <div><a href={`mailto:${selectedApp?.email}`}>{selectedApp?.email}</a></div>
+                    <div className="overline-text text-muted mb-1">Email Address</div>
+                    <div className="body-text"><a href={`mailto:${selectedApp?.email}`} className="text-secondary text-decoration-none fw-semibold">{selectedApp?.email}</a></div>
                   </div>
                   
                   <div className="mb-3">
-                    <label className="text-muted small text-uppercase fw-bold">Barangay</label>
-                    <div className="fs-5">{selectedApp?.barangay}</div>
+                    <div className="overline-text text-muted mb-1">Barangay</div>
+                    <div className="body-large text-dark fw-semibold">{selectedApp?.barangay}</div>
                   </div>
 
-                  <hr className="my-4" />
+                  <hr className="my-4" style={{ borderColor: '#E4E4E7' }} />
 
                   {!showDenyPrompt ? (
                     <div className="d-grid gap-2">

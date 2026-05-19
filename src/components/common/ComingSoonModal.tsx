@@ -13,9 +13,9 @@ export const ComingSoonModal: React.FC<ComingSoonModalProps> = ({
   sectionName
 }) => {
   return (
-    <Modal 
-      show={show} 
-      onHide={onHide} 
+    <Modal
+      show={show}
+      onHide={onHide}
       centered
       backdrop="static"
     >
@@ -31,10 +31,10 @@ export const ComingSoonModal: React.FC<ComingSoonModalProps> = ({
         <p className="text-muted small mb-4">
           Our team is working hard to bring this feature to the LYDO Compliance System. Stay tuned!
         </p>
-        <Button 
-          variant="primary" 
+        <Button
+          variant="primary"
           onClick={onHide}
-          className="px-4 py-2 shadow-sm rounded-pill fw-bold"
+          className="px-4 py-2 shadow-sm fw-bold"
         >
           Got it, thanks!
         </Button>

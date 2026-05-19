@@ -11,7 +11,7 @@ export interface NavigationSection {
   icon: string;
 }
 
-interface SidebarProps {
+interface DashboardSidebarProps {
   title: string;
   activeSection: string;
   onSectionSelect: (section: string) => void;
@@ -26,7 +26,7 @@ const DEFAULT_SECTIONS: NavigationSection[] = [
   { id: 'settings', label: 'User Settings', isImplemented: false, icon: 'settings' },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   title,
   activeSection,
   onSectionSelect,
@@ -97,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-3 border-top bg-light">
         <Button
           variant="outline-danger"
-          className="w-100 py-2 d-flex align-items-center justify-content-center gap-2 rounded-pill fw-bold"
+          className="w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-bold"
           onClick={handleLogout}
         >
           <span className="material-symbols-outlined fs-5">logout</span>
@@ -108,4 +108,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-export default Sidebar;
+export default DashboardSidebar;

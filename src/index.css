@@ -1,9 +1,79 @@
-/* Custom overrides for Bootstrap */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600&display=swap');
+
+/* ==========================================
+   PipelinePro Design System Tokens & Overrides
+   ========================================== */
+
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
+  /* Color Palette */
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --primary-active: #3730A3;
+  --secondary: #06B6D4;
+  --tertiary: #F97316;
+  --bg-color: #FAFAFA;
+  --surface: #FFFFFF;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #4F46E5;
+
+  /* Font Families */
+  --font-headline: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Source Code Pro', monospace;
+
+  /* Bootstrap Variable Overrides (custom properties) */
+  --bs-primary: #4F46E5;
+  --bs-primary-rgb: 79, 70, 229;
+  --bs-secondary: #06B6D4;
+  --bs-secondary-rgb: 6, 182, 212;
+  --bs-success: #22C55E;
+  --bs-success-rgb: 34, 197, 94;
+  --bs-warning: #F59E0B;
+  --bs-warning-rgb: 245, 158, 11;
+  --bs-danger: #EF4444;
+  --bs-danger-rgb: 239, 68, 68;
+  --bs-info: #4F46E5;
+  --bs-info-rgb: 79, 70, 229;
+  --bs-body-bg: #FAFAFA;
+  --bs-body-font-family: var(--font-body);
+}
+
+/* ==========================================
+   Typography Overrides
+   ========================================== */
+
+h1, .h1 {
+  font-family: var(--font-headline);
+  font-size: 38px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.015em !important;
+  color: #18181B !important;
+}
+
+h2, .h2 {
+  font-family: var(--font-headline);
+  font-size: 26px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.01em !important;
+  color: #18181B !important;
+}
+
+h3, .h3 {
+  font-family: var(--font-headline);
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  color: #18181B !important;
+}
+
+h4, .h4, h5, .h5, h6, .h6 {
+  font-family: var(--font-headline);
+  font-weight: 600 !important;
+  color: #18181B !important;
 }
 
 body {
@@ -11,26 +81,581 @@ body {
   display: flex;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-color) !important;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  color: #3F3F46 !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   width: 100%;
 }
 
-.card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* Specific Typography classes */
+.display-text {
+  font-family: var(--font-headline);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+.headline-text {
+  font-family: var(--font-headline);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.015em;
 }
+
+.subhead-text {
+  font-family: var(--font-headline);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.body-large {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.body-text {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.body-small {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.caption-text {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+.overline-text {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.code-text {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Elevation & Shadows
+   ========================================== */
+
+.shadow-subtle, .shadow-sm {
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.05) !important;
+}
+
+.shadow-medium, .shadow {
+  box-shadow: 0 4px 6px -1px rgba(24, 24, 27, 0.07), 0 2px 4px -2px rgba(24, 24, 27, 0.05) !important;
+}
+
+.shadow-large, .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(24, 24, 27, 0.08), 0 4px 6px -4px rgba(24, 24, 27, 0.04) !important;
+}
+
+.shadow-overlay {
+  box-shadow: 0 20px 25px -5px rgba(24, 24, 27, 0.12), 0 8px 10px -6px rgba(24, 24, 27, 0.06) !important;
+}
+
+.shadow-drag {
+  box-shadow: 0 12px 24px -4px rgba(79, 70, 229, 0.15) !important;
+}
+
+/* ==========================================
+   Border Radius Overrides
+   ========================================== */
+
+.rounded-0 {
+  border-radius: 0px !important;
+}
+
+.rounded-sm, .rounded-1 {
+  border-radius: 4px !important;
+}
+
+.rounded, .rounded-md, .rounded-2 {
+  border-radius: 8px !important;
+}
+
+.rounded-lg, .rounded-3 {
+  border-radius: 12px !important;
+}
+
+.rounded-xl, .rounded-4 {
+  border-radius: 20px !important;
+}
+
+.rounded-pill, .rounded-circle, .rounded-5 {
+  border-radius: 9999px !important;
+}
+
+/* ==========================================
+   Buttons
+   ========================================== */
 
 .btn {
-  transition: all 0.2s ease;
+  font-family: var(--font-body);
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 8px 18px !important;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
 }
 
 .btn:active {
-  transform: scale(0.98);
+  transform: scale(0.98) !important;
+}
+
+/* Primary Filled Button */
+.btn-primary {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #FFFFFF !important;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: #FFFFFF !important;
+}
+
+.btn-primary:active {
+  background-color: var(--primary-active) !important;
+  border-color: var(--primary-active) !important;
+}
+
+/* Secondary Outline Button */
+.btn-outline-primary {
+  background-color: transparent !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+  background-color: #EEF2FF !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+/* Destructive Button */
+.btn-danger {
+  background-color: var(--error) !important;
+  border-color: var(--error) !important;
+  color: #FFFFFF !important;
+}
+
+.btn-danger:hover, .btn-danger:focus {
+  background-color: #DC2626 !important;
+  border-color: #DC2626 !important;
+}
+
+.btn-outline-danger {
+  background-color: transparent !important;
+  border-color: var(--error) !important;
+  color: var(--error) !important;
+}
+
+.btn-outline-danger:hover, .btn-outline-danger:focus {
+  background-color: #FEF2F2 !important;
+  border-color: var(--error) !important;
+  color: var(--error) !important;
+}
+
+/* Success Button */
+.btn-success {
+  background-color: var(--success) !important;
+  border-color: var(--success) !important;
+  color: #FFFFFF !important;
+}
+
+.btn-success:hover, .btn-success:focus {
+  background-color: #16A34A !important;
+  border-color: #16A34A !important;
+}
+
+/* Ghost Button */
+.btn-link, .btn-ghost {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: #71717A !important;
+  text-decoration: none !important;
+}
+
+.btn-link:hover, .btn-ghost:hover {
+  background-color: #F4F4F5 !important;
+  color: #18181B !important;
+}
+
+/* Disabled */
+.btn:disabled, .btn.disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* Button Sizes */
+.btn-sm {
+  height: 32px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+}
+
+.btn-lg {
+  height: 46px !important;
+  padding: 11px 24px !important;
+  font-size: 16px !important;
+}
+
+/* ==========================================
+   Cards
+   ========================================== */
+
+.card {
+  background-color: var(--surface) !important;
+  border: 1px solid #E4E4E7 !important;
+  border-radius: 8px !important;
+  padding: 0 !important; /* Managed by card-body and layout */
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.card:hover {
+  border-color: #D4D4D8 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(24, 24, 27, 0.07), 0 2px 4px -2px rgba(24, 24, 27, 0.05) !important;
+}
+
+.card-elevated {
+  box-shadow: 0 4px 6px -1px rgba(24, 24, 27, 0.07), 0 2px 4px -2px rgba(24, 24, 27, 0.05) !important;
+}
+
+.card-elevated:hover {
+  box-shadow: 0 10px 15px -3px rgba(24, 24, 27, 0.08), 0 4px 6px -4px rgba(24, 24, 27, 0.04) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Specific Card Headers and Footers */
+.card-header {
+  background-color: var(--bg-color) !important;
+  border-bottom: 1px solid #E4E4E7 !important;
+  padding: 16px 20px !important;
+}
+
+.card-body {
+  padding: 20px !important;
+}
+
+.card-footer {
+  background-color: var(--bg-color) !important;
+  border-top: 1px solid #E4E4E7 !important;
+  padding: 16px 20px !important;
+}
+
+/* ==========================================
+   Inputs & Forms
+   ========================================== */
+
+.form-control, .form-select {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E4E4E7 !important;
+  color: #18181B !important;
+  border-radius: 8px !important;
+  font-family: var(--font-body);
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+  height: 38px !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.form-control::placeholder {
+  color: #A1A1AA !important;
+  opacity: 1;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Textarea specifically */
+textarea.form-control {
+  height: auto !important;
+  min-height: 80px;
+}
+
+/* Validation styling */
+.form-control.is-invalid, .form-select.is-invalid {
+  border-color: var(--error) !important;
+  background-image: none !important;
+}
+
+.form-control.is-invalid:focus, .form-select.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.invalid-feedback {
+  color: var(--error) !important;
+  font-size: 12px !important;
+  margin-top: 4px !important;
+  font-weight: 500;
+}
+
+/* Input Labels */
+.form-label {
+  font-family: var(--font-body);
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #3F3F46 !important;
+  margin-bottom: 6px !important;
+}
+
+/* Helper Text */
+.form-text, .text-muted {
+  font-size: 12px !important;
+  color: #71717A !important;
+}
+
+/* Checkboxes and Radios */
+.form-check-input {
+  width: 16px !important;
+  height: 16px !important;
+  margin-top: 0.25em !important;
+  border: 1.5px solid #D4D4D8 !important;
+  background-color: #FFFFFF !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
+  border-color: var(--primary) !important;
+}
+
+.form-check-input[type="checkbox"] {
+  border-radius: 4px !important;
+}
+
+.form-check-input[type="radio"] {
+  border-radius: 50% !important;
+}
+
+.form-check-label {
+  font-family: var(--font-body);
+  font-size: 14px !important;
+  padding-left: 8px !important;
+  color: #3F3F46 !important;
+}
+
+/* ==========================================
+   Badges (Status Chips)
+   ========================================== */
+
+.badge {
+  font-family: var(--font-body);
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 6px 12px !important;
+  border-radius: 9999px !important;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge.bg-success {
+  background-color: #F0FDF4 !important;
+  color: #16A34A !important;
+  border-color: #BBF7D0 !important;
+}
+
+.badge.bg-warning {
+  background-color: #FFF7ED !important;
+  color: #EA580C !important;
+  border-color: #FED7AA !important;
+}
+
+.badge.bg-danger {
+  background-color: #FEF2F2 !important;
+  color: #DC2626 !important;
+  border-color: #FECACA !important;
+}
+
+.badge.bg-secondary {
+  background-color: #F4F4F5 !important;
+  color: #71717A !important;
+  border-color: #E4E4E7 !important;
+}
+
+/* ==========================================
+   Tables
+   ========================================== */
+
+.table-responsive {
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.table {
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  background-color: #FFFFFF !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.table th {
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.09em !important;
+  color: #71717A !important;
+  background-color: #FAFAFA !important;
+  border-bottom: 1px solid #E4E4E7 !important;
+  padding: 12px 20px !important;
+}
+
+.table td {
+  padding: 14px 20px !important;
+  border-bottom: 1px solid #F4F4F5 !important;
+  color: #3F3F46 !important;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease !important;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #FAFAFA !important;
+}
+
+/* ==========================================
+   Pagination
+   ========================================== */
+
+.pagination {
+  margin: 0 !important;
+  gap: 4px;
+}
+
+.page-link {
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  color: #71717A !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E4E4E7 !important;
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.page-link:hover {
+  color: var(--primary) !important;
+  background-color: #F4F4F5 !important;
+  border-color: #D4D4D8 !important;
+}
+
+.page-item.active .page-link {
+  color: #FFFFFF !important;
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.page-item.disabled .page-link {
+  color: #A1A1AA !important;
+  background-color: #FAFAFA !important;
+  border-color: #E4E4E7 !important;
+  opacity: 0.6;
+}
+
+/* ==========================================
+   Modals
+   ========================================== */
+
+.modal-content {
+  border-radius: 8px !important;
+  border: 1px solid #E4E4E7 !important;
+  box-shadow: 0 20px 25px -5px rgba(24, 24, 27, 0.12), 0 8px 10px -6px rgba(24, 24, 27, 0.06) !important;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: 1px solid #F4F4F5 !important;
+  background-color: #FFFFFF !important;
+  padding: 16px 24px !important;
+}
+
+.modal-title {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  color: #18181B !important;
+  font-size: 20px !important;
+}
+
+.modal-body {
+  padding: 24px !important;
+  background-color: #FFFFFF !important;
+}
+
+.modal-footer {
+  border-top: 1px solid #F4F4F5 !important;
+  background-color: #FAFAFA !important;
+  padding: 16px 24px !important;
+}
+
+/* ==========================================
+   Tooltips
+   ========================================== */
+
+.tooltip-inner {
+  background-color: #18181B !important;
+  color: #FAFAFA !important;
+  border-radius: 6px !important;
+  font-family: var(--font-body) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 6px 10px !important;
+  max-width: 240px !important;
+}
+
+.tooltip .tooltip-arrow::before {
+  border-top-color: #18181B !important;
 }
