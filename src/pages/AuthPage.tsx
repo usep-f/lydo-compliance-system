@@ -1,21 +1,12 @@
 import { useState } from 'react';
-import { Container, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
 import { auth, db, storage } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
-
-const BARANGAYS = [
-  "Barangay 1 (Poblacion)", "Barangay 2 (Poblacion)", "Barangay 3 (Poblacion)", 
-  "Barangay 4 (Poblacion)", "Barangay 5 (Poblacion)", "Barangay 6 (Poblacion)", 
-  "Barangay 7 (Poblacion)", "Barangay 8 (Poblacion)", "Barangay 9 (Poblacion)", 
-  "Barangay 10 (Poblacion)", "Barangay 11 (Poblacion)", "Barra", "Bocohan", 
-  "Cotta", "Dalahican", "Domoit", "Gulang-Gulang", "Ibabang Dupay", 
-  "Ibabang Iyam", "Ibabang Talim", "Ilayang Dupay", "Ilayang Iyam", 
-  "Ilayang Talim", "Isabang", "Market View", "Mayao Castillo", "Mayao Crossing", 
-  "Mayao Kanluran", "Mayao Parada", "Mayao Silangan", "Ransohan", "Salinas", 
-  "Talao-Talao"
-];
+import { BARANGAYS } from '../constants/barangays';
+import FormField from '../components/common/FormField';
+import LoadingButton from '../components/common/LoadingButton';
 
 export default function AuthPage() {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -110,29 +101,26 @@ export default function AuthPage() {
 
             {isLoginMode ? (
               <Form onSubmit={handleLogin}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Email Address</Form.Label>
-                  <Form.Control
-                    type="email"
-                    required
-                    placeholder="Enter your email"
-                    value={loginEmail}
-                    onChange={e => setLoginEmail(e.target.value)}
-                  />
-                </Form.Group>
-                <Form.Group className="mb-4">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    required
-                    placeholder="Enter your password"
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                  />
-                </Form.Group>
-                <Button variant="primary" type="submit" className="w-100 py-2" disabled={loading}>
-                  {loading ? <Spinner animation="border" size="sm" /> : 'Sign In'}
-                </Button>
+                <FormField
+                  label="Email Address"
+                  type="email"
+                  required
+                  placeholder="Enter your email"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                />
+                <FormField
+                  label="Password"
+                  type="password"
+                  required
+                  placeholder="Enter your password"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  className="mb-4"
+                />
+                <LoadingButton variant="primary" type="submit" className="w-100 py-2" loading={loading}>
+                  Sign In
+                </LoadingButton>
                 <div className="text-center mt-4">
                   <Button variant="link" onClick={() => setIsLoginMode(false)} className="text-decoration-none">
                     Don't have an account? Apply here
@@ -142,29 +130,24 @@ export default function AuthPage() {
             ) : (
               <Form onSubmit={handleRegistration}>
                 <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <Form.Group>
-                      <Form.Label>Full Name</Form.Label>
-                      <Form.Control
-                        type="text"
-                        required
-                        placeholder="Juan Dela Cruz"
-                        value={regName}
-                        onChange={e => setRegName(e.target.value)}
-                      />
-                    </Form.Group>
+                  <div className="col-md-6">
+                    <FormField
+                      label="Full Name"
+                      required
+                      placeholder="Juan Dela Cruz"
+                      value={regName}
+                      onChange={e => setRegName(e.target.value)}
+                    />
                   </div>
-                  <div className="col-md-6 mb-3">
-                    <Form.Group>
-                      <Form.Label>Email Address</Form.Label>
-                      <Form.Control
-                        type="email"
-                        required
-                        placeholder="juan@example.com"
-                        value={regEmail}
-                        onChange={e => setRegEmail(e.target.value)}
-                      />
-                    </Form.Group>
+                  <div className="col-md-6">
+                    <FormField
+                      label="Email Address"
+                      type="email"
+                      required
+                      placeholder="juan@example.com"
+                      value={regEmail}
+                      onChange={e => setRegEmail(e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -178,22 +161,20 @@ export default function AuthPage() {
                   </Form.Select>
                 </Form.Group>
 
-                <Form.Group className="mb-4">
-                  <Form.Label>SK Validation Document (PDF or Image)</Form.Label>
-                  <Form.Control
-                    type="file"
-                    required
-                    accept=".pdf,image/*"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegFile(e.target.files?.[0] || null)}
-                  />
-                  <Form.Text className="text-muted">
-                    Please upload a valid ID or certificate proving your SK Official status.
-                  </Form.Text>
-                </Form.Group>
+                <FormField
+                  label="SK Validation Document (PDF or Image)"
+                  type="file"
+                  required
+                  accept=".pdf,image/*"
+                  value="" // File inputs handle their own value
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegFile(e.target.files?.[0] || null)}
+                  helpText="Please upload a valid ID or certificate proving your SK Official status."
+                  className="mb-4"
+                />
 
-                <Button variant="primary" type="submit" className="w-100 py-2" disabled={loading}>
-                  {loading ? <Spinner animation="border" size="sm" /> : 'Submit Application'}
-                </Button>
+                <LoadingButton variant="primary" type="submit" className="w-100 py-2" loading={loading}>
+                  Submit Application
+                </LoadingButton>
                 <div className="text-center mt-4">
                   <Button variant="link" onClick={() => setIsLoginMode(true)} className="text-decoration-none">
                     Already approved? Sign in

@@ -1,22 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Badge, Button, Modal, Form, Spinner } from 'react-bootstrap';
-import { auth, db, storage } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { Row, Col, Card, Table, Button, Modal, Form, Spinner } from 'react-bootstrap';
+import { db, storage } from '../firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ref, getDownloadURL } from 'firebase/storage';
-
-const BARANGAYS = [
-  "Barangay 1 (Poblacion)", "Barangay 2 (Poblacion)", "Barangay 3 (Poblacion)", 
-  "Barangay 4 (Poblacion)", "Barangay 5 (Poblacion)", "Barangay 6 (Poblacion)", 
-  "Barangay 7 (Poblacion)", "Barangay 8 (Poblacion)", "Barangay 9 (Poblacion)", 
-  "Barangay 10 (Poblacion)", "Barangay 11 (Poblacion)", "Barra", "Bocohan", 
-  "Cotta", "Dalahican", "Domoit", "Gulang-Gulang", "Ibabang Dupay", 
-  "Ibabang Iyam", "Ibabang Talim", "Ilayang Dupay", "Ilayang Iyam", 
-  "Ilayang Talim", "Isabang", "Market View", "Mayao Castillo", "Mayao Crossing", 
-  "Mayao Kanluran", "Mayao Parada", "Mayao Silangan", "Ransohan", "Salinas", 
-  "Talao-Talao"
-];
+import { BARANGAYS } from '../constants/barangays';
+import DashboardShell from '../components/layout/DashboardShell';
+import StatCard from '../components/common/StatCard';
+import StatusBadge from '../components/common/StatusBadge';
+import LoadingButton from '../components/common/LoadingButton';
+import FormField from '../components/common/FormField';
 
 interface PendingUser {
   id: string;
@@ -82,8 +75,6 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const handleLogout = () => signOut(auth);
-
   const openReviewModal = (user: PendingUser) => {
     setSelectedApp(user);
     setShowModal(true);
@@ -141,31 +132,21 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="bg-light min-vh-100 pb-5">
-      <div className="bg-white shadow-sm py-3 mb-4">
-        <Container className="d-flex justify-content-between align-items-center">
-          <h4 className="m-0 text-primary fw-bold">LYDO Admin Portal</h4>
-          <Button variant="outline-danger" size="sm" onClick={handleLogout}>Sign Out</Button>
-        </Container>
-      </div>
-
-      <Container>
+    <DashboardShell title="LYDO Admin Portal">
         <Row className="mb-4">
           <Col md={6} className="mb-3 mb-md-0">
-            <Card className="border-0 shadow-sm border-start border-4 border-warning h-100">
-              <Card.Body>
-                <div className="text-muted small fw-bold text-uppercase">Pending Applications</div>
-                <h2 className="m-0 fw-bold">{pendingUsers.length}</h2>
-              </Card.Body>
-            </Card>
+            <StatCard 
+              title="Pending Applications" 
+              value={pendingUsers.length} 
+              variant="warning" 
+            />
           </Col>
           <Col md={6}>
-            <Card className="border-0 shadow-sm border-start border-4 border-success h-100">
-              <Card.Body>
-                <div className="text-muted small fw-bold text-uppercase">Total Approved SK Officials</div>
-                <h2 className="m-0 fw-bold">{approvedCount}</h2>
-              </Card.Body>
-            </Card>
+            <StatCard 
+              title="Total Approved SK Officials" 
+              value={approvedCount} 
+              variant="success" 
+            />
           </Col>
         </Row>
 
@@ -212,7 +193,7 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 text-muted">{user.email}</td>
                         <td className="px-4 py-3">{user.barangay}</td>
                         <td className="px-4 py-3">
-                          <Badge bg="warning" text="dark">Pending</Badge>
+                          <StatusBadge status="pending" />
                         </td>
                         <td className="px-4 py-3 text-end">
                           <Button variant="primary" size="sm" onClick={() => openReviewModal(user)}>
@@ -233,7 +214,6 @@ export default function AdminDashboard() {
             </div>
           </Card.Body>
         </Card>
-      </Container>
 
       <Modal show={showModal} onHide={closeReviewModal} size="xl" backdrop="static" centered>
         <Modal.Header closeButton={!isProcessing}>
@@ -263,9 +243,14 @@ export default function AdminDashboard() {
 
               {!showDenyPrompt ? (
                 <div className="d-grid gap-2">
-                  <Button variant="success" size="lg" onClick={handleApprove} disabled={isProcessing}>
-                    {isProcessing ? <Spinner size="sm" animation="border" /> : 'Approve & Create Account'}
-                  </Button>
+                  <LoadingButton 
+                    variant="success" 
+                    size="lg" 
+                    onClick={handleApprove} 
+                    loading={isProcessing}
+                  >
+                    Approve & Create Account
+                  </LoadingButton>
                   <Button variant="outline-danger" size="lg" onClick={() => setShowDenyPrompt(true)} disabled={isProcessing}>
                     Deny Application
                   </Button>
@@ -273,23 +258,26 @@ export default function AdminDashboard() {
               ) : (
                 <div className="bg-white p-3 rounded shadow-sm border border-danger">
                   <h6 className="text-danger fw-bold mb-3">Rejection Reason</h6>
-                  <Form.Group className="mb-3">
-                    <Form.Control 
-                      as="textarea" 
-                      rows={3}
-                      placeholder="e.g., The uploaded ID is blurred, or the barangay does not match."
-                      value={denyReason}
-                      onChange={(e) => setDenyReason(e.target.value)}
-                      disabled={isProcessing}
-                    />
-                  </Form.Group>
+                  <FormField
+                    label="" // Header is already there
+                    as="textarea"
+                    rows={3}
+                    placeholder="e.g., The uploaded ID is blurred, or the barangay does not match."
+                    value={denyReason}
+                    onChange={(e) => setDenyReason(e.target.value)}
+                  />
                   <div className="d-flex gap-2">
                     <Button variant="secondary" onClick={() => setShowDenyPrompt(false)} disabled={isProcessing} className="flex-fill">
                       Cancel
                     </Button>
-                    <Button variant="danger" onClick={handleDeny} disabled={isProcessing} className="flex-fill">
-                      {isProcessing ? <Spinner size="sm" animation="border" /> : 'Confirm Deny'}
-                    </Button>
+                    <LoadingButton 
+                      variant="danger" 
+                      onClick={handleDeny} 
+                      loading={isProcessing} 
+                      className="flex-fill"
+                    >
+                      Confirm Deny
+                    </LoadingButton>
                   </div>
                 </div>
               )}
@@ -327,6 +315,6 @@ export default function AdminDashboard() {
           </Row>
         </Modal.Body>
       </Modal>
-    </div>
+    </DashboardShell>
   );
 }

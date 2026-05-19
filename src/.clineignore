@@ -1,0 +1,101 @@
+# ==========================================
+# CLINE CONTEXT BLOCKLIST (.clineignore)
+# Purpose: Prevent Cline from reading massive 
+# dependency files and wasting your API budget.
+# ==========================================
+
+# 1. Package Manager Directories (Massive Token Sinks)
+node_modules/
+**/node_modules/
+bower_components/
+vendor/
+.venv/
+env/
+venv/
+ENV/
+
+# 2. Heavy Lockfiles & Manifest Bloat
+# (Only block if your budget is extremely tight, otherwise Cline might want to check dependencies)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+composer.lock
+poetry.lock
+
+# 3. Build & Output Directories
+dist/
+build/
+out/
+.next/
+.nuxt/
+.docusaurus/
+target/
+bin/
+obj/
+htmlcov/
+.cache/
+
+# 4. Version Control & IDE Metadata
+.git/
+.hg/
+.svn/
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# 5. Local Environment Configurations & Secrets
+# (Crucial: Protects your API keys and local passwords from leaking to the context)
+.env
+.env.*
+!.env.example
+secrets.json
+*.pem
+*.key
+*.cert
+
+# 6. Testing, Log, and Diagnostic Files
+coverage/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.nyc_output/
+.pytest_cache/
+.tox/
+
+# 7. Media, Binary Assets, and Fonts
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.mp4
+*.mov
+*.mp3
+*.pdf
+*.zip
+*.tar.gz
+*.rar
+*.ttf
+*.woff
+*.woff2
+*.eot
+
+# 8. Large Data Collections & Databases
+*.csv
+*.xlsx
+*.jsonl
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sql
+# Skip high-volume local scraping/storage folders if they exist
+data/
+dumps/
