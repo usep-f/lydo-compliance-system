@@ -9,8 +9,10 @@ import DashboardShell from '../components/layout/DashboardShell';
 import StatCard from '../components/common/StatCard';
 import LoadingButton from '../components/common/LoadingButton';
 import FormField from '../components/common/FormField';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { DataTable } from '../components/common/DataTable';
 import type { Column } from '../components/common/DataTable';
+import { useToast } from '../context/ToastContext';
 
 interface PendingUser {
   id: string;
@@ -47,10 +49,21 @@ export default function AdminDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   
   const [showDenyPrompt, setShowDenyPrompt] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [showDenyConfirm, setShowDenyConfirm] = useState(false);
   const [denyReason, setDenyReason] = useState('');
   const [proofUrl, setProofUrl] = useState<string>('');
+
+  // ---- User management state ----
+  const [selectedUser, setSelectedUser] = useState<ApprovedUser | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isUserProcessing, setIsUserProcessing] = useState(false);
+  const [editForm, setEditForm] = useState({ email: '', password: '', fullName: '', barangay: '' });
   
   const functions = getFunctions();
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (selectedApp?.proofStoragePath) {
@@ -111,6 +124,10 @@ export default function AdminDashboard() {
     if (isProcessing) return;
     setShowModal(false);
     setSelectedApp(null);
+    setShowDenyPrompt(false);
+    setShowApproveConfirm(false);
+    setShowDenyConfirm(false);
+    setDenyReason('');
   };
 
   const handleApprove = async () => {
@@ -119,11 +136,13 @@ export default function AdminDashboard() {
     try {
       const approveUserFn = httpsCallable(functions, 'approveUser');
       await approveUserFn({ applicationId: selectedApp.id });
-      alert('User successfully approved!');
-      closeReviewModal();
+      addToast('User approved successfully! A setup email has been sent.', 'success');
+      setShowApproveConfirm(false);
+      setShowModal(false);
+      setSelectedApp(null);
     } catch (error: any) {
       console.error(error);
-      alert(`Approval failed: ${error.message}`);
+      addToast(`Approval failed: ${error.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -132,18 +151,22 @@ export default function AdminDashboard() {
   const handleDeny = async () => {
     if (!selectedApp) return;
     if (!denyReason.trim()) {
-      alert('Please provide a reason for rejection.');
+      addToast('Please provide a reason for rejection.', 'warning');
       return;
     }
     setIsProcessing(true);
     try {
       const denyUserFn = httpsCallable(functions, 'denyUser');
       await denyUserFn({ applicationId: selectedApp.id, reason: denyReason });
-      alert('User successfully denied.');
-      closeReviewModal();
+      addToast('Application denied and notification sent.', 'info');
+      setShowDenyConfirm(false);
+      setShowModal(false);
+      setSelectedApp(null);
+      setShowDenyPrompt(false);
+      setDenyReason('');
     } catch (error: any) {
       console.error(error);
-      alert(`Denial failed: ${error.message}`);
+      addToast(`Denial failed: ${error.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -190,6 +213,85 @@ export default function AdminDashboard() {
     return matchesSearch && matchesBarangay;
   });
 
+  // ---- User management handlers ----
+  const openEditModal = (user: ApprovedUser) => {
+    setSelectedUser(user);
+    setEditForm({ email: user.email, password: '', fullName: user.fullName, barangay: user.barangay });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    if (isUserProcessing) return;
+    setShowEditModal(false);
+    setSelectedUser(null);
+  };
+
+  const openDeleteConfirm = (user: ApprovedUser) => {
+    setSelectedUser(user);
+    setShowDeleteConfirm(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (isUserProcessing) return;
+    setShowDeleteConfirm(false);
+    setSelectedUser(null);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    setIsUserProcessing(true);
+    try {
+      const updateUserFn = httpsCallable(functions, 'updateUser');
+      await updateUserFn({
+        uid: selectedUser.uid,
+        email: editForm.email !== selectedUser.email ? editForm.email : undefined,
+        password: editForm.password.trim() !== '' ? editForm.password : undefined,
+        fullName: editForm.fullName !== selectedUser.fullName ? editForm.fullName : undefined,
+        barangay: editForm.barangay !== selectedUser.barangay ? editForm.barangay : undefined,
+      });
+      addToast('User updated successfully.', 'success');
+      setShowEditConfirm(false);
+      setShowEditModal(false);
+      setSelectedUser(null);
+    } catch (error: any) {
+      console.error(error);
+      addToast(`Update failed: ${error.message}`, 'error');
+    } finally {
+      setIsUserProcessing(false);
+    }
+  };
+
+  /** Builds a human-readable list of what the admin is about to change. */
+  const getChangedFields = () => {
+    if (!selectedUser) return [];
+    const changes: { label: string; from?: string; to: string; sensitive?: boolean }[] = [];
+    if (editForm.fullName !== selectedUser.fullName)
+      changes.push({ label: 'Full Name', from: selectedUser.fullName, to: editForm.fullName });
+    if (editForm.barangay !== selectedUser.barangay)
+      changes.push({ label: 'Barangay', from: selectedUser.barangay, to: editForm.barangay });
+    if (editForm.email !== selectedUser.email)
+      changes.push({ label: 'Email', from: selectedUser.email, to: editForm.email, sensitive: true });
+    if (editForm.password.trim() !== '')
+      changes.push({ label: 'Password', to: '(new password set)', sensitive: true });
+    return changes;
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    setIsUserProcessing(true);
+    try {
+      const deleteUserFn = httpsCallable(functions, 'deleteUser');
+      await deleteUserFn({ uid: selectedUser.uid });
+      addToast('User deleted successfully.', 'success');
+      closeDeleteConfirm();
+    } catch (error: any) {
+      console.error(error);
+      addToast(`Deletion failed: ${error.message}`, 'error');
+    } finally {
+      setIsUserProcessing(false);
+    }
+  };
+
   const approvedColumns: Column<ApprovedUser>[] = [
     {
       header: 'Full Name',
@@ -213,7 +315,6 @@ export default function AdminDashboard() {
         </span>
       )
     },
-
     {
       header: 'Date Approved',
       render: (user) => {
@@ -224,6 +325,35 @@ export default function AdminDashboard() {
           month: 'short',
           day: 'numeric'
         });
+      }
+    },
+    {
+      header: 'Actions',
+      className: 'text-end',
+      render: (user) => {
+        const isAdmin = user.role === 'admin';
+        return (
+          <div className="d-flex gap-2 justify-content-end">
+            <Button
+              variant={isAdmin ? 'outline-secondary' : 'outline-primary'}
+              size="sm"
+              disabled={isAdmin}
+              title={isAdmin ? 'Admin accounts cannot be edited' : 'Edit user'}
+              onClick={() => openEditModal(user)}
+            >
+              Edit
+            </Button>
+            <Button
+              variant={isAdmin ? 'outline-secondary' : 'outline-danger'}
+              size="sm"
+              disabled={isAdmin}
+              title={isAdmin ? 'Admin accounts cannot be deleted' : 'Delete user'}
+              onClick={() => openDeleteConfirm(user)}
+            >
+              Delete
+            </Button>
+          </div>
+        );
       }
     }
   ];
@@ -310,14 +440,14 @@ export default function AdminDashboard() {
 
                   {!showDenyPrompt ? (
                     <div className="d-grid gap-2">
-                      <LoadingButton 
-                        variant="success" 
-                        size="lg" 
-                        onClick={handleApprove} 
-                        loading={isProcessing}
+                      <Button
+                        variant="success"
+                        size="lg"
+                        onClick={() => setShowApproveConfirm(true)}
+                        disabled={isProcessing}
                       >
-                        Approve & Create Account
-                      </LoadingButton>
+                        Approve &amp; Create Account
+                      </Button>
                       <Button variant="outline-danger" size="lg" onClick={() => setShowDenyPrompt(true)} disabled={isProcessing}>
                         Deny Application
                       </Button>
@@ -337,14 +467,20 @@ export default function AdminDashboard() {
                         <Button variant="secondary" onClick={() => setShowDenyPrompt(false)} disabled={isProcessing} className="flex-fill">
                           Cancel
                         </Button>
-                        <LoadingButton 
-                          variant="danger" 
-                          onClick={handleDeny} 
-                          loading={isProcessing} 
+                        <Button
+                          variant="danger"
+                          disabled={isProcessing || !denyReason.trim()}
                           className="flex-fill"
+                          onClick={() => {
+                            if (!denyReason.trim()) {
+                              addToast('Please provide a reason for rejection.', 'warning');
+                              return;
+                            }
+                            setShowDenyConfirm(true);
+                          }}
                         >
                           Confirm Deny
-                        </LoadingButton>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -382,6 +518,49 @@ export default function AdminDashboard() {
               </Row>
             </Modal.Body>
           </Modal>
+
+          {/* ---- Approve Confirmation Dialog ---- */}
+          <ConfirmDialog
+            show={showApproveConfirm}
+            onCancel={() => setShowApproveConfirm(false)}
+            onConfirm={handleApprove}
+            title="Approve Application"
+            message={<>Are you sure you want to approve <strong>{selectedApp?.fullName}</strong>'s application?</>}
+            detail={
+              <>
+                <div className="fw-bold">{selectedApp?.fullName}</div>
+                <div className="text-muted small">{selectedApp?.email}</div>
+                <div className="text-muted small">{selectedApp?.barangay}</div>
+              </>
+            }
+            warning="A Firebase account will be created and a setup email will be sent to the applicant."
+            confirmLabel="Approve & Create Account"
+            confirmVariant="success"
+            loading={isProcessing}
+          />
+
+          {/* ---- Deny Confirmation Dialog ---- */}
+          <ConfirmDialog
+            show={showDenyConfirm}
+            onCancel={() => setShowDenyConfirm(false)}
+            onConfirm={handleDeny}
+            title="Deny Application"
+            message={<>You are about to deny <strong>{selectedApp?.fullName}</strong>'s application with the following reason:</>}
+            detail={
+              <>
+                <div className="fw-bold mb-1">{selectedApp?.fullName}</div>
+                <div className="text-muted small mb-2">{selectedApp?.email}</div>
+                <div className="border-top pt-2 mt-1" style={{ fontSize: '13px', color: '#18181B' }}>
+                  <span className="text-muted" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rejection Reason</span>
+                  <div className="mt-1">{denyReason}</div>
+                </div>
+              </>
+            }
+            warning="This will notify the applicant by email with the reason above."
+            confirmLabel="Confirm Deny"
+            confirmVariant="danger"
+            loading={isProcessing}
+          />
         </>
       ) : activeSection === 'users' ? (
         <>
@@ -412,6 +591,122 @@ export default function AdminDashboard() {
             columns={approvedColumns}
             pageSize={6}
             emptyMessage="No approved users found."
+          />
+
+          {/* ---- Edit User Modal ---- */}
+          <Modal show={showEditModal} onHide={closeEditModal} backdrop="static" centered>
+            <Modal.Header closeButton={!isUserProcessing}>
+              <Modal.Title>Edit User: {selectedUser?.fullName}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="text-muted small mb-3">
+                Leave <strong>Password</strong> blank to keep the current password unchanged.
+              </p>
+              <FormField
+                label="Full Name"
+                type="text"
+                value={editForm.fullName}
+                onChange={(e) => setEditForm(f => ({ ...f, fullName: e.target.value }))}
+              />
+              <FormField
+                label="Email Address"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))}
+              />
+              <Form.Group className="mb-3">
+                <Form.Label>Barangay</Form.Label>
+                <Form.Select
+                  value={editForm.barangay}
+                  onChange={(e) => setEditForm(f => ({ ...f, barangay: e.target.value }))}
+                >
+                  {BARANGAYS.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <FormField
+                label="New Password"
+                type="password"
+                placeholder="Leave blank to keep unchanged"
+                value={editForm.password}
+                onChange={(e) => setEditForm(f => ({ ...f, password: e.target.value }))}
+              />
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={closeEditModal} disabled={isUserProcessing}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (getChangedFields().length === 0) {
+                    addToast('No changes detected.', 'warning');
+                    return;
+                  }
+                  setShowEditConfirm(true);
+                }}
+                disabled={isUserProcessing}
+              >
+                Save Changes
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
+          {/* ---- Edit Confirmation Dialog ---- */}
+          <ConfirmDialog
+            show={showEditConfirm}
+            onCancel={() => setShowEditConfirm(false)}
+            onConfirm={handleUpdateUser}
+            title="Confirm Changes"
+            message={<>You are about to update <strong>{selectedUser?.fullName}</strong>'s account with the following changes:</>}
+            detail={
+              <>
+                {getChangedFields().map(change => (
+                  <div key={change.label} className="mb-1">
+                    <span className="text-muted" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {change.label}
+                    </span>
+                    <div style={{ fontSize: '13px', color: '#18181B' }}>
+                      {change.from && (
+                        <>
+                          <span style={{ textDecoration: 'line-through', color: '#71717A' }}>{change.from}</span>
+                          {' → '}
+                        </>
+                      )}
+                      <span className="fw-semibold">{change.to}</span>
+                    </div>
+                  </div>
+                ))}
+              </>
+            }
+            warning={
+              getChangedFields().some(c => c.sensitive)
+                ? 'Email or password changes will affect this user’s login credentials immediately.'
+                : undefined
+            }
+            confirmLabel="Confirm Changes"
+            confirmVariant="primary"
+            loading={isUserProcessing}
+          />
+
+          {/* ---- Delete Confirmation Modal ---- */}
+          <ConfirmDialog
+            show={showDeleteConfirm}
+            onCancel={closeDeleteConfirm}
+            onConfirm={handleDeleteUser}
+            title="Delete User"
+            message="Are you sure you want to permanently delete this user?"
+            detail={
+              <>
+                <div className="fw-bold">{selectedUser?.fullName}</div>
+                <div className="text-muted small">{selectedUser?.email}</div>
+                <div className="text-muted small">{selectedUser?.barangay}</div>
+              </>
+            }
+            warning={<>This will remove their account from Firebase Auth and all profile data. This action is <strong>irreversible</strong>.</>}
+            confirmLabel="Confirm Delete"
+            loading={isUserProcessing}
           />
         </>
       ) : (
