@@ -22,13 +22,27 @@ interface PendingUser {
   submittedAt: any;
 }
 
+interface ApprovedUser {
+  id: string;
+  uid: string;
+  fullName: string;
+  email: string;
+  barangay: string;
+  role: string;
+  status: string;
+  approvedAt: any;
+}
+
 export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [approvedCount, setApprovedCount] = useState(0);
   const [activeSection, setActiveSection] = useState<string>('applicants');
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBarangay, setFilterBarangay] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userFilterBarangay, setUserFilterBarangay] = useState('');
   
   const [selectedApp, setSelectedApp] = useState<PendingUser | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -69,7 +83,17 @@ export default function AdminDashboard() {
 
     const qApproved = query(collection(db, 'users'), where('status', '==', 'approved'));
     const unsubApproved = onSnapshot(qApproved, (snapshot) => {
-      setApprovedCount(snapshot.size);
+      const users: ApprovedUser[] = [];
+      snapshot.forEach((doc) => {
+        users.push({ id: doc.id, ...doc.data() } as ApprovedUser);
+      });
+      users.sort((a, b) => {
+        const timeA = a.approvedAt?.toMillis() || 0;
+        const timeB = b.approvedAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
+      setApprovedUsers(users);
+      setApprovedCount(users.length);
     });
 
     return () => {
@@ -161,6 +185,54 @@ export default function AdminDashboard() {
           Review Application
         </Button>
       )
+    }
+  ];
+
+  const filteredApprovedUsers = approvedUsers.filter(u => {
+    const matchesSearch = u.fullName.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+                          u.email.toLowerCase().includes(userSearchTerm.toLowerCase());
+    const matchesBarangay = userFilterBarangay === '' || u.barangay === userFilterBarangay;
+    return matchesSearch && matchesBarangay;
+  });
+
+  const approvedColumns: Column<ApprovedUser>[] = [
+    {
+      header: 'Full Name',
+      accessor: 'fullName',
+      className: 'fw-bold'
+    },
+    {
+      header: 'Email Address',
+      accessor: 'email',
+      className: 'text-muted'
+    },
+    {
+      header: 'Barangay',
+      accessor: 'barangay'
+    },
+    {
+      header: 'Role',
+      render: (user) => (
+        <span className="badge bg-info text-dark text-capitalize">
+          {user.role === 'admin' ? 'Admin' : 'SK Official'}
+        </span>
+      )
+    },
+    {
+      header: 'Status',
+      render: () => <StatusBadge status="approved" />
+    },
+    {
+      header: 'Date Approved',
+      render: (user) => {
+        if (!user.approvedAt) return 'N/A';
+        const date = user.approvedAt.toDate ? user.approvedAt.toDate() : new Date(user.approvedAt);
+        return date.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
     }
   ];
 
@@ -319,6 +391,37 @@ export default function AdminDashboard() {
             </Modal.Body>
           </Modal>
         </>
+      ) : activeSection === 'users' ? (
+        <>
+          <Card className="border-0 shadow-sm mb-4">
+            <Card.Body className="d-flex flex-wrap gap-3">
+              <Form.Control 
+                type="text" 
+                placeholder="Search by name or email..." 
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                style={{ maxWidth: '300px' }}
+              />
+              <Form.Select 
+                value={userFilterBarangay} 
+                onChange={(e) => setUserFilterBarangay(e.target.value)}
+                style={{ maxWidth: '250px' }}
+              >
+                <option value="">All Barangays</option>
+                {BARANGAYS.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </Form.Select>
+            </Card.Body>
+          </Card>
+
+          <DataTable
+            data={filteredApprovedUsers}
+            columns={approvedColumns}
+            pageSize={5}
+            emptyMessage="No approved users found."
+          />
+        </>
       ) : (
         <Card className="border-0 shadow-sm text-center p-5">
           <Card.Body className="py-5">
@@ -327,7 +430,6 @@ export default function AdminDashboard() {
             </div>
             <h2 className="text-primary fw-bold mb-3">
               {activeSection === 'home' && 'Home'}
-              {activeSection === 'users' && 'Users'}
               {activeSection === 'submissions' && 'Submissions'}
               {activeSection === 'settings' && 'User Settings'}
               {' '}Section
