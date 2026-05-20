@@ -286,7 +286,7 @@ export default function AdminDashboard() {
           <DataTable
             data={filteredUsers}
             columns={columns}
-            pageSize={5}
+            pageSize={6}
             emptyMessage="No pending applications found."
           />
 
@@ -418,7 +418,7 @@ export default function AdminDashboard() {
           <DataTable
             data={filteredApprovedUsers}
             columns={approvedColumns}
-            pageSize={5}
+            pageSize={6}
             emptyMessage="No approved users found."
           />
         </>
