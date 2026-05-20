@@ -1,18 +1,27 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Helper to check if user has admin role in 'users' collection
     function isAdmin() {
-      return request.auth != null && 
+      return request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // Pending Users: Applicants can write, only Admins can read or delete
     match /pending_users/{applicationId} {
-      allow create: if true; // anyone can submit an application
+      // Anyone can submit an application, but only with the expected fields.
+      // This prevents injection of arbitrary fields (e.g. role, status spoofing)
+      // and limits junk-data flooding to only structurally valid documents.
+      allow create: if request.resource.data.keys().hasOnly([
+                        'fullName', 'email', 'barangay', 'proofStoragePath', 'submittedAt'
+                      ])
+                      && request.resource.data.fullName is string
+                      && request.resource.data.email is string
+                      && request.resource.data.barangay is string;
+
       allow read, delete: if isAdmin();
-      allow update: if false; // applications cannot be tampered with
+      allow update: if false; // Applications cannot be tampered with after submission
     }
 
     // Approved Users: Users can read their own data; Admins have full access

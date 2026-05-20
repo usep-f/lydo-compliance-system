@@ -73,7 +73,6 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
         email: regEmail,
         barangay: regBarangay,
         proofStoragePath: storagePath,
-        status: 'pending',
         submittedAt: serverTimestamp()
       });
 

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
 import { db, storage } from '../firebase';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
 import DashboardShell from '../components/layout/DashboardShell';
 import StatCard from '../components/common/StatCard';
-import StatusBadge from '../components/common/StatusBadge';
 import LoadingButton from '../components/common/LoadingButton';
 import FormField from '../components/common/FormField';
 import { DataTable } from '../components/common/DataTable';
@@ -29,7 +28,6 @@ interface ApprovedUser {
   email: string;
   barangay: string;
   role: string;
-  status: string;
   approvedAt: any;
 }
 
@@ -81,7 +79,7 @@ export default function AdminDashboard() {
       setPendingUsers(users);
     });
 
-    const qApproved = query(collection(db, 'users'), where('status', '==', 'approved'));
+    const qApproved = query(collection(db, 'users'));
     const unsubApproved = onSnapshot(qApproved, (snapshot) => {
       const users: ApprovedUser[] = [];
       snapshot.forEach((doc) => {
@@ -173,10 +171,7 @@ export default function AdminDashboard() {
       header: 'Barangay',
       accessor: 'barangay'
     },
-    {
-      header: 'Status',
-      render: () => <StatusBadge status="pending" />
-    },
+
     {
       header: 'Action',
       className: 'text-end',
@@ -218,10 +213,7 @@ export default function AdminDashboard() {
         </span>
       )
     },
-    {
-      header: 'Status',
-      render: () => <StatusBadge status="approved" />
-    },
+
     {
       header: 'Date Approved',
       render: (user) => {
