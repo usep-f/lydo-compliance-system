@@ -5,8 +5,8 @@ interface FormFieldProps {
   label: string;
   type?: string;
   placeholder?: string;
-  value: string | number;
-  onChange: (e: React.ChangeEvent<any>) => void;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<any>) => void;
   required?: boolean;
   as?: any;
   rows?: number;
@@ -42,7 +42,7 @@ const FormField: React.FC<FormFieldProps> = ({
         as={as}
         rows={rows}
         placeholder={placeholder}
-        value={value}
+        value={type === 'file' ? undefined : value}
         onChange={onChange}
         required={required}
         accept={accept}

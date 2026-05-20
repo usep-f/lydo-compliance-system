@@ -9,6 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import SetupPasswordPage from './pages/SetupPasswordPage';
 import './App.css';
 
 function App() {
@@ -75,6 +76,11 @@ function App() {
         <Route 
           path="/" 
           element={<HomePage />} 
+        />
+
+        <Route 
+          path="/setup-password" 
+          element={<SetupPasswordPage />} 
         />
         
         <Route 

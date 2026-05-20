@@ -95,7 +95,9 @@ export const approveUser = functions.https.onCall(async (request) => {
     });
 
     // 2. Generate Password Reset Link
-    const resetLink = await admin.auth().generatePasswordResetLink(applicantData.email);
+    const defaultResetLink = await admin.auth().generatePasswordResetLink(applicantData.email);
+    const urlParts = new URL(defaultResetLink);
+    const customResetLink = `https://lydo-compliance-system-ce8c3.firebaseapp.com/setup-password${urlParts.search}`;
 
     // 3. Move to Users Collection
     await db.collection('users').doc(userRecord.uid).set({
@@ -127,7 +129,7 @@ export const approveUser = functions.https.onCall(async (request) => {
       'Application Approved - Set Your Password',
       `<h1>Welcome to Lydo Compliance System</h1>
              <p>Your SK Official application has been approved.</p>
-             <p>Please <a href="${resetLink}">click here to set your password</a>.</p>`
+             <p>Please <a href="${customResetLink}">click here to set your password</a>.</p>`
     );
 
     return { success: true, message: 'User approved and email sent.' };

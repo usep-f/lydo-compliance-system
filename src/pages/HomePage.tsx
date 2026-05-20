@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -15,6 +14,16 @@ export default function HomePage() {
   const [userName, setUserName] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('login') === 'true') {
+      setShowAuthModal(true);
+      // Clean up URL so refresh doesn't reopen it
+      searchParams.delete('login');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {

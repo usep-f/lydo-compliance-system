@@ -188,7 +188,6 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
               type="file"
               required
               accept=".pdf,image/*"
-              value=""
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegFile(e.target.files?.[0] || null)}
               helpText="Upload a valid ID or certificate proving your SK Official status."
               className="mb-4"
