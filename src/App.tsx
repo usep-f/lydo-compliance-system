@@ -10,12 +10,14 @@ import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SetupPasswordPage from './pages/SetupPasswordPage';
+import { ToastProvider, useToast } from './context/ToastContext';
 import './App.css';
 
-function App() {
+function AppInner() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -36,7 +38,7 @@ function App() {
               await signOut(auth);
               setUser(null);
               setRole(null);
-              alert("Your account is not approved yet.");
+              addToast('Your account is not approved yet.', 'warning');
             }
           } else {
             // User authenticated but no document found.
@@ -44,7 +46,7 @@ function App() {
             await signOut(auth);
             setUser(null);
             setRole(null);
-            alert("No user profile found. Please ensure you have an approved account.");
+            addToast('No user profile found. Please ensure you have an approved account.', 'error');
           }
         } catch (error) {
           console.error("Error fetching user role:", error);
@@ -60,7 +62,7 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [addToast]);
 
   if (loading) {
     return (
@@ -100,6 +102,14 @@ function App() {
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   );
 }
 

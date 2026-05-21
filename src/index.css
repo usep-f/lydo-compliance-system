@@ -659,3 +659,25 @@ textarea.form-control {
 .tooltip .tooltip-arrow::before {
   border-top-color: #18181B !important;
 }
+
+/* ==========================================
+   Toast Notifications
+   ========================================== */
+
+@keyframes lydo-toast-in {
+  from { transform: translateX(calc(100% + 24px)); opacity: 0; }
+  to   { transform: translateX(0);                 opacity: 1; }
+}
+
+@keyframes lydo-toast-progress {
+  from { width: 100%; }
+  to   { width: 0%;   }
+}
+
+.lydo-toast {
+  animation: lydo-toast-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lydo-toast-progress {
+  animation: lydo-toast-progress var(--toast-duration, 4000ms) linear forwards;
+}

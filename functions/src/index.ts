@@ -302,3 +302,188 @@ export const denyUser = functions.https.onCall(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// updateUser — Admin edits an existing user's email, password, fullName, or barangay.
+// Role is intentionally excluded and can never be changed through this function.
+// ---------------------------------------------------------------------------
+
+export const updateUser = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (request) => {
+    // 1. Authentication check
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+
+    // 2. Authorization check — caller must be an admin
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data()?.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Only admins can update users.');
+    }
+
+    // 3. Extract and validate the target UID
+    const { uid, email, password, fullName, barangay } = request.data;
+
+    if (typeof uid !== 'string' || uid.trim().length === 0 || uid.includes('/')) {
+      throw new functions.https.HttpsError('invalid-argument', 'A valid user UID is required.');
+    }
+
+    // 4. Block self-editing — admins cannot modify their own account through this function
+    if (request.auth.uid === uid) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Admins cannot edit their own account through this panel.'
+      );
+    }
+
+    // 5. Fetch the target user's Firestore document to check their role
+    const targetDoc = await db.collection('users').doc(uid).get();
+    if (!targetDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Target user not found.');
+    }
+    if (targetDoc.data()?.role === 'admin') {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Admin accounts cannot be edited through this panel.'
+      );
+    }
+
+    // 6. Validate optional fields and ensure at least one field is being updated
+    const authUpdate: { email?: string; password?: string } = {};
+    const firestoreUpdate: { email?: string; fullName?: string; barangay?: string } = {};
+
+    if (email !== undefined && email !== null) {
+      if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        throw new functions.https.HttpsError('invalid-argument', 'A valid email address is required.');
+      }
+      authUpdate.email = email.trim();
+      firestoreUpdate.email = email.trim();
+    }
+
+    // Password is only updated if explicitly provided and non-empty
+    if (password !== undefined && password !== null && password !== '') {
+      if (typeof password !== 'string' || password.length < 6) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          'Password must be at least 6 characters long.'
+        );
+      }
+      authUpdate.password = password;
+    }
+
+    if (fullName !== undefined && fullName !== null) {
+      if (typeof fullName !== 'string' || fullName.trim().length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Full name must be a non-empty string.');
+      }
+      firestoreUpdate.fullName = fullName.trim();
+    }
+
+    if (barangay !== undefined && barangay !== null) {
+      if (typeof barangay !== 'string' || barangay.trim().length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Barangay must be a non-empty string.');
+      }
+      firestoreUpdate.barangay = barangay.trim();
+    }
+
+    // Reject no-op calls — at least one field must be changing
+    const hasAuthUpdate = Object.keys(authUpdate).length > 0;
+    const hasFirestoreUpdate = Object.keys(firestoreUpdate).length > 0;
+    if (!hasAuthUpdate && !hasFirestoreUpdate) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'At least one field (email, password, fullName, or barangay) must be provided.'
+      );
+    }
+
+    try {
+      // 7. Apply Auth update (email and/or password) if there are changes
+      if (hasAuthUpdate) {
+        await admin.auth().updateUser(uid, authUpdate);
+      }
+
+      // 8. Apply Firestore update for profile fields
+      if (hasFirestoreUpdate) {
+        await db.collection('users').doc(uid).update(firestoreUpdate);
+      }
+
+      return { success: true, message: 'User updated successfully.' };
+    } catch (error: any) {
+      console.error('Update user error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An internal error occurred. Please try again.'
+      );
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// deleteUser — Admin permanently deletes a user from Firebase Auth and Firestore.
+// Cannot target admin-role accounts or the caller's own account.
+// ---------------------------------------------------------------------------
+
+export const deleteUser = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (request) => {
+    // 1. Authentication check
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+
+    // 2. Authorization check — caller must be an admin
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data()?.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Only admins can delete users.');
+    }
+
+    // 3. Validate the target UID
+    const { uid } = request.data;
+
+    if (typeof uid !== 'string' || uid.trim().length === 0 || uid.includes('/')) {
+      throw new functions.https.HttpsError('invalid-argument', 'A valid user UID is required.');
+    }
+
+    // 4. Block self-deletion
+    if (request.auth.uid === uid) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Admins cannot delete their own account.'
+      );
+    }
+
+    // 5. Fetch the target user to check their role
+    const targetDoc = await db.collection('users').doc(uid).get();
+    if (!targetDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Target user not found.');
+    }
+    if (targetDoc.data()?.role === 'admin') {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Admin accounts cannot be deleted through this panel.'
+      );
+    }
+
+    try {
+      // 6. Delete from Firebase Auth first, then Firestore
+      await admin.auth().deleteUser(uid);
+      await db.collection('users').doc(uid).delete();
+
+      return { success: true, message: 'User deleted successfully.' };
+    } catch (error: any) {
+      console.error('Delete user error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An internal error occurred. Please try again.'
+      );
+    }
+  }
+);
