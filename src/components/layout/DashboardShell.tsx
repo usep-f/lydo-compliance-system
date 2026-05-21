@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container } from 'react-bootstrap';
 import DashboardNavbar from './DashboardNavbar';
+import type { NavigationSection } from './DashboardNavbar';
 import DashboardSidebar from './DashboardSidebar';
 
 interface DashboardShellProps {
@@ -9,6 +10,7 @@ interface DashboardShellProps {
   fluid?: boolean;
   activeSection?: string;
   onSectionSelect?: (section: string) => void;
+  sections?: NavigationSection[];
 }
 
 const DashboardShell: React.FC<DashboardShellProps> = ({ 
@@ -16,7 +18,8 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
   children, 
   fluid = false,
   activeSection,
-  onSectionSelect
+  onSectionSelect,
+  sections
 }) => {
   return (
     <div className="dashboard-layout d-flex min-vh-100 bg-light">
@@ -26,6 +29,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
           title={title}
           activeSection={activeSection}
           onSectionSelect={onSectionSelect}
+          sections={sections}
         />
       )}
 
@@ -36,6 +40,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
           title={title} 
           activeSection={activeSection}
           onSectionSelect={onSectionSelect}
+          sections={sections}
         />
         
         {/* Inner Content Body */}

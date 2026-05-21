@@ -148,21 +148,42 @@ export interface PendingSubmission {
   barangay: string;
   fullName: string;
   category: 'scheduled' | 'asap' | 'perennial';
-  documentType: string;
-  documentLabel: string;
-  period: string;                // e.g., "2026-Q1", "2026-04", "ASAP"
+  documentType: string;          // e.g., 'full_disclosure'
+  documentLabel: string;         // user-friendly
+  period: string;                // e.g., '2026-Q1', 'ASAP'
   year: number;
-  fileStoragePath: string;
+  accomplishmentCategory?: string | null; // e.g., 'agriculture'
   fileName: string;
   fileSize: number;
+  fileStoragePath: string;
+  fileUrl: string;
   pageCount: number;
-  pdfMetadata: PdfMetadata;
+  pdfMetadata?: PdfMetadata;
+  status: 'pending' | 'denied';  // Usually starts 'pending'
   submittedAt: any;              // Firestore Timestamp
 }
 
-export interface ApprovedSubmission extends PendingSubmission {
+export interface ApprovedSubmission {
+  id: string;
+  userId: string;
+  barangay: string;
+  fullName: string;
+  category: 'scheduled' | 'asap' | 'perennial';
+  documentType: string;
+  documentLabel: string;
+  period: string;
+  year: number;
+  accomplishmentCategory?: string | null;
+  fileName: string;
+  fileSize: number;
+  fileStoragePath: string;
+  fileUrl: string;
+  pageCount: number;
+  pdfMetadata?: PdfMetadata;
+  status: 'approved';
+  submittedAt: any;
   approvedAt: any;               // Firestore Timestamp
-  approvedBy: string;            // Admin UID
+  approvedBy: string;            // Admin's UID
 }
 
 export interface AccomplishmentReports {

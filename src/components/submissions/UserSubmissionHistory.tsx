@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Card, Form, Button } from 'react-bootstrap';
-import { BARANGAYS } from '../../constants/barangays';
 import { ALL_UPLOAD_TYPES } from '../../constants/submissionTypes';
 import type { ApprovedSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
@@ -8,18 +7,19 @@ import { formatFileSize } from '../../utils/pdfScreening';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
-import { useSubmissions } from '../../hooks/useSubmissions';
+
+interface UserSubmissionHistoryProps {
+  approved: ApprovedSubmission[];
+  loading?: boolean;
+}
 
 /**
- * Admin Submission History Section
- * Read-only view for all historically approved submissions.
+ * User Submission History Section
+ * Read-only view for the active user's historically approved submissions.
  */
-const AdminSubmissionHistory: React.FC = () => {
-  const { approved, loading } = useSubmissions(); // Only use approved submissions
-
+const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved, loading = false }) => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterBarangay, setFilterBarangay] = useState('');
   const [filterDocType, setFilterDocType] = useState('');
 
   // Details modal state
@@ -29,11 +29,10 @@ const AdminSubmissionHistory: React.FC = () => {
   // Filter approved submissions
   const filteredApproved = approved.filter((s) => {
     const matchesSearch =
-      (s.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.documentLabel || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBarangay = filterBarangay === '' || s.barangay === filterBarangay;
+      (s.documentLabel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.fileName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDocType = filterDocType === '' || s.documentType === filterDocType;
-    return matchesSearch && matchesBarangay && matchesDocType;
+    return matchesSearch && matchesDocType;
   });
 
   const openDetails = (sub: ApprovedSubmission) => {
@@ -46,16 +45,14 @@ const AdminSubmissionHistory: React.FC = () => {
     setSelectedSub(null);
   };
 
-  // Download handler (gets URL via getDownloadURL inside the DocumentReviewModal logic, or we can just open if we fetch it. Wait, the modal fetches it.)
-  // Actually, wait, DocumentReviewModal handles downloading internally if we pass `fileUrl`. Wait, we need to fetch `fileUrl` here first, or the modal does it?
-  // Let's copy the url fetching logic from AdminSubmissionsSection.
-
   const [fileUrl, setFileUrl] = useState('');
   const [fileLoading, setFileLoading] = useState(false);
 
   React.useEffect(() => {
     if (selectedSub?.fileStoragePath) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileUrl('');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileLoading(true);
       import('firebase/storage').then(({ ref, getDownloadURL }) => {
         import('../../firebase').then(({ storage }) => {
@@ -67,7 +64,9 @@ const AdminSubmissionHistory: React.FC = () => {
         });
       });
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileUrl('');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileLoading(false);
     }
   }, [selectedSub]);
@@ -92,11 +91,15 @@ const AdminSubmissionHistory: React.FC = () => {
       ),
     },
     {
-      header: 'Submitted By',
+      header: 'File Name',
       render: (sub) => (
         <div>
-          <div className="fw-semibold">{sub.fullName}</div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>{sub.barangay}</div>
+          <div className="fw-semibold text-truncate" style={{ maxWidth: '200px' }} title={sub.fileName}>
+            {sub.fileName}
+          </div>
+          <div className="text-muted" style={{ fontSize: '12px' }}>
+            {formatFileSize(sub.fileSize)} • {sub.pageCount} page{sub.pageCount !== 1 ? 's' : ''}
+          </div>
         </div>
       ),
     },
@@ -132,7 +135,7 @@ const AdminSubmissionHistory: React.FC = () => {
           Submission History
         </h4>
         <p className="text-muted mb-0" style={{ fontSize: '13px' }}>
-          Browse and download all historically approved submissions.
+          Browse and download your past approved submissions.
         </p>
       </div>
 
@@ -141,25 +144,15 @@ const AdminSubmissionHistory: React.FC = () => {
         <Card.Body className="d-flex flex-wrap gap-3">
           <Form.Control
             type="text"
-            placeholder="Search by name or document..."
+            placeholder="Search documents..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ maxWidth: '250px' }}
+            style={{ maxWidth: '300px' }}
           />
-          <Form.Select
-            value={filterBarangay}
-            onChange={(e) => setFilterBarangay(e.target.value)}
-            style={{ maxWidth: '220px' }}
-          >
-            <option value="">All Barangays</option>
-            {BARANGAYS.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </Form.Select>
           <Form.Select
             value={filterDocType}
             onChange={(e) => setFilterDocType(e.target.value)}
-            style={{ maxWidth: '250px' }}
+            style={{ maxWidth: '300px' }}
           >
             <option value="">All Document Types</option>
             {ALL_UPLOAD_TYPES.map((dt) => (
@@ -195,16 +188,6 @@ const AdminSubmissionHistory: React.FC = () => {
             <h3 className="h5 fw-bold mb-4" style={{ fontFamily: 'var(--font-headline)' }}>
               Submission Details
             </h3>
-
-            <div className="mb-3">
-              <div className="overline-text text-muted mb-1">Submitted By</div>
-              <div className="body-large text-dark fw-semibold">{selectedSub?.fullName}</div>
-            </div>
-
-            <div className="mb-3">
-              <div className="overline-text text-muted mb-1">Barangay</div>
-              <div className="body-large text-dark fw-semibold">{selectedSub?.barangay}</div>
-            </div>
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">Document Type</div>
@@ -268,4 +251,4 @@ const AdminSubmissionHistory: React.FC = () => {
   );
 };
 
-export default AdminSubmissionHistory;
+export default UserSubmissionHistory;
