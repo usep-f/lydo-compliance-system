@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
     "firebase": "^12.13.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.2.6",
     "react-bootstrap": "^2.10.10",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1"
   },

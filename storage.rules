@@ -2,6 +2,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Helper to check if user has admin role
+    function isAdmin() {
+      return request.auth != null &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     match /temp_proofs/{filename} {
       // Allow unauthenticated uploads for registration, but enforce:
       // - Hard 50 MB file size limit
@@ -11,6 +17,23 @@ service firebase.storage {
 
       // Only authenticated users (admins) can read or delete proof files
       allow read, delete: if request.auth != null;
+    }
+
+    // ── Submission Files ──
+    // Users upload PDFs under their own userId path.
+    // Only PDF format, max 100 MB.
+    match /submission_files/{userId}/{allPaths=**} {
+      // Upload: authenticated owner only, PDF only, 100 MB cap
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 100 * 1024 * 1024
+                   && request.resource.contentType == 'application/pdf';
+
+      // Read: owner or any authenticated user (admin reads for review)
+      allow read: if request.auth != null;
+
+      // Delete: only admins (via Cloud Functions for denied submissions)
+      allow delete: if request.auth != null && isAdmin();
     }
 
     // All other storage paths are denied by default.
