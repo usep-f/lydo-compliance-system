@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
-import { db, storage } from '../firebase';
+import { db, storage, functions } from '../firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
 import DashboardShell from '../components/layout/DashboardShell';
@@ -64,7 +64,6 @@ export default function AdminDashboard() {
   const [isUserProcessing, setIsUserProcessing] = useState(false);
   const [editForm, setEditForm] = useState({ email: '', password: '', fullName: '', barangay: '' });
   
-  const functions = getFunctions();
   const { addToast } = useToast();
 
   useEffect(() => {

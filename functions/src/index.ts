@@ -2,6 +2,9 @@ import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 
+// Set global options to default all functions to Asia Southeast 1 (Singapore) region
+functions.setGlobalOptions({ region: 'asia-southeast1' });
+
 admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage().bucket();

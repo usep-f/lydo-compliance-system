@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Form } from 'react-bootstrap';
 import { ref, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { storage, functions } from '../../firebase';
+import { httpsCallable } from 'firebase/functions';
 import { BARANGAYS } from '../../constants/barangays';
 import { ALL_UPLOAD_TYPES } from '../../constants/submissionTypes';
 import type { PendingSubmission } from '../../constants/submissionTypes';
@@ -25,7 +25,6 @@ import { useToast } from '../../context/ToastContext';
 const AdminSubmissionsSection: React.FC = () => {
   const { pending = [], history = [], loading } = useSubmissions(undefined, true); // All submissions
   const { addToast } = useToast();
-  const functions = getFunctions();
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
