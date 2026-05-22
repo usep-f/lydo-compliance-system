@@ -7,12 +7,14 @@ import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
 import DashboardShell from '../components/layout/DashboardShell';
 import StatCard from '../components/common/StatCard';
-import LoadingButton from '../components/common/LoadingButton';
 import FormField from '../components/common/FormField';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { DataTable } from '../components/common/DataTable';
 import type { Column } from '../components/common/DataTable';
 import { useToast } from '../context/ToastContext';
+import AdminSubmissionsSection from '../components/submissions/AdminSubmissionsSection';
+import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHistory';
+import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
 
 interface PendingUser {
   id: string;
@@ -709,6 +711,12 @@ export default function AdminDashboard() {
             loading={isUserProcessing}
           />
         </>
+      ) : activeSection === 'submissions' ? (
+        <AdminSubmissionsSection />
+      ) : activeSection === 'history' ? (
+        <AdminSubmissionHistory />
+      ) : activeSection === 'analytics' ? (
+        <AdminAnalyticsSection />
       ) : (
         <Card className="border-0 shadow-sm text-center p-5">
           <Card.Body className="py-5">
@@ -717,7 +725,6 @@ export default function AdminDashboard() {
             </div>
             <h2 className="text-primary fw-bold mb-3">
               {activeSection === 'home' && 'Home'}
-              {activeSection === 'submissions' && 'Submissions'}
               {activeSection === 'settings' && 'User Settings'}
               {' '}Section
             </h2>

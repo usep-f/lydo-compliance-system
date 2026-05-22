@@ -29,5 +29,63 @@ service cloud.firestore {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin();
     }
+
+    // ── Pending Submissions ──
+    // Users create submissions for themselves; admins read/delete via Cloud Functions
+    match /pending_submissions/{submissionId} {
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+             'userId', 'barangay', 'fullName', 'category',
+             'documentType', 'documentLabel', 'period', 'year',
+             'accomplishmentCategory', 'fileStoragePath', 'fileName', 
+             'fileSize', 'pageCount', 'pdfMetadata', 'submittedAt'
+           ])
+        && request.resource.data.category in ['scheduled', 'asap', 'perennial']
+        && request.resource.data.userId is string
+        && request.resource.data.documentType is string
+        && request.resource.data.period is string
+        && request.resource.data.fileSize is number
+        && request.resource.data.fileSize <= 104857600;
+
+      allow read: if request.auth != null
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // No client-side updates — prevents tampering after submission
+      allow update: if false;
+
+      // Only admins (via Cloud Functions) delete
+      allow delete: if isAdmin();
+    }
+
+    // ── Approved Submissions ──
+    // Written exclusively by Cloud Functions (Admin SDK bypasses rules).
+    // Client-side writes are fully blocked.
+    match /submissions/{submissionId} {
+      allow read: if request.auth != null
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // No direct client writes — only Cloud Functions can write here
+      allow write: if false;
+    }
+
+    // ── Perennial Counts ──
+    // Users can create/update their own; admins can read all
+    match /perennial_counts/{docId} {
+      allow create, update: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+             'userId', 'barangay', 'fullName', 'year',
+             'resolutions', 'accomplishmentReports', 'updatedAt'
+           ])
+        && request.resource.data.resolutions is number
+        && request.resource.data.resolutions >= 0
+        && request.resource.data.year is number;
+
+      allow read: if request.auth != null
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow delete: if false;
+    }
   }
 }

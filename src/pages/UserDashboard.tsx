@@ -1,17 +1,161 @@
+import { useState, useEffect } from 'react';
 import { Card } from 'react-bootstrap';
+import { auth, db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import DashboardShell from '../components/layout/DashboardShell';
+import UnifiedSubmissionForm from '../components/submissions/UnifiedSubmissionForm';
+import ConfirmSubmissionModal from '../components/submissions/ConfirmSubmissionModal';
+import UserSubmissionHistory from '../components/submissions/UserSubmissionHistory';
+import { useSubmissions } from '../hooks/useSubmissions';
+import type { SubmissionTypeDefinition } from '../constants/submissionTypes';
+import type { PdfScreeningResult } from '../utils/pdfScreening';
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+const USER_SECTIONS = [
+  { id: 'home', label: 'Home', isImplemented: true, icon: 'home' },
+  { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'upload_file' },
+  { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
+  { id: 'settings', label: 'User Settings', isImplemented: true, icon: 'settings' },
+];
 
 export default function UserDashboard() {
+  const [activeSection, setActiveSection] = useState('home');
+  const [userInfo, setUserInfo] = useState<{
+    uid: string;
+    barangay: string;
+    fullName: string;
+  } | null>(null);
+
+  // Upload modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<{
+    file: File;
+    documentType: SubmissionTypeDefinition;
+    period: string;
+    screening: PdfScreeningResult;
+  } | null>(null);
+
+  const currentYear = new Date().getFullYear();
+
+  // Fetch user profile info
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserInfo({
+              uid: user.uid,
+              barangay: data.barangay || '',
+              fullName: data.fullName || '',
+            });
+          }
+        } catch (err) {
+          console.error('Error loading user profile:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Subscribe to this user's submissions
+  const { pending = [], history = [] } = useSubmissions(userInfo?.uid);
+
+  const handleUploadSuccess = () => {
+    setShowConfirmModal(false);
+    setPendingUpload(null);
+    // Switch to history tab to see the pending submission
+    setActiveSection('history');
+  };
+
+  if (!userInfo) {
+    return (
+      <DashboardShell
+        title="SK Dashboard"
+        activeSection={activeSection}
+        onSectionSelect={setActiveSection}
+        sections={USER_SECTIONS}
+      >
+        <Card className="border-0 shadow-sm text-center p-5">
+          <Card.Body className="py-5 text-muted">Loading your dashboard...</Card.Body>
+        </Card>
+      </DashboardShell>
+    );
+  }
+
   return (
-    <DashboardShell title="User Dashboard">
-      <Card className="shadow-medium border-0 rounded-xl">
-        <Card.Body className="text-center p-5">
-          <div className="display-text text-primary mb-3">👋</div>
-          <h2 className="mb-3 text-primary fw-bold">Welcome Back!</h2>
-          <p className="body-large text-dark mb-1">You are logged in to the Lydo Compliance System.</p>
-          <p className="text-muted body-small mb-0">More features and tools are coming soon. Stay tuned!</p>
-        </Card.Body>
-      </Card>
+    <DashboardShell
+      title="SK Dashboard"
+      activeSection={activeSection}
+      onSectionSelect={setActiveSection}
+      sections={USER_SECTIONS}
+    >
+      {/* ====== HOME SECTION ====== */}
+      {activeSection === 'home' && (
+        <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5">
+          <span className="material-symbols-outlined text-muted mb-3" style={{ fontSize: '64px' }}>
+            home
+          </span>
+          <h4 className="fw-bold text-dark mb-2">Welcome to LYDO Compliance System</h4>
+          <p className="text-muted text-center" style={{ maxWidth: '400px' }}>
+            Select "Submissions" from the sidebar to upload a required document, or view your past records in "History".
+          </p>
+        </div>
+      )}
+
+      {/* ====== SUBMISSIONS SECTION ====== */}
+      {activeSection === 'submissions' && (
+        <div className="mb-5">
+          <UnifiedSubmissionForm 
+            currentYear={currentYear}
+            existingSubmissions={[...pending, ...history]}
+            onSubmitReady={(payload) => {
+              setPendingUpload(payload);
+              setShowConfirmModal(true);
+            }}
+          />
+        </div>
+      )}
+
+      {/* ====== HISTORY SECTION ====== */}
+      {activeSection === 'history' && (
+        <UserSubmissionHistory history={history} />
+      )}
+
+      {/* ====== SETTINGS SECTION ====== */}
+      {activeSection === 'settings' && (
+        <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5">
+          <span className="material-symbols-outlined text-muted mb-3" style={{ fontSize: '64px' }}>
+            settings_heart
+          </span>
+          <h4 className="fw-bold text-dark mb-2">User Settings</h4>
+          <p className="text-muted text-center" style={{ maxWidth: '300px' }}>
+            Account management and settings will be available in a future update.
+          </p>
+        </div>
+      )}
+
+      {/* Upload Confirmation Modal */}
+      {pendingUpload && (
+        <ConfirmSubmissionModal
+          show={showConfirmModal}
+          onHide={() => setShowConfirmModal(false)}
+          onSuccess={handleUploadSuccess}
+          file={pendingUpload.file}
+          screening={pendingUpload.screening}
+          documentType={pendingUpload.documentType}
+          period={pendingUpload.period}
+          year={currentYear}
+          userId={userInfo.uid}
+          barangay={userInfo.barangay}
+          fullName={userInfo.fullName}
+        />
+      )}
     </DashboardShell>
   );
 }

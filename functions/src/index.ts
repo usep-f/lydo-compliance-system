@@ -9,8 +9,8 @@ const storage = admin.storage().bucket();
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Only proof files under this prefix are eligible for deletion. */
-const ALLOWED_STORAGE_PREFIX = 'temp_proofs/';
+/** Only files under these prefixes are eligible for deletion. */
+const ALLOWED_STORAGE_PREFIXES = ['temp_proofs/', 'submission_files/'];
 
 /** Maximum allowed length for a denial reason string. */
 const MAX_REASON_LENGTH = 1000;
@@ -130,7 +130,10 @@ async function sendEmailViaBrevo(
  * preventing an attacker-controlled path from deleting arbitrary files.
  */
 async function safeDeleteStorageFile(storagePath: unknown): Promise<void> {
-  if (typeof storagePath !== 'string' || !storagePath.startsWith(ALLOWED_STORAGE_PREFIX)) {
+  if (
+    typeof storagePath !== 'string' ||
+    !ALLOWED_STORAGE_PREFIXES.some((prefix) => storagePath.startsWith(prefix))
+  ) {
     console.warn('Skipping storage deletion — path is missing or outside allowed prefix:', storagePath);
     return;
   }
@@ -480,6 +483,169 @@ export const deleteUser = functions.https.onCall(
       return { success: true, message: 'User deleted successfully.' };
     } catch (error: any) {
       console.error('Delete user error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An internal error occurred. Please try again.'
+      );
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// approveSubmission — Admin approves a pending file submission.
+// Moves the document from pending_submissions to submissions.
+// The file stays in Cloud Storage at the same path (no move needed).
+// ---------------------------------------------------------------------------
+
+export const approveSubmission = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (request) => {
+    // 1. Authentication check
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+
+    // 2. Authorization check — caller must be an admin
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data()?.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Only admins can approve submissions.');
+    }
+
+    // 3. Input validation
+    const { submissionId } = request.data;
+    validateApplicationId(submissionId);
+
+    // 4. Fetch the pending submission
+    const pendingRef = db.collection('pending_submissions').doc(submissionId);
+    const pendingDoc = await pendingRef.get();
+
+    if (!pendingDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Submission not found.');
+    }
+
+    const submissionData = pendingDoc.data();
+    if (!submissionData) {
+      throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+    }
+
+    try {
+      // 5. Create approved submission document with all original fields and status
+      await db.collection('submissions').doc(submissionId).set({
+        ...submissionData,
+        status: 'approved',
+        approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+        approvedBy: request.auth.uid,
+      });
+
+      // 6. Delete the pending document
+      await pendingRef.delete();
+
+      // 7. File stays in Cloud Storage — no move needed.
+      //    The fileStoragePath in the submissions doc points to the same location.
+
+      return { success: true, message: 'Submission approved successfully.' };
+    } catch (error: any) {
+      console.error('Approve submission error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An internal error occurred. Please try again.'
+      );
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// denySubmission — Admin denies a pending file submission.
+// Deletes the document from pending_submissions and the file from Storage.
+// Sends a denial notification email via Brevo.
+// ---------------------------------------------------------------------------
+
+export const denySubmission = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (request) => {
+    // 1. Authentication check
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+
+    // 2. Authorization check — caller must be an admin
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data()?.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Only admins can deny submissions.');
+    }
+
+    // 3. Input validation
+    const { submissionId, reason } = request.data;
+    validateApplicationId(submissionId);
+    validateReason(reason);
+
+    // 4. Fetch the pending submission
+    const pendingRef = db.collection('pending_submissions').doc(submissionId);
+    const pendingDoc = await pendingRef.get();
+
+    if (!pendingDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Submission not found.');
+    }
+
+    const submissionData = pendingDoc.data();
+    if (!submissionData) {
+      throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+    }
+
+    try {
+      // 5. Safe delete the file from Cloud Storage (path-traversal protected)
+      await safeDeleteStorageFile(submissionData?.fileStoragePath);
+
+      // 6. Move the document to the submissions collection with denied status
+      await db.collection('submissions').doc(submissionId).set({
+        ...submissionData,
+        status: 'denied',
+        fileStoragePath: null,
+        fileUrl: null,
+        deniedAt: admin.firestore.FieldValue.serverTimestamp(),
+        deniedBy: request.auth.uid,
+        reviewNotes: reason,
+      });
+
+      // 7. Delete the pending submission document
+      await pendingRef.delete();
+
+      // 7. Send denial email via Brevo — escape all user-supplied values
+      if (submissionData?.fullName && submissionData?.userId) {
+        // Fetch submitter's email from users collection
+        const userDoc = await db.collection('users').doc(submissionData.userId).get();
+        const userEmail = userDoc.data()?.email;
+
+        if (userEmail) {
+          const safeName = escapeHtml(submissionData.fullName ?? 'SK Official');
+          const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
+          const safePeriod = escapeHtml(submissionData.period ?? '');
+          const safeReason = escapeHtml(reason);
+
+          await sendEmailViaBrevo(
+            userEmail,
+            safeName,
+            `Submission Denied — ${submissionData.documentLabel ?? 'Document'}`,
+            `<h1>Submission Denied</h1>
+             <p>Dear ${safeName},</p>
+             <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been denied.</p>
+             <p><strong>Reason:</strong> ${safeReason}</p>
+             <p>Please review the feedback and submit a corrected document through the LYDO Compliance System.</p>`
+          );
+        }
+      }
+
+      return { success: true, message: 'Submission denied and notification sent.' };
+    } catch (error: any) {
+      console.error('Deny submission error:', error);
       throw new functions.https.HttpsError(
         'internal',
         'An internal error occurred. Please try again.'

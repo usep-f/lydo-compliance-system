@@ -22,7 +22,9 @@ const DEFAULT_SECTIONS: NavigationSection[] = [
   { id: 'home', label: 'Home', isImplemented: false, icon: 'home' },
   { id: 'applicants', label: 'Applicants', isImplemented: true, icon: 'badge' },
   { id: 'users', label: 'Users', isImplemented: true, icon: 'group' },
-  { id: 'submissions', label: 'Submissions', isImplemented: false, icon: 'description' },
+  { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'description' },
+  { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
+  { id: 'analytics', label: 'Analytics', isImplemented: true, icon: 'bar_chart' },
   { id: 'settings', label: 'User Settings', isImplemented: false, icon: 'settings' },
 ];
 
