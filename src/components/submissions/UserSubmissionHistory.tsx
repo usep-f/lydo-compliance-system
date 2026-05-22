@@ -91,6 +91,14 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
       ),
     },
     {
+      header: 'Submitted By',
+      render: (sub) => (
+        <div className="fw-semibold text-truncate" style={{ maxWidth: '150px' }} title={sub.fullName}>
+          {sub.fullName}
+        </div>
+      ),
+    },
+    {
       header: 'File Name',
       render: (sub) => (
         <div>
@@ -196,17 +204,23 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
       {/* Read-Only Document Modal */}
       <DocumentReviewModal
         show={showDetails}
-        onHide={closeDetails}
+        onHide={() => setShowDetails(false)}
         title={`History: ${selectedSub?.documentLabel || ''}`}
         fileUrl={fileUrl}
         fileLoading={fileLoading}
         locked={false}
+        hidePreview={selectedSub?.status === 'denied'}
         onDownload={handleDownload}
         infoPanel={
           <>
             <h3 className="h5 fw-bold mb-4" style={{ fontFamily: 'var(--font-headline)' }}>
               Submission Details
             </h3>
+
+            <div className="mb-3">
+              <div className="overline-text text-muted mb-1">Submitted By</div>
+              <div className="body-text text-dark fw-semibold">{selectedSub?.fullName}</div>
+            </div>
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">Document Type</div>

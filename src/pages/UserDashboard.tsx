@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import DashboardShell from '../components/layout/DashboardShell';
 import UnifiedSubmissionForm from '../components/submissions/UnifiedSubmissionForm';
+import UserPendingSubmissions from '../components/submissions/UserPendingSubmissions';
 import ConfirmSubmissionModal from '../components/submissions/ConfirmSubmissionModal';
 import UserSubmissionHistory from '../components/submissions/UserSubmissionHistory';
 import { useSubmissions } from '../hooks/useSubmissions';
@@ -63,8 +64,8 @@ export default function UserDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to this user's submissions
-  const { pending = [], history = [] } = useSubmissions(userInfo?.uid);
+  // Subscribe to this barangay's submissions
+  const { pending = [], history = [] } = useSubmissions(userInfo?.barangay);
 
   const handleUploadSuccess = () => {
     setShowConfirmModal(false);
@@ -119,6 +120,7 @@ export default function UserDashboard() {
               setShowConfirmModal(true);
             }}
           />
+          <UserPendingSubmissions pending={pending} />
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Alert } from 'react-bootstrap';
 import { ref, uploadBytesResumable } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { storage, db } from '../../firebase';
 import LoadingButton from '../common/LoadingButton';
 import { formatFileSize } from '../../utils/pdfScreening';
@@ -102,7 +102,12 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
             payload.accomplishmentCategory = accomplishmentCategory;
           }
 
-          await addDoc(collection(db, 'pending_submissions'), payload);
+          // Generate a deterministic ID to prevent simultaneous duplicate submissions
+          const safeBarangay = barangay.replace(/[^a-zA-Z0-9]/g, '_');
+          const safePeriod = period.replace(/[^a-zA-Z0-9]/g, '_');
+          const docId = `${safeBarangay}_${year}_${documentType.id}_${safePeriod}`;
+
+          await setDoc(doc(db, 'pending_submissions', docId), payload);
 
           addToast(`Document submitted successfully. Your ${documentType.label} is now pending review.`, 'success');
           setIsUploading(false);
