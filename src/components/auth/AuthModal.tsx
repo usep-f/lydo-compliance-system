@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Modal, Form, Button, Alert } from 'react-bootstrap';
-import { auth, db, storage } from '../../firebase';
+import { auth, db, storage, functions } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import { BARANGAYS } from '../../constants/barangays';
 import FormField from '../common/FormField';
 import LoadingButton from '../common/LoadingButton';
@@ -60,17 +61,38 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
 
     setLoading(true);
     try {
-      // 1. Upload File to Storage
+      // 1. Check email availability first via Cloud Function
+      const checkEmailAvailabilityFn = httpsCallable(functions, 'checkEmailAvailability');
+      const emailCheckResult = await checkEmailAvailabilityFn({ email: regEmail });
+      const { available, reason } = emailCheckResult.data as { available: boolean; reason?: string };
+
+      if (!available) {
+        if (reason === 'registered') {
+          setError("This email address is already in use by an approved SK Official.");
+        } else if (reason === 'pending') {
+          setError("This email address is currently associated with a pending registration application.");
+        } else {
+          setError("This email address is not available for registration.");
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Upload File to Storage
       const fileExt = regFile.name.split('.').pop();
       const storagePath = `temp_proofs/${Date.now()}_${regName.replace(/\s+/g, '_')}.${fileExt}`;
       const storageRef = ref(storage, storagePath);
 
       await uploadBytes(storageRef, regFile);
 
-      // 2. Save Application to pending_users collection
-      await addDoc(collection(db, 'pending_users'), {
+      // 3. Save Application to pending_users collection using a deterministic ID
+      // derived from the sanitized email address to guarantee uniqueness.
+      const cleanEmail = regEmail.trim().toLowerCase();
+      const docId = cleanEmail.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+
+      await setDoc(doc(db, 'pending_users', docId), {
         fullName: regName,
-        email: regEmail,
+        email: cleanEmail,
         barangay: regBarangay,
         proofStoragePath: storagePath,
         submittedAt: serverTimestamp()

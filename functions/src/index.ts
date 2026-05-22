@@ -153,6 +153,65 @@ async function safeDeleteStorageFile(storagePath: unknown): Promise<void> {
 // Cloud Functions
 // ---------------------------------------------------------------------------
 
+export const checkEmailAvailability = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 15,
+    memory: '256MiB',
+  },
+  async (request) => {
+    const { email } = request.data;
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      throw new functions.https.HttpsError('invalid-argument', 'A valid email address is required.');
+    }
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check if the email exists in Firebase Auth (already a registered user)
+    try {
+      await admin.auth().getUserByEmail(cleanEmail);
+      return { available: false, reason: 'registered' };
+    } catch (error: any) {
+      if (error.code !== 'auth/user-not-found') {
+        console.error('Error fetching user from Auth:', error);
+        throw new functions.https.HttpsError('internal', 'Internal error validating email.');
+      }
+    }
+
+    // 2. Check if a pending registration already exists in the pending_users collection
+    // Calculate deterministic doc ID for checking
+    const docId = cleanEmail.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const pendingRef = db.collection('pending_users').doc(docId);
+    
+    try {
+      const pendingDoc = await pendingRef.get();
+      if (pendingDoc.exists) {
+        return { available: false, reason: 'pending' };
+      }
+    } catch (error: any) {
+      console.error('Error fetching pending user doc:', error);
+      throw new functions.https.HttpsError('internal', 'Internal error validating email.');
+    }
+
+    // 3. Extra safety check: query both pending_users and users collections in case of mismatched IDs
+    try {
+      const pendingQuery = await db.collection('pending_users').where('email', '==', cleanEmail).limit(1).get();
+      if (!pendingQuery.empty) {
+        return { available: false, reason: 'pending' };
+      }
+
+      const userQuery = await db.collection('users').where('email', '==', cleanEmail).limit(1).get();
+      if (!userQuery.empty) {
+        return { available: false, reason: 'registered' };
+      }
+    } catch (error: any) {
+      console.error('Error querying email in Firestore collections:', error);
+      throw new functions.https.HttpsError('internal', 'Internal error validating email.');
+    }
+
+    return { available: true };
+  }
+);
+
 export const approveUser = functions.https.onCall(
   {
     // Resource constraints to limit billing exposure and cap concurrency
@@ -176,8 +235,38 @@ export const approveUser = functions.https.onCall(
     const { applicationId } = request.data;
     validateApplicationId(applicationId);
 
-    // 4. Fetch and lock the pending application via Transaction
+    // 3.5 Pre-validate that the email does not already exist in Firebase Auth
+    // This prevents deleting the pending application doc if Auth creation will fail.
     const pendingRef = db.collection('pending_users').doc(applicationId);
+    const pendingDocSnapshot = await pendingRef.get();
+    
+    if (!pendingDocSnapshot.exists) {
+      throw new functions.https.HttpsError('not-found', 'Application not found or already processed.');
+    }
+    
+    const applicantEmail = pendingDocSnapshot.data()?.email;
+    if (applicantEmail) {
+      try {
+        await admin.auth().getUserByEmail(applicantEmail.trim().toLowerCase());
+        throw new functions.https.HttpsError(
+          'already-exists',
+          'A user with this email address is already registered in the system.'
+        );
+      } catch (authError: any) {
+        if (authError.code !== 'auth/user-not-found') {
+          console.error('Auth email existence check error:', authError);
+          if (authError instanceof functions.https.HttpsError) {
+            throw authError;
+          }
+          throw new functions.https.HttpsError(
+            'internal',
+            'An error occurred verifying email uniqueness.'
+          );
+        }
+      }
+    }
+
+    // 4. Fetch and lock the pending application via Transaction
     let applicantData: any;
 
     try {
