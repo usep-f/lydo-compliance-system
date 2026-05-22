@@ -50,7 +50,10 @@ const AdminAnalyticsSection: React.FC = () => {
   const [selectedYear] = useState(currentYear);
 
   const { pending = [], history = [] } = useSubmissions(undefined, true);
-  const approved = useMemo(() => history.filter((s) => s.status === 'approved'), [history]);
+  const approved = useMemo(
+    () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)), 
+    [history]
+  );
   const compliance = useComplianceData(selectedYear, pending, approved, BARANGAYS);
 
   // Per-barangay perennial filter
