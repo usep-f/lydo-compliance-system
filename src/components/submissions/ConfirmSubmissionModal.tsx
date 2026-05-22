@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Button, Alert } from 'react-bootstrap';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { storage, db } from '../../firebase';
 import LoadingButton from '../common/LoadingButton';
@@ -73,8 +73,7 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
       },
       async () => {
         try {
-          // 2. Get URL and save to Firestore
-          const url = await getDownloadURL(fileRef);
+          // 2. Save to Firestore
 
           // Determine if we need to store accomplishmentCategory
           let accomplishmentCategory = null;
