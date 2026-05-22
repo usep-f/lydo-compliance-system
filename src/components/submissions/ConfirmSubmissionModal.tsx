@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button, Spinner, Alert } from 'react-bootstrap';
+import { Modal, Button, Alert } from 'react-bootstrap';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { storage, db } from '../../firebase';
@@ -55,7 +55,7 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
 
     // 1. Upload file to Storage
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const storagePath = `submissions/${year}/${barangay}/${documentType.id}/${Date.now()}_${safeName}`;
+    const storagePath = `submission_files/${userId}/${year}/${barangay}/${documentType.id}/${Date.now()}_${safeName}`;
     const fileRef = ref(storage, storagePath);
     const uploadTask = uploadBytesResumable(fileRef, file, {
       contentType: 'application/pdf',
@@ -75,14 +75,14 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
         try {
           // 2. Get URL and save to Firestore
           const url = await getDownloadURL(fileRef);
-          
+
           // Determine if we need to store accomplishmentCategory
           let accomplishmentCategory = null;
           if (documentType.id.startsWith('acc_')) {
             accomplishmentCategory = documentType.id.replace('acc_', '');
           }
 
-          await addDoc(collection(db, 'submissions'), {
+          const payload: any = {
             userId,
             barangay,
             fullName,
@@ -91,19 +91,19 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
             category: documentType.category,
             period,
             year,
-            accomplishmentCategory, // null if not applicable
             fileName: file.name,
             fileSize: file.size,
             fileStoragePath: storagePath,
-            fileUrl: url,
             pageCount: screening.pageCount,
             pdfMetadata: screening.metadata,
-            status: 'pending',
             submittedAt: serverTimestamp(),
-            reviewedAt: null,
-            reviewedBy: null,
-            reviewNotes: null,
-          });
+          };
+
+          if (accomplishmentCategory) {
+            payload.accomplishmentCategory = accomplishmentCategory;
+          }
+
+          await addDoc(collection(db, 'pending_submissions'), payload);
 
           addToast(`Document submitted successfully. Your ${documentType.label} is now pending review.`, 'success');
           setIsUploading(false);
@@ -121,10 +121,10 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
       <Modal.Header closeButton={!isUploading} className="border-0 pb-0">
         <Modal.Title className="fw-bold">Confirm Submission</Modal.Title>
       </Modal.Header>
-      
+
       <Modal.Body className="pt-3">
         {error && <Alert variant="danger" className="py-2 small">{error}</Alert>}
-        
+
         <p className="text-muted mb-4" style={{ fontSize: '14px' }}>
           Please review the details below before finalizing your submission. Once submitted, it will be marked as "Pending Review" by the administration.
         </p>
@@ -166,19 +166,19 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
           </div>
         )}
       </Modal.Body>
-      
+
       <Modal.Footer className="border-0 pt-0 pb-4 px-4 d-flex gap-2">
-        <Button 
-          variant="outline-secondary" 
-          onClick={handleClose} 
+        <Button
+          variant="outline-secondary"
+          onClick={handleClose}
           disabled={isUploading}
           className="flex-grow-1"
         >
           Cancel
         </Button>
-        <LoadingButton 
-          variant="primary" 
-          onClick={handleConfirmUpload} 
+        <LoadingButton
+          variant="primary"
+          onClick={handleConfirmUpload}
           loading={isUploading}
           className="flex-grow-2"
         >

@@ -23,7 +23,7 @@ import { useToast } from '../../context/ToastContext';
  * Reuses: DataTable, StatCard, DocumentReviewModal, ConfirmDialog, FormField, StatusBadge
  */
 const AdminSubmissionsSection: React.FC = () => {
-  const { pending, approved, loading } = useSubmissions(); // All submissions
+  const { pending = [], history = [], loading } = useSubmissions(undefined, true); // All submissions
   const { addToast } = useToast();
   const functions = getFunctions();
 
@@ -192,7 +192,7 @@ const AdminSubmissionsSection: React.FC = () => {
           <StatCard title="Pending Review" value={pending.length} variant="warning" />
         </Col>
         <Col md={6}>
-          <StatCard title="Total Approved" value={approved.length} variant="success" />
+          <StatCard title="Total Approved" value={history.filter(s => s.status === 'approved').length} variant="success" />
         </Col>
       </Row>
 

@@ -38,10 +38,10 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
              'userId', 'barangay', 'fullName', 'category',
              'documentType', 'documentLabel', 'period', 'year',
-             'fileStoragePath', 'fileName', 'fileSize',
-             'pageCount', 'pdfMetadata', 'submittedAt'
+             'accomplishmentCategory', 'fileStoragePath', 'fileName', 
+             'fileSize', 'pageCount', 'pdfMetadata', 'submittedAt'
            ])
-        && request.resource.data.category in ['scheduled', 'asap']
+        && request.resource.data.category in ['scheduled', 'asap', 'perennial']
         && request.resource.data.userId is string
         && request.resource.data.documentType is string
         && request.resource.data.period is string

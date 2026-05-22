@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import type { PendingSubmission, ApprovedSubmission } from '../constants/submissionTypes';
+import type { PendingSubmission, HistoricalSubmission } from '../constants/submissionTypes';
 
 interface UseSubmissionsResult {
   pending: PendingSubmission[];
-  approved: ApprovedSubmission[];
+  history: HistoricalSubmission[];
   loading: boolean;
 }
 
@@ -14,12 +14,18 @@ interface UseSubmissionsResult {
  * - If userId is provided: returns only that user's submissions (User Dashboard).
  * - If userId is omitted: returns ALL submissions (Admin Dashboard).
  */
-export function useSubmissions(userId?: string): UseSubmissionsResult {
+export function useSubmissions(userId?: string | null, isAdmin: boolean = false): UseSubmissionsResult {
   const [pending, setPending] = useState<PendingSubmission[]>([]);
-  const [approved, setApproved] = useState<ApprovedSubmission[]>([]);
+  const [history, setHistory] = useState<HistoricalSubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If not an admin and no userId is provided yet, wait for the user ID to load
+    if (!isAdmin && !userId) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     // Build queries — filter by userId if provided
@@ -31,7 +37,7 @@ export function useSubmissions(userId?: string): UseSubmissionsResult {
         )
       : query(collection(db, 'pending_submissions'), orderBy('submittedAt', 'desc'));
 
-    const approvedQuery = userId
+    const historyQuery = userId
       ? query(
           collection(db, 'submissions'),
           where('userId', '==', userId),
@@ -40,10 +46,10 @@ export function useSubmissions(userId?: string): UseSubmissionsResult {
       : query(collection(db, 'submissions'), orderBy('submittedAt', 'desc'));
 
     let pendingLoaded = false;
-    let approvedLoaded = false;
+    let historyLoaded = false;
 
     const checkLoaded = () => {
-      if (pendingLoaded && approvedLoaded) setLoading(false);
+      if (pendingLoaded && historyLoaded) setLoading(false);
     };
 
     // Listen to pending submissions
@@ -65,30 +71,30 @@ export function useSubmissions(userId?: string): UseSubmissionsResult {
       }
     );
 
-    // Listen to approved submissions
-    const unsubApproved = onSnapshot(
-      approvedQuery,
+    // Listen to historical submissions
+    const unsubHistory = onSnapshot(
+      historyQuery,
       (snapshot) => {
-        const docs: ApprovedSubmission[] = [];
+        const docs: HistoricalSubmission[] = [];
         snapshot.forEach((doc) => {
-          docs.push({ id: doc.id, ...doc.data() } as ApprovedSubmission);
+          docs.push({ id: doc.id, ...doc.data() } as HistoricalSubmission);
         });
-        setApproved(docs);
-        approvedLoaded = true;
+        setHistory(docs);
+        historyLoaded = true;
         checkLoaded();
       },
       (error) => {
         console.warn('submissions listener error:', error.message);
-        approvedLoaded = true;
+        historyLoaded = true;
         checkLoaded();
       }
     );
 
     return () => {
       unsubPending();
-      unsubApproved();
+      unsubHistory();
     };
-  }, [userId]);
+  }, [userId, isAdmin]);
 
-  return { pending, approved, loading };
+  return { pending, history, loading };
 }

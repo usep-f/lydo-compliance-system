@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, Form, Button } from 'react-bootstrap';
+import { Card, Form, Button, Badge } from 'react-bootstrap';
 import { ALL_UPLOAD_TYPES } from '../../constants/submissionTypes';
-import type { ApprovedSubmission } from '../../constants/submissionTypes';
+import type { HistoricalSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import { formatFileSize } from '../../utils/pdfScreening';
 import { DataTable } from '../common/DataTable';
@@ -9,25 +9,25 @@ import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
 
 interface UserSubmissionHistoryProps {
-  approved: ApprovedSubmission[];
+  history: HistoricalSubmission[];
   loading?: boolean;
 }
 
 /**
  * User Submission History Section
- * Read-only view for the active user's historically approved submissions.
+ * Read-only view for the active user's historically approved and denied submissions.
  */
-const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved, loading = false }) => {
+const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history = [], loading = false }) => {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDocType, setFilterDocType] = useState('');
 
   // Details modal state
-  const [selectedSub, setSelectedSub] = useState<ApprovedSubmission | null>(null);
+  const [selectedSub, setSelectedSub] = useState<HistoricalSubmission | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Filter approved submissions
-  const filteredApproved = approved.filter((s) => {
+  // Filter submissions
+  const filteredHistory = history.filter((s) => {
     const matchesSearch =
       (s.documentLabel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.fileName || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -35,7 +35,7 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
     return matchesSearch && matchesDocType;
   });
 
-  const openDetails = (sub: ApprovedSubmission) => {
+  const openDetails = (sub: HistoricalSubmission) => {
     setSelectedSub(sub);
     setShowDetails(true);
   };
@@ -56,7 +56,7 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
       setFileLoading(true);
       import('firebase/storage').then(({ ref, getDownloadURL }) => {
         import('../../firebase').then(({ storage }) => {
-          const storageRef = ref(storage, selectedSub.fileStoragePath);
+          const storageRef = ref(storage, selectedSub.fileStoragePath!);
           getDownloadURL(storageRef)
             .then((url) => setFileUrl(url))
             .catch((err) => console.error('Error loading file URL:', err))
@@ -78,7 +78,7 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
   };
 
   // Table columns
-  const columns: Column<ApprovedSubmission>[] = [
+  const columns: Column<HistoricalSubmission>[] = [
     {
       header: 'Document',
       render: (sub) => (
@@ -104,9 +104,21 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
       ),
     },
     {
-      header: 'Date Approved',
+      header: 'Status',
       render: (sub) => {
-        const date = sub.approvedAt?.toDate ? sub.approvedAt.toDate() : null;
+        const computedStatus = sub.status || (sub.approvedAt ? 'approved' : 'denied');
+        return (
+          <Badge bg={computedStatus === 'approved' ? 'success' : 'danger'} text="white" className="px-2 py-1">
+            {computedStatus.toUpperCase()}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: 'Date Processed',
+      render: (sub) => {
+        const ts = sub.status === 'approved' ? sub.approvedAt : sub.deniedAt;
+        const date = ts?.toDate ? ts.toDate() : null;
         return (
           <div style={{ fontSize: '13px' }}>
             {date ? date.toLocaleDateString() : 'Unknown'}
@@ -117,11 +129,18 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
     {
       header: 'Action',
       className: 'text-end',
-      render: (sub) => (
-        <Button variant="outline-primary" size="sm" onClick={() => openDetails(sub)}>
-          View / Download
-        </Button>
-      ),
+      render: (sub) => {
+        const computedStatus = sub.status || (sub.approvedAt ? 'approved' : 'denied');
+        return (
+          <Button 
+            variant={computedStatus === 'approved' ? 'outline-primary' : 'outline-danger'} 
+            size="sm" 
+            onClick={() => openDetails(sub)}
+          >
+            {computedStatus === 'approved' ? 'View / Download' : 'View Feedback'}
+          </Button>
+        );
+      },
     },
   ];
 
@@ -135,7 +154,7 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
           Submission History
         </h4>
         <p className="text-muted mb-0" style={{ fontSize: '13px' }}>
-          Browse and download your past approved submissions.
+          Browse your past approved and denied submissions.
         </p>
       </div>
 
@@ -166,10 +185,10 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
       <Card className="border-0 shadow-sm mb-4">
         <Card.Body className="p-0">
           <DataTable
-            data={filteredApproved}
+            data={filteredHistory}
             columns={columns}
             pageSize={10}
-            emptyMessage={loading ? 'Loading history...' : 'No approved submissions found.'}
+            emptyMessage={loading ? 'Loading history...' : 'No past submissions found.'}
           />
         </Card.Body>
       </Card>
@@ -206,13 +225,26 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
             </div>
 
             <div className="mb-3">
-              <div className="overline-text text-muted mb-1">Date Approved</div>
+              <div className="overline-text text-muted mb-1">
+                {selectedSub?.status === 'approved' ? 'Date Approved' : 'Date Denied'}
+              </div>
               <div className="body-text text-dark fw-semibold">
-                {selectedSub?.approvedAt?.toDate
+                {selectedSub?.status === 'approved' && selectedSub?.approvedAt?.toDate
                   ? selectedSub.approvedAt.toDate().toLocaleString()
+                  : selectedSub?.status === 'denied' && selectedSub?.deniedAt?.toDate
+                  ? selectedSub.deniedAt.toDate().toLocaleString()
                   : 'Unknown'}
               </div>
             </div>
+
+            {selectedSub?.status === 'denied' && selectedSub.reviewNotes && (
+              <div className="mb-3">
+                <div className="overline-text text-danger mb-1">Denial Reason</div>
+                <div className="body-text text-dark p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-25">
+                  {selectedSub.reviewNotes}
+                </div>
+              </div>
+            )}
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">File Info</div>
@@ -224,6 +256,11 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ approved,
                   {selectedSub?.pageCount} page{selectedSub?.pageCount !== 1 ? 's' : ''} •{' '}
                   {selectedSub ? formatFileSize(selectedSub.fileSize) : ''}
                 </div>
+                {selectedSub?.status === 'denied' && (
+                  <div className="text-danger mt-1 fst-italic">
+                    File was deleted to save space.
+                  </div>
+                )}
               </div>
             </div>
           </>

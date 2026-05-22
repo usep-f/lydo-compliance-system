@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import {
   SCHEDULED_TYPES,
@@ -6,14 +6,20 @@ import {
   ACCOMPLISHMENT_CATEGORIES,
   ALL_UPLOAD_TYPES,
 } from '../../constants/submissionTypes';
-import type { SubmissionTypeDefinition } from '../../constants/submissionTypes';
-import { formatPeriodLabel, getCurrentPeriod } from '../../utils/periodUtils';
+import type { 
+  SubmissionTypeDefinition, 
+  PendingSubmission, 
+  HistoricalSubmission, 
+  Frequency 
+} from '../../constants/submissionTypes';
+import { getSubmittablePeriods, formatPeriodLabel } from '../../utils/periodUtils';
 import FileDropZone from '../common/FileDropZone';
 import { screenPdfFile, formatFileSize } from '../../utils/pdfScreening';
 import type { PdfScreeningResult } from '../../utils/pdfScreening';
 
 interface UnifiedSubmissionFormProps {
   currentYear: number;
+  existingSubmissions?: Array<PendingSubmission | HistoricalSubmission>;
   onSubmitReady: (payload: {
     file: File;
     documentType: SubmissionTypeDefinition;
@@ -30,7 +36,11 @@ const BASE_DOCUMENT_TYPES = [
   { id: 'accomplishment_report', label: 'Accomplishment Report', category: 'perennial', frequency: 'annual' },
 ];
 
-const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ currentYear, onSubmitReady }) => {
+const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ 
+  currentYear, 
+  existingSubmissions = [], 
+  onSubmitReady 
+}) => {
   const [selectedBaseTypeId, setSelectedBaseTypeId] = useState<string>('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -44,12 +54,39 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ currentYe
   const baseType = BASE_DOCUMENT_TYPES.find((t) => t.id === selectedBaseTypeId);
   const isAccomplishment = baseType?.id === 'accomplishment_report';
 
+  const actualDocTypeId = isAccomplishment 
+    ? (selectedCategory ? `acc_${selectedCategory}` : undefined) 
+    : baseType?.id;
+
+  // Calculate elapsed periods for scheduled documents
+  const elapsedPeriods = useMemo(() => {
+    if (baseType?.category === 'scheduled' && baseType.frequency) {
+      return getSubmittablePeriods(baseType.frequency as Frequency, selectedYear, new Date());
+    }
+    return [];
+  }, [baseType, selectedYear]);
+
+  // Check if a specific period has already been submitted (and not denied)
+  const isPeriodSubmitted = useCallback((period: string) => {
+    if (!actualDocTypeId) return false;
+    return existingSubmissions.some(
+      (s) => s.documentType === actualDocTypeId && s.period === period && s.status !== 'denied'
+    );
+  }, [actualDocTypeId, existingSubmissions]);
+
+  // Check if the entire document is submitted (for ASAP and Perennial where there's only 1 period)
+  const isFullySubmitted = useMemo(() => {
+    if (!baseType || !actualDocTypeId) return false;
+    if (baseType.category === 'asap') return isPeriodSubmitted('ASAP');
+    if (baseType.category === 'perennial') return isPeriodSubmitted(selectedYear.toString());
+    return false;
+  }, [baseType, actualDocTypeId, isPeriodSubmitted, selectedYear]);
+
   // Reset dependent fields when parent fields change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedCategory('');
-    
-    // Auto-compute the period since it's hidden from UI
+
     if (!baseType) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedPeriod('');
@@ -59,12 +96,13 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ currentYe
     } else if (baseType.category === 'perennial') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedPeriod(selectedYear.toString());
-    } else if (baseType.frequency) {
-      const current = getCurrentPeriod(baseType.frequency as any);
+    } else if (baseType.category === 'scheduled') {
+      // Auto-select the first unsubmitted period
+      const available = elapsedPeriods.find(p => !isPeriodSubmitted(p));
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedPeriod(current);
+      setSelectedPeriod(available || '');
     }
-  }, [selectedBaseTypeId, baseType, selectedYear]);
+  }, [selectedBaseTypeId, baseType, selectedYear, elapsedPeriods, isPeriodSubmitted]);
 
   // Handle file selection and screening immediately
   const handleFileSelect = useCallback(async (selectedFile: File) => {
@@ -95,7 +133,9 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ currentYe
   // Form Validation
   const isValid = () => {
     if (!baseType) return false;
-    if (!selectedPeriod) return false;
+    if (isFullySubmitted) return false;
+    if (baseType.category === 'scheduled' && !selectedPeriod) return false;
+    if (baseType.category === 'scheduled' && isPeriodSubmitted(selectedPeriod)) return false;
     if (isAccomplishment && !selectedCategory) return false;
     if (!file || !screening?.isValid) return false;
     return true;
@@ -170,7 +210,41 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ currentYe
                 </Form.Group>
               </div>
             )}
+
+            {/* Period Selection (Conditional for Scheduled) */}
+            {baseType?.category === 'scheduled' && (
+              <div className="col-md-12">
+                <Form.Group>
+                  <Form.Label className="fw-semibold text-muted small text-uppercase">Submission Period</Form.Label>
+                  <Form.Select
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value)}
+                    size="lg"
+                  >
+                    <option value="">-- Select Period --</option>
+                    {elapsedPeriods.map((p) => {
+                      const submitted = isPeriodSubmitted(p);
+                      return (
+                        <option key={p} value={p} disabled={submitted}>
+                          {formatPeriodLabel(p)} {submitted ? '(Already Submitted)' : ''}
+                        </option>
+                      );
+                    })}
+                  </Form.Select>
+                </Form.Group>
+              </div>
+            )}
           </div>
+
+          {/* Fully Submitted Alert */}
+          {isFullySubmitted && (
+            <Alert variant="info" className="mt-4 mb-0">
+              <div className="d-flex align-items-center gap-2">
+                <span className="material-symbols-outlined">check_circle</span>
+                <span><strong>Already Submitted:</strong> You have already submitted the required document(s) for this category.</span>
+              </div>
+            </Alert>
+          )}
 
           <hr className="my-5" />
 
@@ -181,7 +255,11 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ currentYe
               onFileSelect={handleFileSelect}
               onError={setFileError}
               accept=".pdf"
-              disabled={!baseType}
+              disabled={
+                !baseType || 
+                isFullySubmitted || 
+                (baseType.category === 'scheduled' && (!selectedPeriod || isPeriodSubmitted(selectedPeriod)))
+              }
             />
             {fileError && <Alert variant="danger" className="mt-3 py-2">{fileError}</Alert>}
 

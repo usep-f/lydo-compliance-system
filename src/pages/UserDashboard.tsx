@@ -64,7 +64,7 @@ export default function UserDashboard() {
   }, []);
 
   // Subscribe to this user's submissions
-  const { approved } = useSubmissions(userInfo?.uid);
+  const { pending = [], history = [] } = useSubmissions(userInfo?.uid);
 
   const handleUploadSuccess = () => {
     setShowConfirmModal(false);
@@ -98,14 +98,12 @@ export default function UserDashboard() {
       {/* ====== HOME SECTION ====== */}
       {activeSection === 'home' && (
         <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5">
-          <span className="material-symbols-outlined text-primary mb-3" style={{ fontSize: '64px' }}>
-            construction
+          <span className="material-symbols-outlined text-muted mb-3" style={{ fontSize: '64px' }}>
+            home
           </span>
-          <h3 className="fw-bold mb-2">Welcome, {userInfo.fullName}!</h3>
+          <h4 className="fw-bold text-dark mb-2">Welcome to LYDO Compliance System</h4>
           <p className="text-muted text-center" style={{ maxWidth: '400px' }}>
-            The personalized dashboard overview for {userInfo.barangay} is currently under construction.
-            <br /><br />
-            Please navigate to the <strong>Submissions</strong> tab to upload your documents.
+            Select "Submissions" from the sidebar to upload a required document, or view your past records in "History".
           </p>
         </div>
       )}
@@ -115,6 +113,7 @@ export default function UserDashboard() {
         <div className="mb-5">
           <UnifiedSubmissionForm 
             currentYear={currentYear}
+            existingSubmissions={[...pending, ...history]}
             onSubmitReady={(payload) => {
               setPendingUpload(payload);
               setShowConfirmModal(true);
@@ -125,7 +124,7 @@ export default function UserDashboard() {
 
       {/* ====== HISTORY SECTION ====== */}
       {activeSection === 'history' && (
-        <UserSubmissionHistory approved={approved} />
+        <UserSubmissionHistory history={history} />
       )}
 
       {/* ====== SETTINGS SECTION ====== */}

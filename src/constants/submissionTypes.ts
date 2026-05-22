@@ -159,11 +159,11 @@ export interface PendingSubmission {
   fileUrl: string;
   pageCount: number;
   pdfMetadata?: PdfMetadata;
-  status: 'pending' | 'denied';  // Usually starts 'pending'
+  status: 'pending';
   submittedAt: any;              // Firestore Timestamp
 }
 
-export interface ApprovedSubmission {
+export interface HistoricalSubmission {
   id: string;
   userId: string;
   barangay: string;
@@ -176,14 +176,17 @@ export interface ApprovedSubmission {
   accomplishmentCategory?: string | null;
   fileName: string;
   fileSize: number;
-  fileStoragePath: string;
-  fileUrl: string;
+  fileStoragePath: string | null; // Null if denied and file deleted
+  fileUrl: string | null;         // Null if denied and file deleted
   pageCount: number;
   pdfMetadata?: PdfMetadata;
-  status: 'approved';
+  status: 'approved' | 'denied';
   submittedAt: any;
-  approvedAt: any;               // Firestore Timestamp
-  approvedBy: string;            // Admin's UID
+  approvedAt?: any;              // Firestore Timestamp (if approved)
+  approvedBy?: string;           // Admin's UID (if approved)
+  deniedAt?: any;                // Firestore Timestamp (if denied)
+  deniedBy?: string;             // Admin's UID (if denied)
+  reviewNotes?: string;          // Reason for denial
 }
 
 export interface AccomplishmentReports {

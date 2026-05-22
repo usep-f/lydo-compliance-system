@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { SCHEDULED_TYPES, ASAP_TYPES, ACCOMPLISHMENT_CATEGORIES } from '../constants/submissionTypes';
-import type { PendingSubmission, ApprovedSubmission } from '../constants/submissionTypes';
+import type { PendingSubmission, HistoricalSubmission } from '../constants/submissionTypes';
 import { getElapsedPeriods, getAllPeriods, isPeriodOverdue, isPeriodCurrent } from '../utils/periodUtils';
 import type { Frequency } from '../constants/submissionTypes';
 
@@ -82,7 +82,7 @@ export interface ComplianceData {
 export function useComplianceData(
   year: number,
   pending: PendingSubmission[],
-  approved: ApprovedSubmission[],
+  approved: HistoricalSubmission[],
   barangays: string[]
 ): ComplianceData {
   return useMemo(() => {
@@ -258,9 +258,9 @@ export function useComplianceData(
     // -----------------------------------------------------------------------
     const barangayPerennialSummary: BarangayPerennialSummary[] = barangays.map((brgy) => {
       const brgyApproved = approved.filter((s) => s.barangay === brgy && s.year === year);
-      
+
       const resolutionsCount = brgyApproved.filter((s) => s.documentType === 'resolutions').length;
-      
+
       let accomplishmentsTotal = 0;
       const categoryData: PerennialCategoryCount[] = ACCOMPLISHMENT_CATEGORIES.map((cat) => {
         const count = brgyApproved.filter((s) => s.documentType === `acc_${cat.id}`).length;

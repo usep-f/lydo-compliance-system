@@ -533,9 +533,10 @@ export const approveSubmission = functions.https.onCall(
     }
 
     try {
-      // 5. Create approved submission document with all original fields
+      // 5. Create approved submission document with all original fields and status
       await db.collection('submissions').doc(submissionId).set({
         ...submissionData,
+        status: 'approved',
         approvedAt: admin.firestore.FieldValue.serverTimestamp(),
         approvedBy: request.auth.uid,
       });
@@ -595,12 +596,26 @@ export const denySubmission = functions.https.onCall(
     }
 
     const submissionData = pendingDoc.data();
+    if (!submissionData) {
+      throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+    }
 
     try {
       // 5. Safe delete the file from Cloud Storage (path-traversal protected)
       await safeDeleteStorageFile(submissionData?.fileStoragePath);
 
-      // 6. Delete the pending submission document
+      // 6. Move the document to the submissions collection with denied status
+      await db.collection('submissions').doc(submissionId).set({
+        ...submissionData,
+        status: 'denied',
+        fileStoragePath: null,
+        fileUrl: null,
+        deniedAt: admin.firestore.FieldValue.serverTimestamp(),
+        deniedBy: request.auth.uid,
+        reviewNotes: reason,
+      });
+
+      // 7. Delete the pending submission document
       await pendingRef.delete();
 
       // 7. Send denial email via Brevo — escape all user-supplied values

@@ -49,7 +49,8 @@ const AdminAnalyticsSection: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear] = useState(currentYear);
 
-  const { pending, approved } = useSubmissions();
+  const { pending = [], history = [] } = useSubmissions(undefined, true);
+  const approved = useMemo(() => history.filter((s) => s.status === 'approved'), [history]);
   const compliance = useComplianceData(selectedYear, pending, approved, BARANGAYS);
 
   // Per-barangay perennial filter
@@ -98,17 +99,17 @@ const AdminAnalyticsSection: React.FC = () => {
           Math.round(
             (compliance.pendingReviewCount /
               Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) *
-              100
+            100
           ),
           Math.max(
             0,
             100 -
-              compliance.overallRate -
-              Math.round(
-                (compliance.pendingReviewCount /
-                  Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) *
-                  100
-              )
+            compliance.overallRate -
+            Math.round(
+              (compliance.pendingReviewCount /
+                Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) *
+              100
+            )
           ),
         ],
         backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
