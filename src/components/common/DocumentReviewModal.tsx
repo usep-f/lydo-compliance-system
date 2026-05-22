@@ -45,7 +45,7 @@ const DocumentReviewModal: React.FC<DocumentReviewModalProps> = ({
   hidePreview = false,
 }) => {
   return (
-    <Modal show={show} onHide={onHide} size={hidePreview ? 'md' : 'xl'} backdrop="static" centered>
+    <Modal show={show} onHide={onHide} size={hidePreview ? undefined : 'xl'} backdrop="static" centered>
       <Modal.Header closeButton={!locked}>
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
