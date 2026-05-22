@@ -208,6 +208,7 @@ const AdminSubmissionHistory: React.FC = () => {
         fileUrl={fileUrl}
         fileLoading={fileLoading}
         locked={false}
+        hidePreview={selectedSub?.status === 'denied'}
         onDownload={handleDownload}
         infoPanel={
           <>

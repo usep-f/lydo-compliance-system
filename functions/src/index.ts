@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -172,17 +173,33 @@ export const approveUser = functions.https.onCall(
     const { applicationId } = request.data;
     validateApplicationId(applicationId);
 
-    // 4. Fetch the pending application
+    // 4. Fetch and lock the pending application via Transaction
     const pendingRef = db.collection('pending_users').doc(applicationId);
-    const pendingDoc = await pendingRef.get();
+    let applicantData: any;
 
-    if (!pendingDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Application not found.');
-    }
+    try {
+      applicantData = await db.runTransaction(async (transaction) => {
+        const pendingDoc = await transaction.get(pendingRef);
 
-    const applicantData = pendingDoc.data();
-    if (!applicantData || !applicantData.email) {
-      throw new functions.https.HttpsError('internal', 'Invalid application data.');
+        if (!pendingDoc.exists) {
+          throw new functions.https.HttpsError('not-found', 'Application not found or already processed.');
+        }
+
+        const data = pendingDoc.data();
+        if (!data || !data.email) {
+          throw new functions.https.HttpsError('internal', 'Invalid application data.');
+        }
+
+        // Delete Pending Document within transaction to guarantee uniqueness
+        transaction.delete(pendingRef);
+        return data;
+      });
+    } catch (error: any) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error('Transaction error:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to acquire application lock.');
     }
 
     try {
@@ -211,9 +228,6 @@ export const approveUser = functions.https.onCall(
 
       // 8. Safe delete storage proof file (path-traversal protected)
       await safeDeleteStorageFile(applicantData.proofStoragePath);
-
-      // 9. Delete Pending Document
-      await pendingRef.delete();
 
       // 10. Send approval email — escape user-supplied values before embedding in HTML
       await sendEmailViaBrevo(
@@ -263,22 +277,35 @@ export const denyUser = functions.https.onCall(
     validateApplicationId(applicationId);
     validateReason(reason);
 
-    // 4. Fetch the pending application
+    // 4. Fetch and lock the pending application via Transaction
     const pendingRef = db.collection('pending_users').doc(applicationId);
-    const pendingDoc = await pendingRef.get();
+    let applicantData: any;
 
-    if (!pendingDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Application not found.');
+    try {
+      applicantData = await db.runTransaction(async (transaction) => {
+        const pendingDoc = await transaction.get(pendingRef);
+
+        if (!pendingDoc.exists) {
+          throw new functions.https.HttpsError('not-found', 'Application not found or already processed.');
+        }
+
+        const data = pendingDoc.data();
+
+        // Delete Pending Document within transaction to guarantee uniqueness
+        transaction.delete(pendingRef);
+        return data;
+      });
+    } catch (error: any) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error('Transaction error:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to acquire application lock.');
     }
-
-    const applicantData = pendingDoc.data();
 
     try {
       // 5. Safe delete storage proof file (path-traversal protected)
       await safeDeleteStorageFile(applicantData?.proofStoragePath);
-
-      // 6. Delete Pending Document
-      await pendingRef.delete();
 
       // 7. Send rejection email — escape all user-supplied values before embedding in HTML
       if (applicantData?.email) {
@@ -519,33 +546,70 @@ export const approveSubmission = functions.https.onCall(
     const { submissionId } = request.data;
     validateApplicationId(submissionId);
 
-    // 4. Fetch the pending submission
+    // 4. Fetch and lock the pending submission via Transaction
     const pendingRef = db.collection('pending_submissions').doc(submissionId);
-    const pendingDoc = await pendingRef.get();
+    let submissionData: any;
 
-    if (!pendingDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Submission not found.');
-    }
+    try {
+      submissionData = await db.runTransaction(async (transaction) => {
+        const pendingDoc = await transaction.get(pendingRef);
 
-    const submissionData = pendingDoc.data();
-    if (!submissionData) {
-      throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+        if (!pendingDoc.exists) {
+          throw new functions.https.HttpsError('not-found', 'Submission not found or already processed.');
+        }
+
+        const data = pendingDoc.data();
+        if (!data) {
+          throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+        }
+
+        // Create approved submission document within transaction
+        const approvedRef = db.collection('submissions').doc(submissionId);
+        transaction.set(approvedRef, {
+          ...data,
+          status: 'approved',
+          approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+          approvedBy: request.auth?.uid,
+        });
+
+        // Delete the pending document within transaction
+        transaction.delete(pendingRef);
+
+        return data;
+      });
+    } catch (error: any) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error('Transaction error:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to acquire submission lock.');
     }
 
     try {
-      // 5. Create approved submission document with all original fields and status
-      await db.collection('submissions').doc(submissionId).set({
-        ...submissionData,
-        status: 'approved',
-        approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-        approvedBy: request.auth.uid,
-      });
-
-      // 6. Delete the pending document
-      await pendingRef.delete();
-
       // 7. File stays in Cloud Storage — no move needed.
       //    The fileStoragePath in the submissions doc points to the same location.
+
+      // 8. Send approval email via Brevo
+      if (submissionData?.fullName && submissionData?.userId) {
+        const userDoc = await db.collection('users').doc(submissionData.userId).get();
+        const userEmail = userDoc.data()?.email;
+
+        if (userEmail) {
+          const safeName = escapeHtml(submissionData.fullName ?? 'SK Official');
+          const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
+          const safePeriod = escapeHtml(submissionData.period ?? '');
+
+          await sendEmailViaBrevo(
+            userEmail,
+            safeName,
+            `Submission Approved — ${submissionData.documentLabel ?? 'Document'}`,
+            `<h1>Submission Approved</h1>
+             <p>Dear ${safeName},</p>
+             <p>Great news! Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been reviewed and <strong>approved</strong>.</p>
+             <p>Thank you for ensuring timely compliance. You can view your updated records on the LYDO Compliance System dashboard.</p>`
+          );
+        }
+      }
 
       return { success: true, message: 'Submission approved successfully.' };
     } catch (error: any) {
@@ -587,38 +651,53 @@ export const denySubmission = functions.https.onCall(
     validateApplicationId(submissionId);
     validateReason(reason);
 
-    // 4. Fetch the pending submission
+    // 4. Fetch and lock the pending submission via Transaction
     const pendingRef = db.collection('pending_submissions').doc(submissionId);
-    const pendingDoc = await pendingRef.get();
+    let submissionData: any;
 
-    if (!pendingDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Submission not found.');
-    }
+    try {
+      submissionData = await db.runTransaction(async (transaction) => {
+        const pendingDoc = await transaction.get(pendingRef);
 
-    const submissionData = pendingDoc.data();
-    if (!submissionData) {
-      throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+        if (!pendingDoc.exists) {
+          throw new functions.https.HttpsError('not-found', 'Submission not found or already processed.');
+        }
+
+        const data = pendingDoc.data();
+        if (!data) {
+          throw new functions.https.HttpsError('internal', 'Invalid submission data.');
+        }
+
+        // Move the document to the submissions collection with denied status within transaction
+        const deniedRef = db.collection('submissions').doc(submissionId);
+        transaction.set(deniedRef, {
+          ...data,
+          status: 'denied',
+          fileStoragePath: null,
+          fileUrl: null,
+          deniedAt: admin.firestore.FieldValue.serverTimestamp(),
+          deniedBy: request.auth?.uid,
+          reviewNotes: reason,
+        });
+
+        // Delete the pending document within transaction
+        transaction.delete(pendingRef);
+
+        return data;
+      });
+    } catch (error: any) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error('Transaction error:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to acquire submission lock.');
     }
 
     try {
       // 5. Safe delete the file from Cloud Storage (path-traversal protected)
       await safeDeleteStorageFile(submissionData?.fileStoragePath);
 
-      // 6. Move the document to the submissions collection with denied status
-      await db.collection('submissions').doc(submissionId).set({
-        ...submissionData,
-        status: 'denied',
-        fileStoragePath: null,
-        fileUrl: null,
-        deniedAt: admin.firestore.FieldValue.serverTimestamp(),
-        deniedBy: request.auth.uid,
-        reviewNotes: reason,
-      });
-
-      // 7. Delete the pending submission document
-      await pendingRef.delete();
-
-      // 7. Send denial email via Brevo — escape all user-supplied values
+      // 6. Send denial email via Brevo — escape all user-supplied values
       if (submissionData?.fullName && submissionData?.userId) {
         // Fetch submitter's email from users collection
         const userDoc = await db.collection('users').doc(submissionData.userId).get();
@@ -653,3 +732,37 @@ export const denySubmission = functions.https.onCall(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// onSubmissionCreated — Triggered when a user creates a pending submission.
+// Sends an email receipt to the user.
+// ---------------------------------------------------------------------------
+
+export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submissionId}', async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) return;
+
+  const submissionData = snapshot.data();
+
+  if (submissionData?.fullName && submissionData?.userId) {
+    const userDoc = await db.collection('users').doc(submissionData.userId).get();
+    const userEmail = userDoc.data()?.email;
+
+    if (userEmail) {
+      const safeName = escapeHtml(submissionData.fullName ?? 'SK Official');
+      const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
+      const safePeriod = escapeHtml(submissionData.period ?? '');
+
+      await sendEmailViaBrevo(
+        userEmail,
+        safeName,
+        `Submission Received — ${submissionData.documentLabel ?? 'Document'}`,
+        `<h1>Submission Received</h1>
+         <p>Dear ${safeName},</p>
+         <p>This is to confirm that we have successfully received your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''}.</p>
+         <p>Your document is now <strong>Pending Review</strong> by the administration. You will receive another email once it has been processed.</p>
+         <p>Thank you.</p>`
+      );
+    }
+  }
+});

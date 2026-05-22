@@ -8,6 +8,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // Helper to get the user's barangay
+    function getUserBarangay() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barangay;
+    }
+
     // Pending Users: Applicants can write, only Admins can read or delete
     match /pending_users/{applicationId} {
       // Anyone can submit an application, but only with the expected fields.
@@ -46,10 +51,11 @@ service cloud.firestore {
         && request.resource.data.documentType is string
         && request.resource.data.period is string
         && request.resource.data.fileSize is number
-        && request.resource.data.fileSize <= 104857600;
+        && request.resource.data.fileSize <= 104857600
+        && !exists(/databases/$(database)/documents/submissions/$(submissionId));
 
       allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || isAdmin());
+        && (resource.data.userId == request.auth.uid || resource.data.barangay == getUserBarangay() || isAdmin());
 
       // No client-side updates — prevents tampering after submission
       allow update: if false;
@@ -63,7 +69,7 @@ service cloud.firestore {
     // Client-side writes are fully blocked.
     match /submissions/{submissionId} {
       allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || isAdmin());
+        && (resource.data.userId == request.auth.uid || resource.data.barangay == getUserBarangay() || isAdmin());
 
       // No direct client writes — only Cloud Functions can write here
       allow write: if false;
@@ -83,7 +89,7 @@ service cloud.firestore {
         && request.resource.data.year is number;
 
       allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || isAdmin());
+        && (resource.data.userId == request.auth.uid || resource.data.barangay == getUserBarangay() || isAdmin());
 
       allow delete: if false;
     }

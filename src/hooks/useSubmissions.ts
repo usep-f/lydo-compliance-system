@@ -11,36 +11,36 @@ interface UseSubmissionsResult {
 
 /**
  * Real-time listener for submissions data.
- * - If userId is provided: returns only that user's submissions (User Dashboard).
- * - If userId is omitted: returns ALL submissions (Admin Dashboard).
+ * - If barangay is provided: returns all submissions for that barangay (User Dashboard).
+ * - If barangay is omitted: returns ALL submissions globally (Admin Dashboard).
  */
-export function useSubmissions(userId?: string | null, isAdmin: boolean = false): UseSubmissionsResult {
+export function useSubmissions(barangay?: string | null, isAdmin: boolean = false): UseSubmissionsResult {
   const [pending, setPending] = useState<PendingSubmission[]>([]);
   const [history, setHistory] = useState<HistoricalSubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If not an admin and no userId is provided yet, wait for the user ID to load
-    if (!isAdmin && !userId) {
+    // If not an admin and no barangay is provided yet, wait for the barangay to load
+    if (!isAdmin && !barangay) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
 
-    // Build queries — filter by userId if provided
-    const pendingQuery = userId
+    // Build queries — filter by barangay if provided
+    const pendingQuery = barangay
       ? query(
           collection(db, 'pending_submissions'),
-          where('userId', '==', userId),
+          where('barangay', '==', barangay),
           orderBy('submittedAt', 'desc')
         )
       : query(collection(db, 'pending_submissions'), orderBy('submittedAt', 'desc'));
 
-    const historyQuery = userId
+    const historyQuery = barangay
       ? query(
           collection(db, 'submissions'),
-          where('userId', '==', userId),
+          where('barangay', '==', barangay),
           orderBy('submittedAt', 'desc')
         )
       : query(collection(db, 'submissions'), orderBy('submittedAt', 'desc'));
@@ -94,7 +94,7 @@ export function useSubmissions(userId?: string | null, isAdmin: boolean = false)
       unsubPending();
       unsubHistory();
     };
-  }, [userId, isAdmin]);
+  }, [barangay, isAdmin]);
 
   return { pending, history, loading };
 }

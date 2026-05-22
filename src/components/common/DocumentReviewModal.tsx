@@ -20,6 +20,8 @@ interface DocumentReviewModalProps {
   locked?: boolean;
   /** Called when download button is clicked */
   onDownload?: () => void;
+  /** Whether to completely hide the document preview panel */
+  hidePreview?: boolean;
 }
 
 /**
@@ -40,19 +42,20 @@ const DocumentReviewModal: React.FC<DocumentReviewModalProps> = ({
   actions,
   locked = false,
   onDownload,
+  hidePreview = false,
 }) => {
   return (
-    <Modal show={show} onHide={onHide} size="xl" backdrop="static" centered>
+    <Modal show={show} onHide={onHide} size={hidePreview ? 'md' : 'xl'} backdrop="static" centered>
       <Modal.Header closeButton={!locked}>
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body className="p-0">
-        <Row className="g-0 h-100" style={{ minHeight: '60vh' }}>
+        <Row className="g-0 h-100" style={hidePreview ? {} : { minHeight: '60vh' }}>
           {/* Left Panel: Info & Actions */}
           <Col
-            md={4}
-            className="bg-light p-4 border-end d-flex flex-column"
-            style={{ borderRight: '1px solid #E4E4E7 !important' }}
+            md={hidePreview ? 12 : 4}
+            className={`bg-light p-4 d-flex flex-column ${!hidePreview && 'border-end'}`}
+            style={!hidePreview ? { borderRight: '1px solid #E4E4E7 !important' } : {}}
           >
             <div className="flex-grow-1">{infoPanel}</div>
 
@@ -65,7 +68,8 @@ const DocumentReviewModal: React.FC<DocumentReviewModalProps> = ({
           </Col>
 
           {/* Right Panel: Document Preview */}
-          <Col md={8} className="bg-dark d-flex flex-column">
+          {!hidePreview && (
+            <Col md={8} className="bg-dark d-flex flex-column">
             <div className="p-2 bg-secondary text-white small fw-bold d-flex align-items-center justify-content-between">
               <span>Document Preview</span>
               {onDownload && fileUrl && (
@@ -125,6 +129,7 @@ const DocumentReviewModal: React.FC<DocumentReviewModalProps> = ({
               )}
             </div>
           </Col>
+          )}
         </Row>
       </Modal.Body>
     </Modal>
