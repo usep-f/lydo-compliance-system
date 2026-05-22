@@ -1,20 +1,40 @@
 import React from 'react';
-import { Card } from 'react-bootstrap';
 
 interface StatCardProps {
   title: string;
   value: string | number;
   variant?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  icon?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, variant = 'primary' }) => {
+const StatCard: React.FC<StatCardProps> = ({
+  title,
+  value,
+  variant = 'primary',
+  icon,
+}) => {
+  const defaultIcons: Record<string, string> = {
+    primary: 'analytics',
+    success: 'check_circle',
+    warning: 'pending',
+    danger:  'error',
+    info:    'info',
+  };
+
+  const displayIcon = icon || defaultIcons[variant] || 'analytics';
+
   return (
-    <Card className={`border-0 border-start border-4 border-${variant} h-100 shadow-subtle`}>
-      <Card.Body className="d-flex flex-column justify-content-center py-3 px-4">
-        <div className="overline-text text-muted mb-1">{title}</div>
-        <div className="display-text text-dark fw-bold">{value}</div>
-      </Card.Body>
-    </Card>
+    <div className={`kpi-card kpi-gradient-${variant} p-4 h-100`}>
+      <div className="d-flex align-items-start justify-content-between gap-3">
+        <div className="flex-grow-1 min-w-0">
+          <div className="kpi-label">{title}</div>
+          <div className="kpi-value mt-2">{value}</div>
+        </div>
+        <div className="kpi-icon-badge">
+          <span className="material-symbols-outlined">{displayIcon}</span>
+        </div>
+      </div>
+    </div>
   );
 };
 

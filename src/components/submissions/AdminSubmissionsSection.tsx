@@ -186,12 +186,12 @@ const AdminSubmissionsSection: React.FC = () => {
   return (
     <>
       {/* Stat Cards */}
-      <Row className="mb-4">
-        <Col md={6} className="mb-3 mb-md-0">
-          <StatCard title="Pending Review" value={pending.length} variant="warning" />
+      <Row className="mb-4 g-3">
+        <Col md={6} className="kpi-animate">
+          <StatCard title="Pending Review" value={pending.length} variant="warning" icon="pending_actions" />
         </Col>
-        <Col md={6}>
-          <StatCard title="Total Approved" value={history.filter(s => s.status === 'approved').length} variant="success" />
+        <Col md={6} className="kpi-animate" style={{ animationDelay: '75ms' }}>
+          <StatCard title="Total Approved" value={history.filter(s => s.status === 'approved').length} variant="success" icon="task_alt" />
         </Col>
       </Row>
 

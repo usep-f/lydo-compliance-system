@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Row, Col, Card, Form } from 'react-bootstrap';
+import { Row, Col, Form } from 'react-bootstrap';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,64 +25,92 @@ import { useComplianceData } from '../../hooks/useComplianceData';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import StatCard from '../common/StatCard';
 
-// Register Chart.js components
+// Register Chart.js
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Filler
+  CategoryScale, LinearScale, BarElement,
+  PointElement, LineElement, ArcElement,
+  Tooltip, Legend, Filler,
 );
 
 ChartJS.defaults.font.family = "'Inter', system-ui, sans-serif";
 ChartJS.defaults.color = '#71717A';
 
-/**
- * Admin Analytics Section — Chart.js powered compliance dashboard.
- * Layout: KPI Stats → Doughnut+Bar → Matrix → DocType+Trend → Perennials
- */
+/* ─────────────────────────────────────────────
+   Small shared sub-components
+───────────────────────────────────────────── */
+
+/** Analytics card with tinted header strip */
+const AnalyticsCard: React.FC<{
+  headerClass: string;
+  icon: string;
+  iconClass: string;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  headerRight?: React.ReactNode;
+}> = ({ headerClass, icon, iconClass, title, subtitle, children, headerRight }) => (
+  <div className="analytics-card h-100" style={{ background: '#fff' }}>
+    <div className={`chart-card-header ${headerClass}`}>
+      <div className="d-flex align-items-start justify-content-between gap-2">
+        <div>
+          <p className="chart-card-title">
+            <span className={`material-symbols-outlined ${iconClass}`} style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+              {icon}
+            </span>
+            {title}
+          </p>
+          {subtitle && <p className="chart-card-subtitle">{subtitle}</p>}
+        </div>
+        {headerRight && <div style={{ flexShrink: 0 }}>{headerRight}</div>}
+      </div>
+    </div>
+    <div className="p-4">
+      {children}
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+   Matrix status chip
+───────────────────────────────────────────── */
+const matrixChipConfig: Record<string, { cls: string; label: string }> = {
+  approved: { cls: 'matrix-chip-approved', label: '✓ Done'    },
+  pending:  { cls: 'matrix-chip-pending',  label: '⏳ Review' },
+  missing:  { cls: 'matrix-chip-missing',  label: '✗ Missing' },
+  not_due:  { cls: 'matrix-chip-not-due',  label: '— —'       },
+};
+
+/* ─────────────────────────────────────────────
+   Main Component
+───────────────────────────────────────────── */
 const AdminAnalyticsSection: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear] = useState(currentYear);
 
   const { pending = [], history = [] } = useSubmissions(undefined, true);
   const approved = useMemo(
-    () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)), 
-    [history]
+    () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
+    [history],
   );
   const compliance = useComplianceData(selectedYear, pending, approved, BARANGAYS);
 
   // Per-barangay perennial filter
   const [selectedPerennialBarangay, setSelectedPerennialBarangay] = useState(BARANGAYS[0] || '');
+  const [matrixDocType, setMatrixDocType] = useState(ALL_UPLOAD_TYPES[0]?.id || '');
 
   const selectedPerennial = useMemo(() => {
     const entry = compliance.barangayPerennialSummary.find(
-      (c) => c.barangay === selectedPerennialBarangay
+      (c) => c.barangay === selectedPerennialBarangay,
     );
-
     if (!entry) {
       return {
         resolutions: 0,
         accomplishmentsTotal: 0,
-        categoryData: ACCOMPLISHMENT_CATEGORIES.map((cat) => ({
-          id: cat.id,
-          label: cat.label,
-          count: 0,
-        })),
+        categoryData: ACCOMPLISHMENT_CATEGORIES.map((cat) => ({ id: cat.id, label: cat.label, count: 0 })),
       };
     }
-
     return entry;
   }, [compliance.barangayPerennialSummary, selectedPerennialBarangay]);
-
-  // -----------------------------------------------------------------------
-  // Compliance Matrix — Filter by doc type (now includes ASAP)
-  // -----------------------------------------------------------------------
-  const [matrixDocType, setMatrixDocType] = useState(ALL_UPLOAD_TYPES[0]?.id || '');
 
   const matrixForDocType = useMemo(() => {
     const cells = compliance.matrixData.filter((c) => c.docType === matrixDocType);
@@ -90,68 +118,51 @@ const AdminAnalyticsSection: React.FC = () => {
     return { cells, periods };
   }, [compliance.matrixData, matrixDocType]);
 
-  // -----------------------------------------------------------------------
-  // Chart Data: Overall Compliance Doughnut
-  // -----------------------------------------------------------------------
+  // ── Chart Data ──────────────────────────────────────────────────
+
   const doughnutData = {
     labels: ['Approved', 'Pending', 'Missing'],
-    datasets: [
-      {
-        data: [
-          compliance.overallRate,
+    datasets: [{
+      data: [
+        compliance.overallRate,
+        Math.round(
+          (compliance.pendingReviewCount /
+            Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100,
+        ),
+        Math.max(
+          0,
+          100 - compliance.overallRate -
           Math.round(
             (compliance.pendingReviewCount /
-              Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) *
-            100
+              Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100,
           ),
-          Math.max(
-            0,
-            100 -
-            compliance.overallRate -
-            Math.round(
-              (compliance.pendingReviewCount /
-                Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) *
-              100
-            )
-          ),
-        ],
-        backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
-        borderWidth: 0,
-        cutout: '70%',
-      },
-    ],
+        ),
+      ],
+      backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
+      borderWidth: 0,
+      cutout: '72%',
+    }],
   };
 
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, position: 'bottom' as const },
-      tooltip: {
-        callbacks: {
-          label: (ctx: any) => `${ctx.label}: ${ctx.raw}%`,
-        },
-      },
+      legend: { display: true, position: 'bottom' as const, labels: { boxWidth: 10, padding: 16, font: { size: 12 } } },
+      tooltip: { callbacks: { label: (ctx: any) => `${ctx.label}: ${ctx.raw}%` } },
     },
   };
 
-  // -----------------------------------------------------------------------
-  // Chart Data: Barangay Compliance (Horizontal Bar)
-  // -----------------------------------------------------------------------
   const top15 = compliance.barangayRanking.slice(0, 15);
   const barangayBarData = {
-    labels: top15.map((b) => b.barangay.length > 20 ? b.barangay.slice(0, 18) + '...' : b.barangay),
-    datasets: [
-      {
-        label: 'Compliance %',
-        data: top15.map((b) => b.rate),
-        backgroundColor: top15.map((b) =>
-          b.rate >= 80 ? '#22C55E' : b.rate >= 50 ? '#F59E0B' : '#EF4444'
-        ),
-        borderRadius: 4,
-        barThickness: 18,
-      },
-    ],
+    labels: top15.map((b) => b.barangay.length > 20 ? b.barangay.slice(0, 18) + '…' : b.barangay),
+    datasets: [{
+      label: 'Compliance %',
+      data: top15.map((b) => b.rate),
+      backgroundColor: top15.map((b) => b.rate >= 80 ? '#22C55E' : b.rate >= 50 ? '#F59E0B' : '#EF4444'),
+      borderRadius: 6,
+      barThickness: 16,
+    }],
   };
 
   const barangayBarOptions = {
@@ -170,38 +181,29 @@ const AdminAnalyticsSection: React.FC = () => {
       },
     },
     scales: {
-      x: {
-        max: 100,
-        grid: { color: '#F4F4F5' },
-        ticks: { callback: (v: any) => `${v}%` },
-      },
-      y: {
-        grid: { display: false },
-      },
+      x: { max: 100, grid: { color: '#F4F4F5' }, ticks: { callback: (v: any) => `${v}%` } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } },
     },
   };
 
-  // -----------------------------------------------------------------------
-  // Chart Data: Document Type Compliance (Grouped Bar)
-  // -----------------------------------------------------------------------
   const docTypeBarData = {
     labels: compliance.docTypeCompliance.map((d) =>
-      d.label.length > 25 ? d.label.slice(0, 22) + '...' : d.label
+      d.label.length > 25 ? d.label.slice(0, 22) + '…' : d.label,
     ),
     datasets: [
       {
         label: 'Expected',
         data: compliance.docTypeCompliance.map((d) => d.expected),
-        backgroundColor: '#E4E4E7',
-        borderRadius: 4,
-        barThickness: 24,
+        backgroundColor: '#E0E7FF',
+        borderRadius: 5,
+        barThickness: 22,
       },
       {
         label: 'Approved',
         data: compliance.docTypeCompliance.map((d) => d.approved),
         backgroundColor: '#4F46E5',
-        borderRadius: 4,
-        barThickness: 24,
+        borderRadius: 5,
+        barThickness: 22,
       },
     ],
   };
@@ -209,18 +211,13 @@ const AdminAnalyticsSection: React.FC = () => {
   const docTypeBarOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' as const },
-    },
+    plugins: { legend: { position: 'top' as const, labels: { boxWidth: 10, font: { size: 12 } } } },
     scales: {
       x: { grid: { display: false } },
       y: { grid: { color: '#F4F4F5' }, beginAtZero: true },
     },
   };
 
-  // -----------------------------------------------------------------------
-  // Chart Data: Submission Trend (Line)
-  // -----------------------------------------------------------------------
   const trendLineData = {
     labels: compliance.monthlyTrend.map((m) => m.month),
     datasets: [
@@ -228,21 +225,23 @@ const AdminAnalyticsSection: React.FC = () => {
         label: 'Submitted',
         data: compliance.monthlyTrend.map((m) => m.submitted),
         borderColor: '#06B6D4',
-        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+        backgroundColor: 'rgba(6, 182, 212, 0.12)',
         fill: true,
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 6,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        borderWidth: 2,
       },
       {
         label: 'Approved',
         data: compliance.monthlyTrend.map((m) => m.approved),
         borderColor: '#22C55E',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        backgroundColor: 'rgba(34, 197, 94, 0.12)',
         fill: true,
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 6,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        borderWidth: 2,
       },
     ],
   };
@@ -250,126 +249,118 @@ const AdminAnalyticsSection: React.FC = () => {
   const trendLineOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' as const },
-    },
+    plugins: { legend: { position: 'top' as const, labels: { boxWidth: 10, font: { size: 12 } } } },
     scales: {
       x: { grid: { display: false } },
       y: { grid: { color: '#F4F4F5' }, beginAtZero: true },
     },
   };
 
-
-
-  // -----------------------------------------------------------------------
-  // Render — New Layout Order:
-  // 1. KPI Stat Cards
-  // 2. Doughnut + Barangay Ranking
-  // 3. Compliance Matrix (with ASAP in dropdown)
-  // 4. Doc Type Compliance + Submission Trend
-  // 5. Perennial Summary (Resolutions + Accomplishment Reports)
-  // -----------------------------------------------------------------------
+  // ── Render ──────────────────────────────────────────────────────
   return (
     <>
-      {/* 1. KPI Stat Cards */}
+      {/* 1 ── KPI Stat Cards */}
       <Row className="mb-4 g-3">
-        <Col md={3}>
-          <StatCard title="Overall Compliance" value={`${compliance.overallRate}%`} variant="primary" />
-        </Col>
-        <Col md={3}>
-          <StatCard
-            title="Fully Compliant"
-            value={`${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`}
-            variant="success"
-          />
-        </Col>
-        <Col md={3}>
-          <StatCard title="Overdue Submissions" value={compliance.overdueCount} variant="danger" />
-        </Col>
-        <Col md={3}>
-          <StatCard title="Pending Review" value={compliance.pendingReviewCount} variant="warning" />
-        </Col>
+        {[
+          { title: 'Overall Compliance',  value: `${compliance.overallRate}%`,                                                variant: 'primary' as const, icon: 'check_circle'  },
+          { title: 'Fully Compliant',      value: `${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`,         variant: 'success' as const, icon: 'verified'      },
+          { title: 'Overdue Submissions',  value: compliance.overdueCount,                                                    variant: 'danger'  as const, icon: 'error'         },
+          { title: 'Pending Review',       value: compliance.pendingReviewCount,                                               variant: 'warning' as const, icon: 'pending_actions'},
+        ].map((card, i) => (
+          <Col md={3} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
+            <StatCard
+              title={card.title}
+              value={card.value}
+              variant={card.variant}
+              icon={card.icon}
+            />
+          </Col>
+        ))}
       </Row>
 
-      {/* 2. Doughnut + Barangay Ranking (below stats, above matrix) */}
+      {/* 2 ── Doughnut + Barangay Ranking */}
       <Row className="mb-4 g-3">
         <Col md={4}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-4">
-              <h6 className="fw-bold mb-3" style={{ fontFamily: 'var(--font-headline)' }}>
-                Overall Compliance
-              </h6>
-              <div style={{ height: '250px', position: 'relative' }}>
-                <Doughnut data={doughnutData} options={doughnutOptions} />
-                <div
-                  className="position-absolute top-50 start-50 translate-middle text-center"
-                  style={{ pointerEvents: 'none', marginTop: '-15px' }}
-                >
-                  <div className="fw-bold text-dark" style={{ fontSize: '28px', lineHeight: 1 }}>
-                    {compliance.overallRate}%
-                  </div>
-                  <div className="text-muted" style={{ fontSize: '11px' }}>Compliant</div>
+          <AnalyticsCard
+            headerClass="chart-header-primary"
+            icon="donut_large"
+            iconClass="icon-primary"
+            title="Overall Compliance"
+            subtitle="Share of approved vs. pending vs. missing"
+          >
+            <div style={{ height: '260px', position: 'relative' }}>
+              <Doughnut data={doughnutData} options={doughnutOptions} />
+              <div
+                className="position-absolute top-50 start-50 translate-middle text-center"
+                style={{ pointerEvents: 'none', marginTop: '-18px' }}
+              >
+                <div style={{ fontFamily: 'var(--font-headline)', fontSize: '30px', fontWeight: 800, color: '#18181B', lineHeight: 1 }}>
+                  {compliance.overallRate}%
+                </div>
+                <div style={{ fontSize: '11px', color: '#71717A', marginTop: '4px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Compliant
                 </div>
               </div>
-            </Card.Body>
-          </Card>
+            </div>
+          </AnalyticsCard>
         </Col>
+
         <Col md={8}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-4">
-              <h6 className="fw-bold mb-3" style={{ fontFamily: 'var(--font-headline)' }}>
-                Barangay Compliance Ranking
-              </h6>
-              <div style={{ height: '300px' }}>
-                <Bar data={barangayBarData} options={barangayBarOptions} />
-              </div>
-            </Card.Body>
-          </Card>
+          <AnalyticsCard
+            headerClass="chart-header-success"
+            icon="bar_chart"
+            iconClass="icon-success"
+            title="Barangay Compliance Ranking"
+            subtitle="Top 15 — green ≥ 80%, amber ≥ 50%, red < 50%"
+          >
+            <div style={{ height: '300px' }}>
+              <Bar data={barangayBarData} options={barangayBarOptions} />
+            </div>
+          </AnalyticsCard>
         </Col>
       </Row>
 
-      {/* 3. Compliance Matrix (ASAP + Scheduled in dropdown) */}
-      <Card className="border-0 shadow-sm mb-4">
-        <Card.Body className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="fw-bold mb-0" style={{ fontFamily: 'var(--font-headline)' }}>
-              <span className="material-symbols-outlined me-2 text-primary" style={{ verticalAlign: 'middle' }}>
-                grid_on
-              </span>
-              Compliance Matrix
-            </h5>
+      {/* 3 ── Compliance Matrix */}
+      <div className="analytics-card mb-4" style={{ background: '#fff' }}>
+        <div className="chart-card-header chart-header-violet">
+          <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <div>
+              <p className="chart-card-title">
+                <span className="material-symbols-outlined icon-violet" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+                  grid_on
+                </span>
+                Compliance Matrix
+              </p>
+              <p className="chart-card-subtitle">Barangay × Period status for selected document type</p>
+            </div>
             <Form.Select
               value={matrixDocType}
               onChange={(e) => setMatrixDocType(e.target.value)}
-              style={{ maxWidth: '340px' }}
+              style={{ maxWidth: '320px', fontSize: '13px' }}
             >
               <optgroup label="Scheduled Documents">
                 {SCHEDULED_TYPES.map((dt) => (
-                  <option key={dt.id} value={dt.id}>
-                    {dt.label}
-                  </option>
+                  <option key={dt.id} value={dt.id}>{dt.label}</option>
                 ))}
               </optgroup>
               <optgroup label="ASAP Documents">
                 {ASAP_TYPES.map((dt) => (
-                  <option key={dt.id} value={dt.id}>
-                    {dt.label}
-                  </option>
+                  <option key={dt.id} value={dt.id}>{dt.label}</option>
                 ))}
               </optgroup>
             </Form.Select>
           </div>
+        </div>
 
-          <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+        <div className="p-4">
+          <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto' }}>
             <table className="table table-sm table-hover mb-0" style={{ fontSize: '12px' }}>
               <thead className="sticky-top bg-white">
                 <tr>
-                  <th className="fw-bold text-dark" style={{ minWidth: '160px' }}>Barangay</th>
+                  <th style={{ minWidth: '170px' }}>Barangay</th>
                   {matrixForDocType.periods.map((p) => (
-                    <th key={p} className="text-center" style={{ minWidth: '70px' }}>
-                      {p === 'ASAP'
-                        ? 'Status'
-                        : formatPeriodLabel(p).replace(` ${selectedYear}`, '')}
+                    <th key={p} className="text-center" style={{ minWidth: '90px' }}>
+                      {p === 'ASAP' ? 'Status' : formatPeriodLabel(p).replace(` ${selectedYear}`, '')}
                     </th>
                   ))}
                 </tr>
@@ -377,29 +368,20 @@ const AdminAnalyticsSection: React.FC = () => {
               <tbody>
                 {BARANGAYS.map((brgy) => (
                   <tr key={brgy}>
-                    <td className="fw-semibold text-dark text-truncate" style={{ maxWidth: '180px' }}>
-                      {brgy}
-                    </td>
+                    <td className="fw-semibold text-truncate" style={{ maxWidth: '180px', color: '#18181B' }}>{brgy}</td>
                     {matrixForDocType.periods.map((period) => {
                       const cell = matrixForDocType.cells.find(
-                        (c) => c.barangay === brgy && c.period === period
+                        (c) => c.barangay === brgy && c.period === period,
                       );
                       const status = cell?.status || 'not_due';
-                      const colors: Record<string, { bg: string; icon: string }> = {
-                        approved: { bg: '#F0FDF4', icon: '✅' },
-                        pending: { bg: '#FFF7ED', icon: '🟡' },
-                        missing: { bg: '#FEF2F2', icon: '🔴' },
-                        not_due: { bg: '#F9FAFB', icon: '⚪' },
-                      };
-                      const c = colors[status];
+                      const cfg = matrixChipConfig[status] || matrixChipConfig.not_due;
                       return (
                         <td
                           key={period}
                           className="text-center"
-                          style={{ backgroundColor: c.bg }}
                           title={`${brgy} — ${period === 'ASAP' ? 'ASAP' : formatPeriodLabel(period)}: ${status}`}
                         >
-                          {c.icon}
+                          <span className={`matrix-chip ${cfg.cls}`}>{cfg.label}</span>
                         </td>
                       );
                     })}
@@ -409,109 +391,135 @@ const AdminAnalyticsSection: React.FC = () => {
             </table>
           </div>
 
-          <div className="d-flex gap-4 mt-3 justify-content-center" style={{ fontSize: '12px' }}>
-            <span>✅ Approved</span>
-            <span>🟡 Pending</span>
-            <span>🔴 Missing</span>
-            <span>⚪ Not yet due</span>
+          {/* Legend strip */}
+          <div className="d-flex gap-3 mt-3 flex-wrap" style={{ fontSize: '12px' }}>
+            {Object.entries(matrixChipConfig).map(([, cfg]) => (
+              <span key={cfg.label} className={`matrix-chip ${cfg.cls}`}>{cfg.label}</span>
+            ))}
           </div>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
 
-      {/* 4. Doc Type Compliance + Submission Trend */}
+      {/* 4 ── Doc Type Compliance + Submission Trend */}
       <Row className="mb-4 g-3">
         <Col md={6}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-4">
-              <h6 className="fw-bold mb-3" style={{ fontFamily: 'var(--font-headline)' }}>
-                Document Type Compliance
-              </h6>
-              <div style={{ height: '280px' }}>
-                <Bar data={docTypeBarData} options={docTypeBarOptions} />
-              </div>
-            </Card.Body>
-          </Card>
+          <AnalyticsCard
+            headerClass="chart-header-warning"
+            icon="description"
+            iconClass="icon-warning"
+            title="Document Type Compliance"
+            subtitle="Expected vs. approved per document type"
+          >
+            <div style={{ height: '280px' }}>
+              <Bar data={docTypeBarData} options={docTypeBarOptions} />
+            </div>
+          </AnalyticsCard>
         </Col>
         <Col md={6}>
-          <Card className="border-0 shadow-sm h-100">
-            <Card.Body className="p-4">
-              <h6 className="fw-bold mb-3" style={{ fontFamily: 'var(--font-headline)' }}>
-                Submission Trend
-              </h6>
-              <div style={{ height: '280px' }}>
-                <Line data={trendLineData} options={trendLineOptions} />
-              </div>
-            </Card.Body>
-          </Card>
+          <AnalyticsCard
+            headerClass="chart-header-info"
+            icon="trending_up"
+            iconClass="icon-info"
+            title="Submission Trend"
+            subtitle="Monthly submission vs. approval volume"
+          >
+            <div style={{ height: '280px' }}>
+              <Line data={trendLineData} options={trendLineOptions} />
+            </div>
+          </AnalyticsCard>
         </Col>
       </Row>
 
-      {/* 5. Year-End Counts — Filtered by Barangay */}
-      <Card className="border-0 shadow-sm mb-4">
-        <Card.Body className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h5 className="fw-bold mb-0" style={{ fontFamily: 'var(--font-headline)' }}>
-              <span className="material-symbols-outlined me-2 text-primary" style={{ verticalAlign: 'middle' }}>
-                analytics
-              </span>
-              Year-End Counts ({selectedYear})
-            </h5>
+      {/* 5 ── Year-End Counts (dark header) */}
+      <div className="analytics-card mb-4" style={{ background: '#fff' }}>
+        <div className="chart-card-header chart-header-dark">
+          <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <div>
+              <p className="chart-card-title" style={{ color: '#FFFFFF' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'rgba(255,255,255,0.8)', fontVariationSettings: "'FILL' 1" }}>
+                  analytics
+                </span>
+                Year-End Counts &mdash; {selectedYear}
+              </p>
+              <p className="chart-card-subtitle" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                Per-barangay resolutions & accomplishment reports
+              </p>
+            </div>
             <Form.Select
               value={selectedPerennialBarangay}
               onChange={(e) => setSelectedPerennialBarangay(e.target.value)}
-              style={{ maxWidth: '300px' }}
+              style={{ maxWidth: '280px', fontSize: '13px' }}
             >
               {BARANGAYS.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </Form.Select>
           </div>
+        </div>
 
-          {/* KPI cards for selected barangay */}
+        <div className="p-4">
+          {/* KPI mini-cards */}
           <Row className="mb-4 g-3">
             <Col md={6}>
-              <StatCard
-                title="Resolutions"
-                value={selectedPerennial.resolutions}
-                variant="primary"
-              />
+              <StatCard title="Resolutions" value={selectedPerennial.resolutions} variant="primary" icon="gavel" />
             </Col>
             <Col md={6}>
-              <StatCard
-                title="Total Accomplishment Reports"
-                value={selectedPerennial.accomplishmentsTotal}
-                variant="info"
-              />
+              <StatCard title="Total Accomplishment Reports" value={selectedPerennial.accomplishmentsTotal} variant="info" icon="assignment_turned_in" />
             </Col>
           </Row>
 
-          {/* Accomplishment breakdown */}
-          <Row className="g-3">
-            <Col md={12}>
-              <Card className="border rounded h-100">
-                <Card.Body className="p-3">
-                  <h6 className="fw-bold mb-3" style={{ fontSize: '14px' }}>
-                    Category Breakdown
-                  </h6>
-                  <div className="d-flex flex-column gap-2">
-                    {selectedPerennial.categoryData.map((cat) => (
-                      <div key={cat.id} className="d-flex align-items-center justify-content-between bg-light rounded-3 px-3 py-2">
-                        <span className="text-dark" style={{ fontSize: '13px' }}>{cat.label}</span>
-                        <span
-                          className={`badge ${cat.count > 0 ? 'bg-primary' : 'bg-secondary bg-opacity-25 text-muted'}`}
-                          style={{ minWidth: '36px', fontSize: '13px' }}
-                        >
-                          {cat.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+          {/* Category Breakdown */}
+          <div
+            style={{
+              background: '#FAFAFA',
+              border: '1px solid #E4E4E7',
+              borderRadius: '10px',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #E4E4E7' }}>
+              <span style={{ fontFamily: 'var(--font-headline)', fontSize: '13px', fontWeight: 700, color: '#18181B' }}>
+                Category Breakdown
+              </span>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              {selectedPerennial.categoryData.map((cat, idx) => (
+                <div
+                  key={cat.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '9px 16px',
+                    background: idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA',
+                    borderBottom: idx < selectedPerennial.categoryData.length - 1 ? '1px solid #F4F4F5' : 'none',
+                  }}
+                >
+                  <span style={{ fontSize: '13px', color: '#3F3F46' }}>{cat.label}</span>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '40px',
+                      padding: '2px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-body)',
+                      background: cat.count > 0 ? '#EEF2FF' : '#F4F4F5',
+                      color: cat.count > 0 ? '#4F46E5' : '#A1A1AA',
+                      border: `1px solid ${cat.count > 0 ? '#C7D2FE' : '#E4E4E7'}`,
+                    }}
+                  >
+                    {cat.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
