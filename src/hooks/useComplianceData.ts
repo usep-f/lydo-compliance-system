@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { SCHEDULED_TYPES, ASAP_TYPES, ACCOMPLISHMENT_CATEGORIES } from '../constants/submissionTypes';
 import type { PendingSubmission, HistoricalSubmission } from '../constants/submissionTypes';
-import { getElapsedPeriods, getAllPeriods, isPeriodOverdue, isPeriodCurrent } from '../utils/periodUtils';
+import { getElapsedPeriods, getAllPeriods, getSubmittablePeriods, isPeriodOverdue, isPeriodCurrent } from '../utils/periodUtils';
 import type { Frequency } from '../constants/submissionTypes';
 
 // ---------------------------------------------------------------------------
@@ -129,28 +129,48 @@ export function useComplianceData(
     // -----------------------------------------------------------------------
     // Doc Type Compliance
     // -----------------------------------------------------------------------
-    const docTypeCompliance: DocTypeCompliance[] = SCHEDULED_TYPES.map((dt) => {
-      const elapsed = getElapsedPeriods(dt.frequency as Frequency, year, now);
-      const expected = elapsed.length * barangays.length;
+    const docTypeCompliance: DocTypeCompliance[] = [
+      // Scheduled types — period-based expected count
+      ...SCHEDULED_TYPES.map((dt) => {
+        const elapsed = getSubmittablePeriods(dt.frequency as Frequency, year, now);
+        const expected = elapsed.length * barangays.length;
 
-      let approvedCount = 0;
-      barangays.forEach((brgy) => {
-        elapsed.forEach((period) => {
-          const isApproved = approved.some(
-            (s) => s.barangay === brgy && s.documentType === dt.id && s.period === period
-          );
-          if (isApproved) approvedCount++;
+        let approvedCount = 0;
+        barangays.forEach((brgy) => {
+          elapsed.forEach((period) => {
+            const isApproved = approved.some(
+              (s) => s.barangay === brgy && s.documentType === dt.id && s.period === period
+            );
+            if (isApproved) approvedCount++;
+          });
         });
-      });
 
-      return {
-        docType: dt.id,
-        label: dt.label,
-        approved: approvedCount,
-        expected,
-        rate: expected > 0 ? Math.round((approvedCount / expected) * 100) : 100,
-      };
-    });
+        return {
+          docType: dt.id,
+          label: dt.label,
+          approved: approvedCount,
+          expected,
+          rate: expected > 0 ? Math.round((approvedCount / expected) * 100) : 100,
+        };
+      }),
+      // ASAP types — always 1 expected per barangay (one-time, no periods)
+      ...ASAP_TYPES.map((dt) => {
+        const expected = barangays.length;
+        const approvedCount = barangays.filter((brgy) =>
+          approved.some(
+            (s) => s.barangay === brgy && s.documentType === dt.id && s.period === 'ASAP'
+          )
+        ).length;
+
+        return {
+          docType: dt.id,
+          label: dt.label,
+          approved: approvedCount,
+          expected,
+          rate: expected > 0 ? Math.round((approvedCount / expected) * 100) : 100,
+        };
+      }),
+    ];
 
     // -----------------------------------------------------------------------
     // Monthly Trend (submissions per month)
