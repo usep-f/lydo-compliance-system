@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Container, Card, Alert } from 'react-bootstrap';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import PasswordSetupForm from '../components/auth/PasswordSetupForm';
 
 export default function SetupPasswordPage() {
   const [searchParams] = useSearchParams();
   const oobCode = searchParams.get('oobCode');
-  const navigate = useNavigate();
   const [isValidCode, setIsValidCode] = useState(true);
 
   useEffect(() => {
@@ -16,8 +15,8 @@ export default function SetupPasswordPage() {
   }, [oobCode]);
 
   const handleSuccess = () => {
-    // User is now automatically logged in, redirect directly to dashboard
-    navigate('/dashboard', { replace: true });
+    // Force a full page navigation to ensure it doesn't get caught in the router's loading state
+    window.location.href = '/registration-success';
   };
 
   return (
@@ -45,12 +44,6 @@ export default function SetupPasswordPage() {
                 )}
               </Card.Body>
             </Card>
-            
-            <div className="text-center mt-4">
-              <a href="/" className="text-secondary text-decoration-none small fw-semibold">
-                Return to Homepage
-              </a>
-            </div>
           </div>
         </div>
       </Container>

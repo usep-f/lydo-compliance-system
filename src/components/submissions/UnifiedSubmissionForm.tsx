@@ -166,12 +166,6 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
 
   return (
     <Card className="border-0 shadow-sm overflow-hidden">
-      <div className="bg-primary text-white p-4">
-        <h4 className="fw-bold mb-1">Submit a Document</h4>
-        <p className="mb-0 text-white-50" style={{ fontSize: '14px' }}>
-          Follow the steps below to upload and submit your required compliance files.
-        </p>
-      </div>
       <Card.Body className="p-4 p-md-5">
         <Form onSubmit={handleSubmit}>
           <div className="row g-4">

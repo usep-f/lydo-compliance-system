@@ -7,7 +7,7 @@ import DashboardSidebar from './DashboardSidebar';
 interface SectionPageHeaderProps {
   title: string;
   subtitle?: string;
-  badge?: React.ReactNode;
+  icon?: string;
 }
 
 interface DashboardShellProps {
@@ -59,18 +59,27 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
             {pageHeader && (
               <div className="section-page-header">
                 <div>
-                  <p className="sph-title">{pageHeader.title}</p>
+                  <p className="sph-title d-flex align-items-center gap-2">
+                    {pageHeader.icon && (
+                      <span 
+                        className="material-symbols-outlined text-primary" 
+                        style={{ fontSize: '0.85em', fontVariationSettings: "'FILL' 0, 'wght' 600" }}
+                      >
+                        {pageHeader.icon}
+                      </span>
+                    )}
+                    <span>{pageHeader.title}</span>
+                  </p>
                   {pageHeader.subtitle && (
                     <p className="sph-subtitle">{pageHeader.subtitle}</p>
                   )}
                 </div>
-                {pageHeader.badge && (
-                  <div>{pageHeader.badge}</div>
-                )}
               </div>
             )}
 
-            {children}
+            <div key={activeSection} className="dashboard-content-fade">
+              {children}
+            </div>
           </Container>
         </main>
       </div>

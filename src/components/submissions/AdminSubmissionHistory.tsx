@@ -143,17 +143,7 @@ const AdminSubmissionHistory: React.FC = () => {
 
   return (
     <>
-      <div className="mb-4">
-        <h4 className="fw-bold mb-1">
-          <span className="material-symbols-outlined me-2 text-primary" style={{ verticalAlign: 'middle' }}>
-            history
-          </span>
-          Submission History
-        </h4>
-        <p className="text-muted mb-0" style={{ fontSize: '13px' }}>
-          Browse all historically approved and denied submissions.
-        </p>
-      </div>
+
 
       {/* Filters */}
       <Card className="border-0 shadow-sm mb-4">

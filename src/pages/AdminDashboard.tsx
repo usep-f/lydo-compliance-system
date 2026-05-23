@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
 import { db, storage, functions } from '../firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
@@ -360,48 +360,31 @@ export default function AdminDashboard() {
   ];
 
   // ── Section page header config ──
-  const sectionHeaders: Record<string, { title: string; subtitle: string; badge?: React.ReactNode }> = {
+  const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string }> = {
     applicants: {
       title: 'Pending Applications',
       subtitle: 'Review and manage incoming SK Official registration requests',
-      badge: (
-        <span className="sph-badge sph-badge-count">
-          {pendingUsers.length} pending
-        </span>
-      ),
+      icon: 'badge',
     },
     users: {
       title: 'Registered SK Officials',
       subtitle: 'Manage approved accounts, edit details, and control access',
-      badge: (
-        <span className="sph-badge sph-badge-count">
-          {approvedCount} users
-        </span>
-      ),
+      icon: 'group',
     },
     submissions: {
       title: 'Submission Review',
       subtitle: 'Review, approve, or deny document submissions from barangays',
-      badge: (
-        <span className="sph-badge sph-badge-live">
-          <span className="sph-live-dot" />
-          Live
-        </span>
-      ),
+      icon: 'description',
     },
     history: {
       title: 'Submission History',
       subtitle: 'Browse the full archive of all processed document submissions',
+      icon: 'history',
     },
     analytics: {
       title: 'Compliance Analytics',
       subtitle: 'Real-time overview of barangay compliance across all document types',
-      badge: (
-        <span className="sph-badge sph-badge-live">
-          <span className="sph-live-dot" />
-          Live Data
-        </span>
-      ),
+      icon: 'bar_chart',
     },
   };
 
