@@ -123,18 +123,17 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
       dialogClassName="auth-modal-dialog"
       contentClassName="border-0 shadow-lg"
     >
-      <Modal.Header closeButton={!loading} className="border-0 pb-0 pt-4 px-4 px-md-5">
-        <Modal.Title className="w-100 text-center">
+      <Modal.Header closeButton={!loading} className="border-0 pb-0 pt-3 px-4 px-md-5" />
+      
+      <Modal.Body className="px-4 px-md-5 pb-5 pt-0">
+        <div className="text-center mb-4">
           <h3 className="mb-1 text-primary fw-bold headline-text" style={{ letterSpacing: '-0.02em' }}>
             Lydo Compliance
           </h3>
           <p className="text-muted small mb-0 mt-2">
             {isLoginMode ? 'Sign in to your account' : 'Apply for an SK Official Account'}
           </p>
-        </Modal.Title>
-      </Modal.Header>
-      
-      <Modal.Body className="px-4 px-md-5 pb-5 pt-3">
+        </div>
         {error && <Alert variant="danger" className="py-2.5 small">{error}</Alert>}
         {success && <Alert variant="success" className="py-2.5 small">{success}</Alert>}
 

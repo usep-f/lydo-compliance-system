@@ -183,18 +183,21 @@ export default function UserDashboard() {
   };
 
   // ── Section page header config ────────────────────────────────────────────
-  const sectionHeaders: Record<string, { title: string; subtitle: string; badge?: React.ReactNode }> = {
+  const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string }> = {
     submissions: {
       title: 'Submit Documents',
       subtitle: `Upload required compliance documents for ${userInfo?.barangay || 'your barangay'}`,
+      icon: 'upload_file',
     },
     history: {
       title: 'Submission History',
       subtitle: 'Your past approved and denied document submissions',
+      icon: 'history',
     },
     settings: {
       title: 'User Settings',
       subtitle: 'Manage your account preferences and notifications',
+      icon: 'settings',
     },
   };
 
