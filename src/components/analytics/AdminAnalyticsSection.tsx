@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Row, Col, Form } from 'react-bootstrap';
 import {
   Chart as ChartJS,
@@ -87,16 +87,35 @@ const AdminAnalyticsSection: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear] = useState(currentYear);
 
+  // Global barangay filter — '' means "All Barangays"
+  const [selectedBarangay, setSelectedBarangay] = useState('');
+
   const { pending = [], history = [] } = useSubmissions(undefined, true);
   const approved = useMemo(
     () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [history],
   );
-  const compliance = useComplianceData(selectedYear, pending, approved, BARANGAYS);
 
-  // Per-barangay perennial filter
+  // Scope barangay list and pending submissions to the active filter
+  const activeBarangays = useMemo(
+    () => (selectedBarangay ? [selectedBarangay] : BARANGAYS),
+    [selectedBarangay],
+  );
+  const filteredPending = useMemo(
+    () => (selectedBarangay ? pending.filter((s) => s.barangay === selectedBarangay) : pending),
+    [pending, selectedBarangay],
+  );
+
+  const compliance = useComplianceData(selectedYear, filteredPending, approved, activeBarangays);
+
+  // Per-barangay perennial filter — auto-syncs to the global filter
   const [selectedPerennialBarangay, setSelectedPerennialBarangay] = useState(BARANGAYS[0] || '');
   const [matrixDocType, setMatrixDocType] = useState(ALL_UPLOAD_TYPES[0]?.id || '');
+
+  // Keep Year-End Counts in sync with the global barangay filter
+  useEffect(() => {
+    if (selectedBarangay) setSelectedPerennialBarangay(selectedBarangay);
+  }, [selectedBarangay]);
 
   const selectedPerennial = useMemo(() => {
     const entry = compliance.barangayPerennialSummary.find(
@@ -256,17 +275,114 @@ const AdminAnalyticsSection: React.FC = () => {
     },
   };
 
+  // ── Single-barangay: Document Type Breakdown chart ────────────────────────
+  const docBreakdownData = {
+    labels: compliance.docTypeCompliance.map((d) =>
+      d.label.length > 22 ? d.label.slice(0, 20) + '\u2026' : d.label,
+    ),
+    datasets: [
+      {
+        label: 'Expected',
+        data: compliance.docTypeCompliance.map((d) => d.expected),
+        backgroundColor: '#E0E7FF',
+        borderRadius: 5,
+        barThickness: 14,
+      },
+      {
+        label: 'Approved',
+        data: compliance.docTypeCompliance.map((d) => d.approved),
+        backgroundColor: '#22C55E',
+        borderRadius: 5,
+        barThickness: 14,
+      },
+    ],
+  };
+
+  const docBreakdownOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'top' as const, labels: { boxWidth: 10, font: { size: 12 } } } },
+    scales: {
+      x: { grid: { color: '#F4F4F5' }, beginAtZero: true },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } },
+    },
+  };
+
+  // ── KPI cards — context-sensitive per barangay or system-wide ─────────────
+  const kpiCards = selectedBarangay
+    ? [
+        { title: 'Compliance Rate',     value: `${compliance.overallRate}%`,                                        variant: 'primary' as const, icon: 'check_circle'   },
+        { title: 'Compliance Status',   value: compliance.fullyCompliantCount === 1 ? 'Compliant' : 'Behind',      variant: compliance.fullyCompliantCount === 1 ? 'success' as const : 'danger' as const, icon: 'verified'      },
+        { title: 'Overdue Submissions', value: compliance.overdueCount,                                             variant: 'danger'  as const, icon: 'error'          },
+        { title: 'Pending Review',      value: compliance.pendingReviewCount,                                       variant: 'warning' as const, icon: 'pending_actions' },
+      ]
+    : [
+        { title: 'Overall Compliance',  value: `${compliance.overallRate}%`,                                        variant: 'primary' as const, icon: 'check_circle'   },
+        { title: 'Fully Compliant',     value: `${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`, variant: 'success' as const, icon: 'verified'       },
+        { title: 'Overdue Submissions', value: compliance.overdueCount,                                             variant: 'danger'  as const, icon: 'error'          },
+        { title: 'Pending Review',      value: compliance.pendingReviewCount,                                       variant: 'warning' as const, icon: 'pending_actions' },
+      ];
+
   // ── Render ──────────────────────────────────────────────────────
   return (
     <>
+      {/* 0 ── Global Barangay Filter */}
+      <div
+        className="mb-4 d-flex align-items-center gap-3 flex-wrap p-3"
+        style={{ background: '#FAFAFA', border: '1px solid #E4E4E7', borderRadius: '12px' }}
+      >
+        <div className="d-flex align-items-center gap-2" style={{ flexShrink: 0 }}>
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '18px', color: '#4F46E5', fontVariationSettings: "'FILL' 1" }}
+          >
+            filter_alt
+          </span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#3F3F46', fontFamily: 'var(--font-headline)', whiteSpace: 'nowrap' }}>
+            Filter by Barangay
+          </span>
+        </div>
+        <Form.Select
+          value={selectedBarangay}
+          onChange={(e) => setSelectedBarangay(e.target.value)}
+          style={{ maxWidth: '280px', fontSize: '13px' }}
+        >
+          <option value="">All Barangays</option>
+          {BARANGAYS.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </Form.Select>
+        {selectedBarangay && (
+          <>
+            <span
+              style={{
+                background: '#EEF2FF', color: '#4F46E5',
+                border: '1px solid #C7D2FE', borderRadius: '9999px',
+                fontSize: '12px', fontWeight: 600, padding: '3px 14px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {selectedBarangay}
+            </span>
+            <button
+              style={{
+                fontSize: '12px', color: '#71717A',
+                border: '1px solid #E4E4E7', borderRadius: '9999px',
+                padding: '3px 12px', background: '#fff', cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+              onClick={() => setSelectedBarangay('')}
+            >
+              ✕ Clear filter
+            </button>
+          </>
+        )}
+      </div>
+
       {/* 1 ── KPI Stat Cards */}
       <Row className="mb-4 g-3">
-        {[
-          { title: 'Overall Compliance',  value: `${compliance.overallRate}%`,                                                variant: 'primary' as const, icon: 'check_circle'  },
-          { title: 'Fully Compliant',      value: `${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`,         variant: 'success' as const, icon: 'verified'      },
-          { title: 'Overdue Submissions',  value: compliance.overdueCount,                                                    variant: 'danger'  as const, icon: 'error'         },
-          { title: 'Pending Review',       value: compliance.pendingReviewCount,                                               variant: 'warning' as const, icon: 'pending_actions'},
-        ].map((card, i) => (
+        {kpiCards.map((card, i) => (
           <Col md={3} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
             <StatCard
               title={card.title}
@@ -306,17 +422,31 @@ const AdminAnalyticsSection: React.FC = () => {
         </Col>
 
         <Col md={8}>
-          <AnalyticsCard
-            headerClass="chart-header-success"
-            icon="bar_chart"
-            iconClass="icon-success"
-            title="Barangay Compliance Ranking"
-            subtitle="Top 15 — green ≥ 80%, amber ≥ 50%, red < 50%"
-          >
-            <div style={{ height: '300px' }}>
-              <Bar data={barangayBarData} options={barangayBarOptions} />
-            </div>
-          </AnalyticsCard>
+          {selectedBarangay ? (
+            <AnalyticsCard
+              headerClass="chart-header-success"
+              icon="list_alt"
+              iconClass="icon-success"
+              title="Document Type Breakdown"
+              subtitle={`Expected vs. approved — ${selectedBarangay}`}
+            >
+              <div style={{ height: '300px' }}>
+                <Bar data={docBreakdownData} options={docBreakdownOptions} />
+              </div>
+            </AnalyticsCard>
+          ) : (
+            <AnalyticsCard
+              headerClass="chart-header-success"
+              icon="bar_chart"
+              iconClass="icon-success"
+              title="Barangay Compliance Ranking"
+              subtitle="Top 15 — green ≥ 80%, amber ≥ 50%, red < 50%"
+            >
+              <div style={{ height: '300px' }}>
+                <Bar data={barangayBarData} options={barangayBarOptions} />
+              </div>
+            </AnalyticsCard>
+          )}
         </Col>
       </Row>
 
@@ -366,7 +496,7 @@ const AdminAnalyticsSection: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {BARANGAYS.map((brgy) => (
+                {activeBarangays.map((brgy) => (
                   <tr key={brgy}>
                     <td className="fw-semibold text-truncate" style={{ maxWidth: '180px', color: '#18181B' }}>{brgy}</td>
                     {matrixForDocType.periods.map((period) => {
@@ -445,15 +575,17 @@ const AdminAnalyticsSection: React.FC = () => {
                 Per-barangay resolutions & accomplishment reports
               </p>
             </div>
-            <Form.Select
-              value={selectedPerennialBarangay}
-              onChange={(e) => setSelectedPerennialBarangay(e.target.value)}
-              style={{ maxWidth: '280px', fontSize: '13px' }}
-            >
-              {BARANGAYS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </Form.Select>
+            {!selectedBarangay && (
+              <Form.Select
+                value={selectedPerennialBarangay}
+                onChange={(e) => setSelectedPerennialBarangay(e.target.value)}
+                style={{ maxWidth: '280px', fontSize: '13px' }}
+              >
+                {BARANGAYS.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </Form.Select>
+            )}
           </div>
         </div>
 
