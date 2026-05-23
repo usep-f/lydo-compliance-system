@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container } from 'react-bootstrap';
+import { auth } from '../../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import DashboardNavbar from './DashboardNavbar';
 import type { NavigationSection } from './DashboardNavbar';
 import DashboardSidebar from './DashboardSidebar';
+import NotificationBell from '../common/NotificationBell';
 
 interface SectionPageHeaderProps {
   title: string;
@@ -30,6 +33,14 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
   sections,
   pageHeader,
 }) => {
+  const [currentUid, setCurrentUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUid(user ? user.uid : null);
+    });
+    return () => unsubscribe();
+  }, []);
   return (
     <div className="dashboard-layout d-flex min-vh-100">
       {/* Left Sidebar: Desktop Only */}
@@ -55,14 +66,15 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
         {/* Inner Content Body */}
         <main className="flex-grow-1 py-4 px-3 px-md-4">
           <Container fluid={fluid} className="h-100 p-0">
-            {/* Section Page Header — injected from parent page */}
-            {pageHeader && (
-              <div className="section-page-header">
+            {/* Section Page Header — always rendered so the bell is always visible */}
+            <div className={pageHeader ? 'section-page-header' : 'section-page-header-minimal'}>
+              {/* Left: title + subtitle (only when a header is provided) */}
+              {pageHeader ? (
                 <div>
                   <p className="sph-title d-flex align-items-center gap-2">
                     {pageHeader.icon && (
-                      <span 
-                        className="material-symbols-outlined text-primary" 
+                      <span
+                        className="material-symbols-outlined text-primary"
                         style={{ fontSize: '0.85em', fontVariationSettings: "'FILL' 0, 'wght' 600" }}
                       >
                         {pageHeader.icon}
@@ -74,8 +86,14 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
                     <p className="sph-subtitle">{pageHeader.subtitle}</p>
                   )}
                 </div>
-              </div>
-            )}
+              ) : (
+                // Empty placeholder so the bell stays on the right via space-between
+                <div />
+              )}
+
+              {/* Notification Bell — always top-right */}
+              <NotificationBell uid={currentUid} />
+            </div>
 
             <div key={activeSection} className="dashboard-content-fade">
               {children}

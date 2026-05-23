@@ -93,5 +93,23 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // ── Notifications ──
+    // Each user has a subcollection of their own notification items.
+    // Cloud Functions (Admin SDK) create and delete; clients can only read
+    // and mark as read (update isRead field only).
+    match /notifications/{userId}/items/{notifId} {
+      // Only the notification owner can read their notifications
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Clients can only set isRead to true — no other fields can be changed
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
+        && request.resource.data.isRead == true;
+
+      // All creates and deletes are handled by Cloud Functions via Admin SDK
+      allow create, delete: if false;
+    }
   }
 }

@@ -1,6 +1,8 @@
 import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { writeNotification, writeNotificationToAdmins, NOTIFICATION_TTL_DAYS } from './notifications';
 
 // Set global options to default all functions to Asia Southeast 1 (Singapore) region
 functions.setGlobalOptions({ region: 'asia-southeast1' });
@@ -332,6 +334,13 @@ export const approveUser = functions.https.onCall(
          <p>Please <a href="${customResetLink}">click here to set your password</a>.</p>`
       );
 
+      // 11. Write in-app notification to the newly created user
+      await writeNotification(userRecord.uid, {
+        type: 'account_approved',
+        title: 'Account Approved 🎉',
+        body: 'Your SK Official account has been approved. Welcome to the LYDO Compliance System!',
+      });
+
       return { success: true, message: 'User approved and email sent.' };
     } catch (error: any) {
       // Log full error server-side; return a generic message to the client
@@ -411,6 +420,11 @@ export const denyUser = functions.https.onCall(
            <p><strong>Reason:</strong> ${escapeHtml(reason)}</p>`
         );
       }
+
+      // 8. Write in-app notification if we can find the denied applicant's UID
+      // The applicant may not have a Firebase Auth UID yet (they were pending),
+      // but we fan out to admins regardless so they know the denial completed.
+      // Note: pending users have no UID, so we skip user-side notif for denyUser.
 
       return { success: true, message: 'User denied and email sent.' };
     } catch (error: any) {
@@ -532,6 +546,13 @@ export const updateUser = functions.https.onCall(
       if (hasFirestoreUpdate) {
         await db.collection('users').doc(uid).update(firestoreUpdate);
       }
+
+      // 9. Write in-app notification to the updated user
+      await writeNotification(uid, {
+        type: 'profile_updated',
+        title: 'Profile Updated',
+        body: 'Your account details were updated by the administrator.',
+      });
 
       return { success: true, message: 'User updated successfully.' };
     } catch (error: any) {
@@ -701,6 +722,20 @@ export const approveSubmission = functions.https.onCall(
              <p>Thank you for ensuring timely compliance. You can view your updated records on the LYDO Compliance System dashboard.</p>`
           );
         }
+
+        // 9. Write in-app notification to the submitting user
+        const docLabel = submissionData.documentLabel ?? 'Document';
+        const period = submissionData.period ?? '';
+        await writeNotification(submissionData.userId, {
+          type: 'submission_approved',
+          title: 'Submission Approved ✅',
+          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission has been approved.`,
+          metadata: {
+            submissionId: request.data.submissionId,
+            documentLabel: docLabel,
+            period,
+          },
+        });
       }
 
       return { success: true, message: 'Submission approved successfully.' };
@@ -812,6 +847,21 @@ export const denySubmission = functions.https.onCall(
              <p>Please review the feedback and submit a corrected document through the LYDO Compliance System.</p>`
           );
         }
+
+        // 7. Write in-app notification to the submitting user
+        const docLabel = submissionData.documentLabel ?? 'Document';
+        const period = submissionData.period ?? '';
+        await writeNotification(submissionData.userId, {
+          type: 'submission_denied',
+          title: 'Submission Denied',
+          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was denied. Reason: ${reason}`,
+          metadata: {
+            submissionId: request.data.submissionId,
+            documentLabel: docLabel,
+            period,
+            reason,
+          },
+        });
       }
 
       return { success: true, message: 'Submission denied and notification sent.' };
@@ -856,5 +906,111 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
          <p>Thank you.</p>`
       );
     }
+
+    // Write in-app notification to the submitting user
+    const docLabel = submissionData.documentLabel ?? 'Document';
+    const period = submissionData.period ?? '';
+    await writeNotification(submissionData.userId, {
+      type: 'submission_received',
+      title: 'Submission Received',
+      body: `Your ${docLabel}${period ? ` (${period})` : ''} submission is now pending review.`,
+      metadata: {
+        submissionId: event.params.submissionId,
+        documentLabel: docLabel,
+        period,
+        barangay: submissionData.barangay ?? '',
+      },
+    });
+
+    // Write in-app notification to all admin users
+    await writeNotificationToAdmins({
+      type: 'new_submission',
+      title: 'New Submission',
+      body: `${submissionData.fullName} (${submissionData.barangay ?? 'Unknown'}) submitted ${docLabel}.`,
+      metadata: {
+        submissionId: event.params.submissionId,
+        documentLabel: docLabel,
+        period,
+        barangay: submissionData.barangay ?? '',
+        applicantName: submissionData.fullName ?? '',
+      },
+    });
   }
 });
+
+// ---------------------------------------------------------------------------
+// onApplicationCreated — Triggered when a new pending_user is created.
+// Notifies all admins of the new application so they can review it.
+// ---------------------------------------------------------------------------
+
+export const onApplicationCreated = onDocumentCreated('pending_users/{applicationId}', async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) return;
+
+  const applicantData = snapshot.data();
+  if (!applicantData) return;
+
+  const fullName = applicantData.fullName ?? 'Unknown Applicant';
+  const barangay = applicantData.barangay ?? 'Unknown Barangay';
+
+  await writeNotificationToAdmins({
+    type: 'new_application',
+    title: 'New Application',
+    body: `${fullName} from ${barangay} submitted a registration application.`,
+    metadata: {
+      applicantName: fullName,
+      barangay,
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pruneExpiredNotifications — Scheduled daily at 2 AM (UTC+8 = 18:00 UTC).
+// Performs a collection group query on 'items' and bulk-deletes expired docs
+// in batches of 500 (Firestore batch write limit).
+// ---------------------------------------------------------------------------
+
+export const pruneExpiredNotifications = onSchedule(
+  {
+    schedule: '0 18 * * *', // Daily at 2 AM PHT (UTC+8)
+    timeZone: 'Asia/Manila',
+    region: 'asia-southeast1',
+    memory: '256MiB',
+    timeoutSeconds: 120,
+  },
+  async () => {
+    const db = admin.firestore();
+    const now = admin.firestore.Timestamp.now();
+    const BATCH_SIZE = 500;
+
+    console.log(`pruneExpiredNotifications: starting prune at ${now.toDate().toISOString()}`);
+    console.log(`TTL: ${NOTIFICATION_TTL_DAYS} days`);
+
+    let totalDeleted = 0;
+
+    try {
+      // Collection group query across all users' items subcollections
+      let query = db
+        .collectionGroup('items')
+        .where('expiresAt', '<', now)
+        .limit(BATCH_SIZE);
+
+      let snapshot = await query.get();
+
+      while (!snapshot.empty) {
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        totalDeleted += snapshot.size;
+        console.log(`pruneExpiredNotifications: deleted batch of ${snapshot.size} (total: ${totalDeleted})`);
+
+        if (snapshot.size < BATCH_SIZE) break; // no more docs
+        snapshot = await query.get();
+      }
+
+      console.log(`pruneExpiredNotifications: complete. Total deleted: ${totalDeleted}`);
+    } catch (err) {
+      console.error('pruneExpiredNotifications: error during prune:', err);
+    }
+  }
+);
