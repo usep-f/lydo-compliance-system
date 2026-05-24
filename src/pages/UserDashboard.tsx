@@ -20,6 +20,7 @@ import StatusBadge from '../components/common/StatusBadge';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useUserAnalytics } from '../hooks/useUserAnalytics';
 import { formatPeriodLabel } from '../utils/periodUtils';
+import UserSettings from '../components/settings/UserSettings';
 import type { SubmissionTypeDefinition } from '../constants/submissionTypes';
 import type { PdfScreeningResult } from '../utils/pdfScreening';
 
@@ -785,35 +786,7 @@ export default function UserDashboard() {
 
       {/* ====== SETTINGS SECTION ====== */}
       {activeSection === 'settings' && (
-        <div className="py-3">
-          <div className="empty-state-card">
-            <div className="empty-state-icon mx-auto" style={{ background: '#EEF2FF' }}>
-              <span
-                className="material-symbols-outlined icon-primary"
-                style={{ fontSize: '36px', fontVariationSettings: "'FILL' 1" }}
-              >
-                settings_heart
-              </span>
-            </div>
-            <h4 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, color: '#18181B', marginBottom: '8px' }}>
-              User Settings
-            </h4>
-            <p style={{ fontSize: '14px', color: '#71717A', maxWidth: '320px', margin: '0 auto 20px' }}>
-              Account management, notification preferences, and password changes will be available in a future update.
-            </p>
-            <span
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
-                padding: '5px 14px', borderRadius: '9999px',
-                background: '#FFF7ED', color: '#EA580C', border: '1px solid #FED7AA',
-                fontSize: '12px', fontWeight: 600,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>construction</span>
-              Coming Soon
-            </span>
-          </div>
-        </div>
+        <UserSettings />
       )}
 
       {/* ── Upload Confirmation Modal ─────────────────────────────────── */}

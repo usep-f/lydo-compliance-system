@@ -22,7 +22,8 @@ export type NotificationType =
   | 'profile_updated'
   // Admin-facing
   | 'new_application'
-  | 'new_submission';
+  | 'new_submission'
+  | 'user_deleted';
 
 export interface NotificationMetadata {
   submissionId?: string;

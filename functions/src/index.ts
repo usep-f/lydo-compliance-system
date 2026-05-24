@@ -962,6 +962,33 @@ export const onApplicationCreated = onDocumentCreated('pending_users/{applicatio
       barangay,
     },
   });
+
+  // Notify Admins via Brevo Email
+  try {
+    const adminSnapshot = await db.collection('users').where('role', '==', 'admin').get();
+    const adminEmails: string[] = [];
+    adminSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.email) adminEmails.push(data.email);
+    });
+
+    await Promise.allSettled(
+      adminEmails.map(adminEmail => 
+        sendEmailViaBrevo(
+          adminEmail,
+          'Admin',
+          'New Registration Application',
+          `<h1>New Registration Application</h1>
+           <p>A new user has submitted a registration application and is awaiting your review.</p>
+           <p><strong>Name:</strong> ${escapeHtml(fullName)}</p>
+           <p><strong>Barangay:</strong> ${escapeHtml(barangay)}</p>
+           <p>Please log in to the admin dashboard to review and approve their account.</p>`
+        )
+      )
+    );
+  } catch (err) {
+    console.error('Failed to send admin email for new application:', err);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -1011,6 +1038,228 @@ export const pruneExpiredNotifications = onSchedule(
       console.log(`pruneExpiredNotifications: complete. Total deleted: ${totalDeleted}`);
     } catch (err) {
       console.error('pruneExpiredNotifications: error during prune:', err);
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// updateOwnProfile — User edits their own email, password, or fullName.
+// Updates denormalized fullName across submissions.
+// ---------------------------------------------------------------------------
+
+export const updateOwnProfile = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 120,
+    memory: '256MiB',
+  },
+  async (request) => {
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+    const uid = request.auth.uid;
+    const { email, fullName, passwordChanged } = request.data;
+
+    // Validate email
+    if (email !== undefined && email !== null) {
+      if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        throw new functions.https.HttpsError('invalid-argument', 'A valid email address is required.');
+      }
+    }
+    // Validate fullName
+    if (fullName !== undefined && fullName !== null) {
+      if (typeof fullName !== 'string' || fullName.trim().length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Full name must be a non-empty string.');
+      }
+    }
+
+    try {
+      // 1. Update the 'users' document
+      const userDocRef = db.collection('users').doc(uid);
+      const userDoc = await userDocRef.get();
+      if (!userDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'User not found.');
+      }
+      
+      const updateData: any = {};
+      if (email) updateData.email = email.trim();
+      if (fullName) updateData.fullName = fullName.trim();
+
+      if (Object.keys(updateData).length > 0) {
+        await userDocRef.update(updateData);
+      }
+
+      // 2. If fullName changed, update it across denormalized collections
+      if (fullName) {
+        // Create a new batch if we exceed the 500 limit
+        let opsCount = 0;
+        let batch = db.batch();
+        
+        const commitBatchIfNeeded = async () => {
+          if (opsCount >= 490) {
+            await batch.commit();
+            batch = db.batch();
+            opsCount = 0;
+          }
+        };
+
+        const collections = ['pending_submissions', 'submissions', 'perennial_counts'];
+        
+        for (const collName of collections) {
+          const snapshot = await db.collection(collName).where('userId', '==', uid).get();
+          for (const doc of snapshot.docs) {
+            batch.update(doc.ref, { fullName: fullName.trim() });
+            opsCount++;
+            await commitBatchIfNeeded();
+          }
+        }
+        
+        if (opsCount > 0) {
+          await batch.commit();
+        }
+      }
+
+      // 3. Notify Admins
+      let changes: string[] = [];
+      if (fullName) changes.push('Name');
+      if (email) changes.push('Email');
+      if (passwordChanged) changes.push('Password');
+      
+      if (changes.length > 0) {
+        const safeName = fullName || userDoc.data()?.fullName || 'A user';
+        await writeNotificationToAdmins({
+          type: 'profile_updated',
+          title: 'User Profile Updated',
+          body: `${safeName} changed their: ${changes.join(', ')}.`,
+          metadata: {
+            applicantName: safeName,
+            barangay: userDoc.data()?.barangay ?? '',
+          },
+        });
+
+        // 4. Notify User via Brevo Email
+        const targetEmail = email || userDoc.data()?.email;
+        if (targetEmail) {
+          const changeListHtml = changes.map(c => `<li>${escapeHtml(c)}</li>`).join('');
+          await sendEmailViaBrevo(
+            targetEmail,
+            escapeHtml(safeName),
+            'Your Profile Has Been Updated',
+            `<h1>Profile Update Alert</h1>
+             <p>Dear ${escapeHtml(safeName)},</p>
+             <p>Your LYDO Compliance System account profile was recently updated. The following information was changed:</p>
+             <ul>
+               ${changeListHtml}
+             </ul>
+             <p>If you did not make these changes, please contact the administrator immediately.</p>`
+          );
+        }
+      }
+
+      return { success: true, message: 'Profile updated successfully.' };
+    } catch (error: any) {
+      console.error('updateOwnProfile error:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to update profile.');
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// deleteOwnAccount — User deletes their own account.
+// Deletes from Firebase Auth and 'users' collection. 
+// Submissions and files remain intact for auditing.
+// ---------------------------------------------------------------------------
+
+export const deleteOwnAccount = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (request) => {
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+
+    const uid = request.auth.uid;
+
+    try {
+      // 1. Fetch user to get details for admin notification
+      const userDoc = await db.collection('users').doc(uid).get();
+      if (!userDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'User not found.');
+      }
+      
+      const userData = userDoc.data();
+      if (userData?.role === 'admin') {
+        throw new functions.https.HttpsError('permission-denied', 'Admins cannot delete their own accounts through this endpoint.');
+      }
+
+      const safeName = userData?.fullName || 'A user';
+      const barangay = userData?.barangay || 'Unknown';
+
+      // 2. Delete from Firebase Auth first
+      await admin.auth().deleteUser(uid);
+
+      // 3. Delete from Firestore users collection
+      await db.collection('users').doc(uid).delete();
+
+      // 4. Notify Admins (In-App)
+      await writeNotificationToAdmins({
+        type: 'user_deleted',
+        title: 'Account Deleted',
+        body: `${safeName} (${barangay}) has permanently deleted their account. Their submissions have been retained for auditing.`,
+        metadata: {
+          applicantName: safeName,
+          barangay: barangay,
+        },
+      });
+
+      // 5. Notify the User via Brevo Email
+      const userEmail = request.auth.token.email || userData?.email;
+      if (userEmail) {
+        await sendEmailViaBrevo(
+          userEmail,
+          escapeHtml(safeName),
+          'Account Successfully Deleted',
+          `<h1>Account Deletion Confirmed</h1>
+           <p>Dear ${escapeHtml(safeName)},</p>
+           <p>Your LYDO Compliance System account has been permanently deleted as requested.</p>
+           <p>Please note that for administrative auditing and compliance purposes, any past submissions you made will be retained in our records.</p>
+           <p>Thank you for using our system.</p>`
+        );
+      }
+
+      // 6. Notify Admins via Brevo Email
+      const adminSnapshot = await db.collection('users').where('role', '==', 'admin').get();
+      const adminEmails: string[] = [];
+      adminSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.email) adminEmails.push(data.email);
+      });
+
+      await Promise.allSettled(
+        adminEmails.map(adminEmail => 
+          sendEmailViaBrevo(
+            adminEmail,
+            'Admin',
+            `User Account Deleted - ${safeName}`,
+            `<h1>User Account Deleted</h1>
+             <p>A user account has been permanently deleted from the LYDO Compliance System.</p>
+             <p><strong>Name:</strong> ${escapeHtml(safeName)}</p>
+             <p><strong>Barangay:</strong> ${escapeHtml(barangay)}</p>
+             <p>Their historical submissions and uploaded files have been retained in the system for auditing purposes.</p>`
+          )
+        )
+      );
+
+      return { success: true, message: 'Account deleted successfully.' };
+    } catch (error: any) {
+      console.error('deleteOwnAccount error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An error occurred while deleting your account.'
+      );
     }
   }
 );
