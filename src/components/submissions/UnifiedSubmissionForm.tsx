@@ -84,24 +84,27 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
 
   // Reset dependent fields when parent fields change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedCategory('');
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      setSelectedCategory('');
 
-    if (!baseType) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedPeriod('');
-    } else if (baseType.category === 'asap') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedPeriod('ASAP');
-    } else if (baseType.category === 'perennial') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedPeriod(selectedYear.toString());
-    } else if (baseType.category === 'scheduled') {
-      // Auto-select the first unsubmitted period
-      const available = elapsedPeriods.find(p => !isPeriodSubmitted(p));
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedPeriod(available || '');
-    }
+      if (!baseType) {
+        setSelectedPeriod('');
+      } else if (baseType.category === 'asap') {
+        setSelectedPeriod('ASAP');
+      } else if (baseType.category === 'perennial') {
+        setSelectedPeriod(selectedYear.toString());
+      } else if (baseType.category === 'scheduled') {
+        // Auto-select the first unsubmitted period
+        const available = elapsedPeriods.find(p => !isPeriodSubmitted(p));
+        setSelectedPeriod(available || '');
+      }
+    });
+    
+    return () => {
+      active = false;
+    };
   }, [selectedBaseTypeId, baseType, selectedYear, elapsedPeriods, isPeriodSubmitted]);
 
   // Handle file selection and screening immediately

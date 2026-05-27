@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Row, Col, Form } from 'react-bootstrap';
 import {
   Chart as ChartJS,
@@ -112,14 +112,11 @@ const AdminAnalyticsSection: React.FC = () => {
   const [selectedPerennialBarangay, setSelectedPerennialBarangay] = useState(BARANGAYS[0] || '');
   const [matrixDocType, setMatrixDocType] = useState(ALL_UPLOAD_TYPES[0]?.id || '');
 
-  // Keep Year-End Counts in sync with the global barangay filter
-  useEffect(() => {
-    if (selectedBarangay) setSelectedPerennialBarangay(selectedBarangay);
-  }, [selectedBarangay]);
+  const effectivePerennialBarangay = selectedBarangay || selectedPerennialBarangay;
 
   const selectedPerennial = useMemo(() => {
     const entry = compliance.barangayPerennialSummary.find(
-      (c) => c.barangay === selectedPerennialBarangay,
+      (c) => c.barangay === effectivePerennialBarangay,
     );
     if (!entry) {
       return {
@@ -129,7 +126,7 @@ const AdminAnalyticsSection: React.FC = () => {
       };
     }
     return entry;
-  }, [compliance.barangayPerennialSummary, selectedPerennialBarangay]);
+  }, [compliance.barangayPerennialSummary, effectivePerennialBarangay]);
 
   const matrixForDocType = useMemo(() => {
     const cells = compliance.matrixData.filter((c) => c.docType === matrixDocType);

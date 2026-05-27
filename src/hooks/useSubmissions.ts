@@ -22,11 +22,19 @@ export function useSubmissions(barangay?: string | null, isAdmin: boolean = fals
   useEffect(() => {
     // If not an admin and no barangay is provided yet, wait for the barangay to load
     if (!isAdmin && !barangay) {
-      setLoading(false);
-      return;
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) setLoading(false);
+      });
+      return () => {
+        active = false;
+      };
     }
 
-    setLoading(true);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setLoading(true);
+    });
 
     // Build queries — filter by barangay if provided
     const pendingQuery = barangay
@@ -91,6 +99,7 @@ export function useSubmissions(barangay?: string | null, isAdmin: boolean = fals
     );
 
     return () => {
+      active = false;
       unsubPending();
       unsubHistory();
     };

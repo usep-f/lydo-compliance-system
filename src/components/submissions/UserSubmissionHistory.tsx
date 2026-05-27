@@ -38,25 +38,13 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
   const openDetails = (sub: HistoricalSubmission) => {
     setSelectedSub(sub);
     setShowDetails(true);
-  };
 
-  const closeDetails = () => {
-    setShowDetails(false);
-    setSelectedSub(null);
-  };
-
-  const [fileUrl, setFileUrl] = useState('');
-  const [fileLoading, setFileLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (selectedSub?.fileStoragePath) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (sub.fileStoragePath) {
       setFileUrl('');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileLoading(true);
       import('firebase/storage').then(({ ref, getDownloadURL }) => {
         import('../../firebase').then(({ storage }) => {
-          const storageRef = ref(storage, selectedSub.fileStoragePath!);
+          const storageRef = ref(storage, sub.fileStoragePath!);
           getDownloadURL(storageRef)
             .then((url) => setFileUrl(url))
             .catch((err) => console.error('Error loading file URL:', err))
@@ -64,12 +52,22 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
         });
       });
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileUrl('');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileLoading(false);
     }
-  }, [selectedSub]);
+  };
+
+  const closeDetails = () => {
+    setShowDetails(false);
+    setSelectedSub(null);
+    setFileUrl('');
+    setFileLoading(false);
+  };
+
+  const [fileUrl, setFileUrl] = useState('');
+  const [fileLoading, setFileLoading] = useState(false);
+
+
 
   const handleDownload = () => {
     if (fileUrl) {

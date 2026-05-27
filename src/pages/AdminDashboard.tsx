@@ -66,17 +66,7 @@ export default function AdminDashboard() {
   
   const { addToast } = useToast();
 
-  useEffect(() => {
-    if (selectedApp?.proofStoragePath) {
-      setProofUrl('');
-      const storageRef = ref(storage, selectedApp.proofStoragePath);
-      getDownloadURL(storageRef)
-        .then(url => setProofUrl(url))
-        .catch(err => console.error("Error loading proof URL:", err));
-    } else {
-      setProofUrl('');
-    }
-  }, [selectedApp]);
+
 
   useEffect(() => {
     const qPending = query(collection(db, 'pending_users'));
@@ -119,6 +109,16 @@ export default function AdminDashboard() {
     setShowModal(true);
     setShowDenyPrompt(false);
     setDenyReason('');
+
+    if (user.proofStoragePath) {
+      setProofUrl('');
+      const storageRef = ref(storage, user.proofStoragePath);
+      getDownloadURL(storageRef)
+        .then(url => setProofUrl(url))
+        .catch(err => console.error("Error loading proof URL:", err));
+    } else {
+      setProofUrl('');
+    }
   };
 
   const closeReviewModal = () => {
@@ -129,6 +129,7 @@ export default function AdminDashboard() {
     setShowApproveConfirm(false);
     setShowDenyConfirm(false);
     setDenyReason('');
+    setProofUrl('');
   };
 
   const handleApprove = async () => {
