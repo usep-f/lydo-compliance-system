@@ -2,6 +2,8 @@
 // Submission Type Definitions — Single Source of Truth
 // ---------------------------------------------------------------------------
 
+import { Timestamp } from 'firebase/firestore';
+
 export type SubmissionCategory = 'scheduled' | 'asap' | 'perennial';
 export type Frequency = 'monthly' | 'quarterly' | 'semestral' | 'annual';
 
@@ -160,7 +162,7 @@ export interface PendingSubmission {
   pageCount: number;
   pdfMetadata?: PdfMetadata;
   status: 'pending';
-  submittedAt: any;              // Firestore Timestamp
+  submittedAt: Timestamp;        // Firestore Timestamp
 }
 
 export interface HistoricalSubmission {
@@ -181,10 +183,10 @@ export interface HistoricalSubmission {
   pageCount: number;
   pdfMetadata?: PdfMetadata;
   status: 'approved' | 'denied';
-  submittedAt: any;
-  approvedAt?: any;              // Firestore Timestamp (if approved)
+  submittedAt: Timestamp;
+  approvedAt?: Timestamp;        // Firestore Timestamp (if approved)
   approvedBy?: string;           // Admin's UID (if approved)
-  deniedAt?: any;                // Firestore Timestamp (if denied)
+  deniedAt?: Timestamp;          // Firestore Timestamp (if denied)
   deniedBy?: string;             // Admin's UID (if denied)
   reviewNotes?: string;          // Reason for denial
 }
@@ -209,7 +211,7 @@ export interface PerennialCounts {
   year: number;
   resolutions: number;
   accomplishmentReports: AccomplishmentReports;
-  updatedAt: any;                // Firestore Timestamp
+  updatedAt: Timestamp;          // Firestore Timestamp
 }
 
 /** Default empty accomplishment reports object. */

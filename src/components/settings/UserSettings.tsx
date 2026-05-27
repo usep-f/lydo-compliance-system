@@ -96,7 +96,7 @@ export default function UserSettings() {
           setLoading(false);
           return;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Email check error:', err);
         setError("Error verifying email availability. Please try again.");
         setLoading(false);
@@ -129,11 +129,12 @@ export default function UserSettings() {
       setShowReauthModal(false);
       setCurrentPassword('');
       await applyChanges();
-    } catch (err: any) {
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+    } catch (err: unknown) {
+      const error = err as Error & { code?: string };
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         setReauthError('Incorrect password.');
       } else {
-        setReauthError(err.message || 'Authentication failed.');
+        setReauthError(error.message || 'Authentication failed.');
       }
     } finally {
       setReauthLoading(false);
@@ -184,10 +185,10 @@ export default function UserSettings() {
       // Auto-hide success message after 5 seconds
       setTimeout(() => setSuccess(''), 5000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Settings update error:', err);
       // Revert email if failed half-way or handle specific errors
-      setError(err.message || 'An error occurred while updating your profile.');
+      setError((err as Error).message || 'An error occurred while updating your profile.');
       
       // Attempt to revert to auth.currentUser.email if it didn't change
       if (auth.currentUser?.email) {
@@ -224,11 +225,12 @@ export default function UserSettings() {
 
       // Firebase Auth's onAuthStateChanged listener will automatically redirect to login
       
-    } catch (err: any) {
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+    } catch (err: unknown) {
+      const error = err as Error & { code?: string };
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         setDeleteError('Incorrect password.');
       } else {
-        setDeleteError(err.message || 'Failed to delete account.');
+        setDeleteError(error.message || 'Failed to delete account.');
       }
       setDeleteLoading(false);
     }

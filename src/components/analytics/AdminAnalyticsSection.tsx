@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  type TooltipItem,
 } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import { BARANGAYS } from '../../constants/barangays';
@@ -165,7 +166,7 @@ const AdminAnalyticsSection: React.FC = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: true, position: 'bottom' as const, labels: { boxWidth: 10, padding: 16, font: { size: 12 } } },
-      tooltip: { callbacks: { label: (ctx: any) => `${ctx.label}: ${ctx.raw}%` } },
+      tooltip: { callbacks: { label: (ctx: TooltipItem<'doughnut'>) => `${ctx.label}: ${ctx.raw}%` } },
     },
   };
 
@@ -189,7 +190,7 @@ const AdminAnalyticsSection: React.FC = () => {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx: any) => {
+          label: (ctx: TooltipItem<'bar'>) => {
             const b = compliance.barangayRanking[ctx.dataIndex];
             return `${b.approved}/${b.expected} (${b.rate}%)`;
           },
@@ -197,7 +198,7 @@ const AdminAnalyticsSection: React.FC = () => {
       },
     },
     scales: {
-      x: { max: 100, grid: { color: '#F4F4F5' }, ticks: { callback: (v: any) => `${v}%` } },
+      x: { max: 100, grid: { color: '#F4F4F5' }, ticks: { callback: (v: number | string) => `${v}%` } },
       y: { grid: { display: false }, ticks: { font: { size: 11 } } },
     },
   };

@@ -121,8 +121,8 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
         setFileError(result.error || 'Invalid PDF file.');
         setFile(null);
       }
-    } catch (err: any) {
-      setFileError(err.message || 'Failed to screen PDF file.');
+    } catch (err: unknown) {
+      setFileError((err as Error).message || 'Failed to screen PDF file.');
       setFile(null);
     }
   }, []);

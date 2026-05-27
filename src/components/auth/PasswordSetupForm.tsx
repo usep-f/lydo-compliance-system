@@ -58,11 +58,12 @@ export default function PasswordSetupForm({ oobCode, onSuccess }: PasswordSetupF
       // 2. Automatically sign them in immediately after
       await signInWithEmailAndPassword(auth, verifiedEmail, password);
       onSuccess();
-    } catch (err: any) {
-      if (err.code === 'auth/invalid-action-code') {
+    } catch (err: unknown) {
+      const error = err as Error & { code?: string };
+      if (error.code === 'auth/invalid-action-code') {
         setError('This link has expired or has already been used. Please request a new one.');
       } else {
-        setError(err.message || 'Failed to set password. Please try again.');
+        setError(error.message || 'Failed to set password. Please try again.');
       }
     } finally {
       setLoading(false);

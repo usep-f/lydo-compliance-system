@@ -99,9 +99,9 @@ const AdminSubmissionsSection: React.FC = () => {
       addToast('Submission approved successfully!', 'success');
       setShowApproveConfirm(false);
       closeReview();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Approval failed: ${error.message}`, 'error');
+      addToast(`Approval failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -121,9 +121,9 @@ const AdminSubmissionsSection: React.FC = () => {
       addToast('Submission denied and notification sent.', 'info');
       setShowDenyConfirm(false);
       closeReview();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Denial failed: ${error.message}`, 'error');
+      addToast(`Denial failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }

@@ -184,8 +184,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               height: '3px',
               background: ACCENT[toast.type],
               opacity: 0.5,
-              ['--toast-duration' as any]: `${DURATION_MS}ms`,
-            }}
+              '--toast-duration': `${DURATION_MS}ms`,
+            } as React.CSSProperties}
           />
         </div>
       ))}

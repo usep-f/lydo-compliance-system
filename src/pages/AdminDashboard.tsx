@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
 import { db, storage, functions } from '../firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
@@ -22,7 +22,7 @@ interface PendingUser {
   email: string;
   barangay: string;
   proofStoragePath: string;
-  submittedAt: any;
+  submittedAt: Timestamp;
 }
 
 interface ApprovedUser {
@@ -32,7 +32,7 @@ interface ApprovedUser {
   email: string;
   barangay: string;
   role: string;
-  approvedAt: any;
+  approvedAt: Timestamp;
 }
 
 export default function AdminDashboard() {
@@ -142,9 +142,9 @@ export default function AdminDashboard() {
       setShowApproveConfirm(false);
       setShowModal(false);
       setSelectedApp(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Approval failed: ${error.message}`, 'error');
+      addToast(`Approval failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -166,9 +166,9 @@ export default function AdminDashboard() {
       setSelectedApp(null);
       setShowDenyPrompt(false);
       setDenyReason('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Denial failed: ${error.message}`, 'error');
+      addToast(`Denial failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -255,9 +255,9 @@ export default function AdminDashboard() {
       setShowEditConfirm(false);
       setShowEditModal(false);
       setSelectedUser(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Update failed: ${error.message}`, 'error');
+      addToast(`Update failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsUserProcessing(false);
     }
@@ -286,9 +286,9 @@ export default function AdminDashboard() {
       await deleteUserFn({ uid: selectedUser.uid });
       addToast('User deleted successfully.', 'success');
       closeDeleteConfirm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Deletion failed: ${error.message}`, 'error');
+      addToast(`Deletion failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsUserProcessing(false);
     }
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
       header: 'Date Approved',
       render: (user) => {
         if (!user.approvedAt) return 'N/A';
-        const date = user.approvedAt.toDate ? user.approvedAt.toDate() : new Date(user.approvedAt);
+        const date = user.approvedAt.toDate ? user.approvedAt.toDate() : new Date(user.approvedAt as unknown as string | number);
         return date.toLocaleDateString(undefined, {
           year: 'numeric',
           month: 'short',
