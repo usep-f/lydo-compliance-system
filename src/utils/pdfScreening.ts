@@ -108,13 +108,13 @@ export async function screenPdfFile(file: File): Promise<PdfScreeningResult> {
       fileSize: file.size,
       metadata: { title, author, producer, creationDate },
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       isValid: false,
       pageCount: 0,
       fileSize: file.size,
       metadata: { title: '', author: '', producer: '', creationDate: '' },
-      error: `This file could not be read as a valid PDF. ${err.message || 'Please check the file and try again.'}`,
+      error: `This file could not be read as a valid PDF. ${(err as Error).message || 'Please check the file and try again.'}`,
     };
   }
 }

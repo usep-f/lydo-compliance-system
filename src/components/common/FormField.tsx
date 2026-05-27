@@ -6,9 +6,9 @@ interface FormFieldProps {
   type?: string;
   placeholder?: string;
   value?: string | number;
-  onChange?: (e: React.ChangeEvent<any>) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   required?: boolean;
-  as?: any;
+  as?: React.ElementType;
   rows?: number;
   accept?: string;
   helpText?: string;

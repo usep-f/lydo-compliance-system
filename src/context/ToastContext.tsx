@@ -28,6 +28,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
  * Call inside any component that is a descendant of <ToastProvider> to get
  * the `addToast` function.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used inside <ToastProvider>.');
@@ -183,8 +184,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               height: '3px',
               background: ACCENT[toast.type],
               opacity: 0.5,
-              ['--toast-duration' as any]: `${DURATION_MS}ms`,
-            }}
+              '--toast-duration': `${DURATION_MS}ms`,
+            } as React.CSSProperties}
           />
         </div>
       ))}

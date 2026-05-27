@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Container, Card, Alert } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import PasswordSetupForm from '../components/auth/PasswordSetupForm';
@@ -6,13 +5,7 @@ import PasswordSetupForm from '../components/auth/PasswordSetupForm';
 export default function SetupPasswordPage() {
   const [searchParams] = useSearchParams();
   const oobCode = searchParams.get('oobCode');
-  const [isValidCode, setIsValidCode] = useState(true);
-
-  useEffect(() => {
-    if (!oobCode) {
-      setIsValidCode(false);
-    }
-  }, [oobCode]);
+  const isValidCode = !!oobCode;
 
   const handleSuccess = () => {
     // Force a full page navigation to ensure it doesn't get caught in the router's loading state

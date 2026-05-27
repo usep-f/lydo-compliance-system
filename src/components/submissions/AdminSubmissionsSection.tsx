@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Row, Col, Card, Button, Form } from 'react-bootstrap';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { storage, functions } from '../../firebase';
@@ -44,21 +44,7 @@ const AdminSubmissionsSection: React.FC = () => {
   const [showDenyConfirm, setShowDenyConfirm] = useState(false);
   const [denyReason, setDenyReason] = useState('');
 
-  // Load file URL when a submission is selected
-  useEffect(() => {
-    if (selectedSub?.fileStoragePath) {
-      setFileUrl('');
-      setFileLoading(true);
-      const storageRef = ref(storage, selectedSub.fileStoragePath);
-      getDownloadURL(storageRef)
-        .then((url) => setFileUrl(url))
-        .catch((err) => console.error('Error loading file URL:', err))
-        .finally(() => setFileLoading(false));
-    } else {
-      setFileUrl('');
-      setFileLoading(false);
-    }
-  }, [selectedSub]);
+
 
   // Filter pending submissions
   const filteredPending = pending.filter((s) => {
@@ -76,6 +62,19 @@ const AdminSubmissionsSection: React.FC = () => {
     setShowReview(true);
     setShowDenyPrompt(false);
     setDenyReason('');
+
+    if (sub.fileStoragePath) {
+      setFileUrl('');
+      setFileLoading(true);
+      const storageRef = ref(storage, sub.fileStoragePath);
+      getDownloadURL(storageRef)
+        .then((url) => setFileUrl(url))
+        .catch((err) => console.error('Error loading file URL:', err))
+        .finally(() => setFileLoading(false));
+    } else {
+      setFileUrl('');
+      setFileLoading(false);
+    }
   };
 
   const closeReview = () => {
@@ -86,6 +85,8 @@ const AdminSubmissionsSection: React.FC = () => {
     setShowApproveConfirm(false);
     setShowDenyConfirm(false);
     setDenyReason('');
+    setFileUrl('');
+    setFileLoading(false);
   };
 
   // Approve handler
@@ -98,9 +99,9 @@ const AdminSubmissionsSection: React.FC = () => {
       addToast('Submission approved successfully!', 'success');
       setShowApproveConfirm(false);
       closeReview();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Approval failed: ${error.message}`, 'error');
+      addToast(`Approval failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -120,9 +121,9 @@ const AdminSubmissionsSection: React.FC = () => {
       addToast('Submission denied and notification sent.', 'info');
       setShowDenyConfirm(false);
       closeReview();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      addToast(`Denial failed: ${error.message}`, 'error');
+      addToast(`Denial failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }

@@ -39,27 +39,12 @@ const AdminSubmissionHistory: React.FC = () => {
   const openDetails = (sub: HistoricalSubmission) => {
     setSelectedSub(sub);
     setShowDetails(true);
-  };
-
-  const closeDetails = () => {
-    setShowDetails(false);
-    setSelectedSub(null);
-  };
-
-  // Download handler (gets URL via getDownloadURL inside the DocumentReviewModal logic, or we can just open if we fetch it. Wait, the modal fetches it.)
-  // Actually, wait, DocumentReviewModal handles downloading internally if we pass `fileUrl`. Wait, we need to fetch `fileUrl` here first, or the modal does it?
-  // Let's copy the url fetching logic from AdminSubmissionsSection.
-
-  const [fileUrl, setFileUrl] = useState('');
-  const [fileLoading, setFileLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (selectedSub?.fileStoragePath) {
+    if (sub.fileStoragePath) {
       setFileUrl('');
       setFileLoading(true);
       import('firebase/storage').then(({ ref, getDownloadURL }) => {
         import('../../firebase').then(({ storage }) => {
-          const storageRef = ref(storage, selectedSub.fileStoragePath!);
+          const storageRef = ref(storage, sub.fileStoragePath!);
           getDownloadURL(storageRef)
             .then((url) => setFileUrl(url))
             .catch((err) => console.error('Error loading file URL:', err))
@@ -70,7 +55,23 @@ const AdminSubmissionHistory: React.FC = () => {
       setFileUrl('');
       setFileLoading(false);
     }
-  }, [selectedSub]);
+  };
+
+  const closeDetails = () => {
+    setShowDetails(false);
+    setSelectedSub(null);
+    setFileUrl('');
+    setFileLoading(false);
+  };
+
+  // Download handler (gets URL via getDownloadURL inside the DocumentReviewModal logic, or we can just open if we fetch it. Wait, the modal fetches it.)
+  // Actually, wait, DocumentReviewModal handles downloading internally if we pass `fileUrl`. Wait, we need to fetch `fileUrl` here first, or the modal does it?
+  // Let's copy the url fetching logic from AdminSubmissionsSection.
+
+  const [fileUrl, setFileUrl] = useState('');
+  const [fileLoading, setFileLoading] = useState(false);
+
+
 
   const handleDownload = () => {
     if (fileUrl) {

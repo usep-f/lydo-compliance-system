@@ -18,10 +18,13 @@ export default function HomePage() {
 
   useEffect(() => {
     if (searchParams.get('login') === 'true') {
-      setShowAuthModal(true);
-      // Clean up URL so refresh doesn't reopen it
-      searchParams.delete('login');
-      setSearchParams(searchParams, { replace: true });
+      Promise.resolve().then(() => {
+        setShowAuthModal(true);
+        // Clean up URL so refresh doesn't reopen it
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('login');
+        setSearchParams(newParams, { replace: true });
+      });
     }
   }, [searchParams, setSearchParams]);
 

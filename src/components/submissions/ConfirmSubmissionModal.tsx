@@ -81,7 +81,7 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
             accomplishmentCategory = documentType.id.replace('acc_', '');
           }
 
-          const payload: any = {
+          const payload: Record<string, unknown> = {
             userId,
             barangay,
             fullName,
@@ -112,8 +112,8 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
           addToast(`Document submitted successfully. Your ${documentType.label} is now pending review.`, 'success');
           setIsUploading(false);
           onSuccess();
-        } catch (err: any) {
-          setError('Failed to save submission record: ' + err.message);
+        } catch (err: unknown) {
+          setError('Failed to save submission record: ' + (err as Error).message);
           setIsUploading(false);
         }
       }

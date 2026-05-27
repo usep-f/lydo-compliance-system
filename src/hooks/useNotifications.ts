@@ -86,9 +86,16 @@ export function useNotifications(uid: string | null): UseNotificationsReturn {
 
   useEffect(() => {
     if (!uid) {
-      setNotifications([]);
-      setLoading(false);
-      return;
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) {
+          setNotifications([]);
+          setLoading(false);
+        }
+      });
+      return () => {
+        active = false;
+      };
     }
 
     const itemsRef = collection(db, 'notifications', uid, 'items');
