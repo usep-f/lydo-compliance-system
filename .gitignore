@@ -31,4 +31,5 @@ dist-ssr
 
 # Allow committing .env.example
 !.env.example
-
+.agents
+ARCHITECTURE.md
