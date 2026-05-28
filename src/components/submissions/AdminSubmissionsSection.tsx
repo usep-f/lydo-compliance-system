@@ -18,17 +18,37 @@ import StatusBadge from '../common/StatusBadge';
 import { useSubmissions } from '../../hooks/useSubmissions';
 import { useToast } from '../../context/ToastContext';
 
+interface AdminSubmissionsSectionProps {
+  defaultSearch?: string;
+  defaultBarangay?: string;
+}
+
 /**
  * Admin Submissions Section — review pending submissions, approve/deny.
  * Reuses: DataTable, StatCard, DocumentReviewModal, ConfirmDialog, FormField, StatusBadge
  */
-const AdminSubmissionsSection: React.FC = () => {
+const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
+  defaultSearch = '',
+  defaultBarangay = '',
+}) => {
   const { pending = [], history = [], loading } = useSubmissions(undefined, true); // All submissions
   const { addToast } = useToast();
 
   // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterBarangay, setFilterBarangay] = useState('');
+  const [searchTerm, setSearchTerm] = useState(defaultSearch);
+  const [prevDefaultSearch, setPrevDefaultSearch] = useState(defaultSearch);
+  if (defaultSearch !== prevDefaultSearch) {
+    setPrevDefaultSearch(defaultSearch);
+    setSearchTerm(defaultSearch);
+  }
+
+  const [filterBarangay, setFilterBarangay] = useState(defaultBarangay);
+  const [prevDefaultBarangay, setPrevDefaultBarangay] = useState(defaultBarangay);
+  if (defaultBarangay !== prevDefaultBarangay) {
+    setPrevDefaultBarangay(defaultBarangay);
+    setFilterBarangay(defaultBarangay);
+  }
+
   const [filterDocType, setFilterDocType] = useState('');
 
   // Review modal state

@@ -18,7 +18,7 @@ interface DashboardSidebarProps {
 }
 
 const DEFAULT_SECTIONS: NavigationSection[] = [
-  { id: 'home',        label: 'Home',          isImplemented: false, icon: 'home' },
+  { id: 'home',        label: 'Home',          isImplemented: true,  icon: 'home' },
   { id: 'applicants',  label: 'Applicants',    isImplemented: true,  icon: 'badge' },
   { id: 'users',       label: 'Users',         isImplemented: true,  icon: 'group' },
   { id: 'submissions', label: 'Submissions',   isImplemented: true,  icon: 'description' },
