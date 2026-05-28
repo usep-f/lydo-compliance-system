@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Alert, Modal, Button } from 'react-bootstrap';
 import { auth, db, functions } from '../../firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, onAuthStateChanged } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import FormField from '../common/FormField';
@@ -223,7 +223,8 @@ export default function UserSettings() {
       const deleteOwnAccountFn = httpsCallable(functions, 'deleteOwnAccount');
       await deleteOwnAccountFn();
 
-      // Firebase Auth's onAuthStateChanged listener will automatically redirect to login
+      // 3. Explicitly sign out client-side to trigger local state cleanup and router redirect
+      await signOut(auth);
       
     } catch (err: unknown) {
       const error = err as Error & { code?: string };
