@@ -8,14 +8,19 @@ import { formatFileSize } from '../../utils/pdfScreening';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
-import { useSubmissions } from '../../hooks/useSubmissions';
+interface AdminSubmissionHistoryProps {
+  history: HistoricalSubmission[];
+  loading: boolean;
+}
 
 /**
  * Admin Submission History Section
  * Read-only view for all historically approved submissions.
  */
-const AdminSubmissionHistory: React.FC = () => {
-  const { history = [], loading } = useSubmissions(undefined, true);
+const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
+  history = [],
+  loading,
+}) => {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');

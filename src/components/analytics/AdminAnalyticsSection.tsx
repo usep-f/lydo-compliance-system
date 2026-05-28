@@ -20,8 +20,9 @@ import {
   ASAP_TYPES,
   ALL_UPLOAD_TYPES,
   ACCOMPLISHMENT_CATEGORIES,
+  type PendingSubmission,
+  type HistoricalSubmission,
 } from '../../constants/submissionTypes';
-import { useSubmissions } from '../../hooks/useSubmissions';
 import { useComplianceData } from '../../hooks/useComplianceData';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import StatCard from '../common/StatCard';
@@ -84,14 +85,21 @@ const matrixChipConfig: Record<string, { cls: string; label: string }> = {
 /* ─────────────────────────────────────────────
    Main Component
 ───────────────────────────────────────────── */
-const AdminAnalyticsSection: React.FC = () => {
+interface AdminAnalyticsSectionProps {
+  pending: PendingSubmission[];
+  history: HistoricalSubmission[];
+}
+
+const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
+  pending = [],
+  history = [],
+}) => {
   const currentYear = new Date().getFullYear();
   const [selectedYear] = useState(currentYear);
 
   // Global barangay filter — '' means "All Barangays"
   const [selectedBarangay, setSelectedBarangay] = useState('');
 
-  const { pending = [], history = [] } = useSubmissions(undefined, true);
   const approved = useMemo(
     () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [history],

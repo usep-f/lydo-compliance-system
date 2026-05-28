@@ -1,30 +1,78 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import type { Query } from 'firebase/firestore';
 import type { PendingSubmission, HistoricalSubmission } from '../constants/submissionTypes';
 
-interface UseSubmissionsResult {
+export interface UseSubmissionsResult {
   pending: PendingSubmission[];
   history: HistoricalSubmission[];
+  loadingPending: boolean;
+  loadingHistory: boolean;
   loading: boolean;
+  fetchHistory: () => Promise<void>;
 }
 
 /**
- * Real-time listener for submissions data.
- * - If barangay is provided: returns all submissions for that barangay (User Dashboard).
- * - If barangay is omitted: returns ALL submissions globally (Admin Dashboard).
+ * Builds the Firestore query for pending submissions.
+ */
+function buildPendingQuery(barangay: string | null | undefined): Query {
+  const collRef = collection(db, 'pending_submissions');
+  if (barangay) {
+    return query(collRef, where('barangay', '==', barangay), orderBy('submittedAt', 'desc'));
+  }
+  return query(collRef, orderBy('submittedAt', 'desc'));
+}
+
+/**
+ * Builds the Firestore query for historical submissions.
+ */
+function buildHistoryQuery(barangay: string | null | undefined): Query {
+  const collRef = collection(db, 'submissions');
+  if (barangay) {
+    return query(collRef, where('barangay', '==', barangay), orderBy('submittedAt', 'desc'));
+  }
+  return query(collRef, orderBy('submittedAt', 'desc'));
+}
+
+/**
+ * Real-time listener for pending submissions and on-demand fetch for history.
+ * - If barangay is provided: returns data for that barangay (User Dashboard).
+ * - If barangay is omitted: returns data globally (Admin Dashboard).
  */
 export function useSubmissions(barangay?: string | null, isAdmin: boolean = false): UseSubmissionsResult {
   const [pending, setPending] = useState<PendingSubmission[]>([]);
   const [history, setHistory] = useState<HistoricalSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPending, setLoadingPending] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // Lazy on-demand fetch for historical submissions
+  const fetchHistory = useCallback(async () => {
+    if (!isAdmin && !barangay) return;
+
+    setLoadingHistory(true);
+    try {
+      const q = buildHistoryQuery(barangay);
+      const snapshot = await getDocs(q);
+      const docs: HistoricalSubmission[] = [];
+      snapshot.forEach((doc) => {
+        docs.push({ id: doc.id, ...doc.data() } as HistoricalSubmission);
+      });
+      setHistory(docs);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('submissions fetch error:', message);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [barangay, isAdmin]);
+
+  // Real-time listener for pending submissions
   useEffect(() => {
-    // If not an admin and no barangay is provided yet, wait for the barangay to load
     if (!isAdmin && !barangay) {
       let active = true;
       Promise.resolve().then(() => {
-        if (active) setLoading(false);
+        if (active) setLoadingPending(false);
       });
       return () => {
         active = false;
@@ -33,77 +81,42 @@ export function useSubmissions(barangay?: string | null, isAdmin: boolean = fals
 
     let active = true;
     Promise.resolve().then(() => {
-      if (active) setLoading(true);
+      if (active) setLoadingPending(true);
     });
 
-    // Build queries — filter by barangay if provided
-    const pendingQuery = barangay
-      ? query(
-          collection(db, 'pending_submissions'),
-          where('barangay', '==', barangay),
-          orderBy('submittedAt', 'desc')
-        )
-      : query(collection(db, 'pending_submissions'), orderBy('submittedAt', 'desc'));
+    const q = buildPendingQuery(barangay);
 
-    const historyQuery = barangay
-      ? query(
-          collection(db, 'submissions'),
-          where('barangay', '==', barangay),
-          orderBy('submittedAt', 'desc')
-        )
-      : query(collection(db, 'submissions'), orderBy('submittedAt', 'desc'));
-
-    let pendingLoaded = false;
-    let historyLoaded = false;
-
-    const checkLoaded = () => {
-      if (pendingLoaded && historyLoaded) setLoading(false);
-    };
-
-    // Listen to pending submissions
-    const unsubPending = onSnapshot(
-      pendingQuery,
+    const unsubscribe = onSnapshot(
+      q,
       (snapshot) => {
         const docs: PendingSubmission[] = [];
         snapshot.forEach((doc) => {
           docs.push({ id: doc.id, ...doc.data() } as PendingSubmission);
         });
         setPending(docs);
-        pendingLoaded = true;
-        checkLoaded();
+        if (active) setLoadingPending(false);
       },
       (error) => {
         console.warn('pending_submissions listener error:', error.message);
-        pendingLoaded = true;
-        checkLoaded();
-      }
-    );
-
-    // Listen to historical submissions
-    const unsubHistory = onSnapshot(
-      historyQuery,
-      (snapshot) => {
-        const docs: HistoricalSubmission[] = [];
-        snapshot.forEach((doc) => {
-          docs.push({ id: doc.id, ...doc.data() } as HistoricalSubmission);
-        });
-        setHistory(docs);
-        historyLoaded = true;
-        checkLoaded();
-      },
-      (error) => {
-        console.warn('submissions listener error:', error.message);
-        historyLoaded = true;
-        checkLoaded();
+        if (active) setLoadingPending(false);
       }
     );
 
     return () => {
       active = false;
-      unsubPending();
-      unsubHistory();
+      unsubscribe();
     };
   }, [barangay, isAdmin]);
 
-  return { pending, history, loading };
+  const loading = loadingPending || loadingHistory;
+
+  return {
+    pending,
+    history,
+    loadingPending,
+    loadingHistory,
+    loading,
+    fetchHistory,
+  };
 }
+

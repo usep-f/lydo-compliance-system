@@ -5,7 +5,6 @@ import { storage, functions } from '../../firebase';
 import { httpsCallable } from 'firebase/functions';
 import { BARANGAYS } from '../../constants/barangays';
 import { ALL_UPLOAD_TYPES } from '../../constants/submissionTypes';
-import type { PendingSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import { formatFileSize } from '../../utils/pdfScreening';
 import StatCard from '../common/StatCard';
@@ -15,12 +14,16 @@ import DocumentReviewModal from '../common/DocumentReviewModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import FormField from '../common/FormField';
 import StatusBadge from '../common/StatusBadge';
-import { useSubmissions } from '../../hooks/useSubmissions';
 import { useToast } from '../../context/ToastContext';
+import type { HistoricalSubmission, PendingSubmission } from '../../constants/submissionTypes';
 
 interface AdminSubmissionsSectionProps {
   defaultSearch?: string;
   defaultBarangay?: string;
+  pending: PendingSubmission[];
+  history: HistoricalSubmission[];
+  loading: boolean;
+  refreshHistory: () => Promise<void>;
 }
 
 /**
@@ -30,8 +33,11 @@ interface AdminSubmissionsSectionProps {
 const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
   defaultSearch = '',
   defaultBarangay = '',
+  pending = [],
+  history = [],
+  loading,
+  refreshHistory,
 }) => {
-  const { pending = [], history = [], loading } = useSubmissions(undefined, true); // All submissions
   const { addToast } = useToast();
 
   // Filters
@@ -117,6 +123,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
       const approveSubmissionFn = httpsCallable(functions, 'approveSubmission');
       await approveSubmissionFn({ submissionId: selectedSub.id });
       addToast('Submission approved successfully!', 'success');
+      await refreshHistory();
       setShowApproveConfirm(false);
       closeReview();
     } catch (error: unknown) {
@@ -139,6 +146,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
       const denySubmissionFn = httpsCallable(functions, 'denySubmission');
       await denySubmissionFn({ submissionId: selectedSub.id, reason: denyReason });
       addToast('Submission denied and notification sent.', 'info');
+      await refreshHistory();
       setShowDenyConfirm(false);
       closeReview();
     } catch (error: unknown) {

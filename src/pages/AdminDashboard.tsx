@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
 import { db, storage, functions } from '../firebase';
-import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, Timestamp, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
@@ -57,12 +57,18 @@ export default function AdminDashboard() {
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
 
   const currentYear = new Date().getFullYear();
-  const { pending: pendingSubs = [], history: historySubs = [] } = useSubmissions(undefined, true);
+  const { pending: pendingSubs = [], history: historySubs = [], loadingHistory, fetchHistory } = useSubmissions(undefined, true);
   const approvedSubs = useMemo(
     () => historySubs.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [historySubs]
   );
   const compliance = useComplianceData(currentYear, pendingSubs, approvedSubs, BARANGAYS);
+
+  useEffect(() => {
+    if (activeSection === 'home' || activeSection === 'history' || activeSection === 'analytics' || activeSection === 'submissions') {
+      fetchHistory();
+    }
+  }, [activeSection, fetchHistory]);
   
   // ── Recent Submissions Feed Helper ─────────────────────────────────────────
   const recentSubmissionsFeed = useMemo(() => {
@@ -101,6 +107,38 @@ export default function AdminDashboard() {
 
 
 
+  const fetchApprovedUsers = useCallback(async () => {
+    try {
+      const qApproved = query(collection(db, 'users'));
+      const snapshot = await getDocs(qApproved);
+      const users: ApprovedUser[] = [];
+      snapshot.forEach((doc) => {
+        users.push({ id: doc.id, ...doc.data() } as ApprovedUser);
+      });
+      users.sort((a, b) => {
+        const timeA = a.approvedAt?.toMillis() || 0;
+        const timeB = b.approvedAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
+      setApprovedUsers(users);
+      setApprovedCount(users.length);
+    } catch (err) {
+      console.error("Error loading approved users:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === 'users' || activeSection === 'applicants') {
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) fetchApprovedUsers();
+      });
+      return () => {
+        active = false;
+      };
+    }
+  }, [activeSection, fetchApprovedUsers]);
+
   useEffect(() => {
     const qPending = query(collection(db, 'pending_users'));
     const unsubPending = onSnapshot(qPending, (snapshot) => {
@@ -116,24 +154,8 @@ export default function AdminDashboard() {
       setPendingUsers(users);
     });
 
-    const qApproved = query(collection(db, 'users'));
-    const unsubApproved = onSnapshot(qApproved, (snapshot) => {
-      const users: ApprovedUser[] = [];
-      snapshot.forEach((doc) => {
-        users.push({ id: doc.id, ...doc.data() } as ApprovedUser);
-      });
-      users.sort((a, b) => {
-        const timeA = a.approvedAt?.toMillis() || 0;
-        const timeB = b.approvedAt?.toMillis() || 0;
-        return timeB - timeA;
-      });
-      setApprovedUsers(users);
-      setApprovedCount(users.length);
-    });
-
     return () => {
       unsubPending();
-      unsubApproved();
     };
   }, []);
 
@@ -172,6 +194,7 @@ export default function AdminDashboard() {
       const approveUserFn = httpsCallable(functions, 'approveUser');
       await approveUserFn({ applicationId: selectedApp.id });
       addToast('User approved successfully! A setup email has been sent.', 'success');
+      await fetchApprovedUsers();
       setShowApproveConfirm(false);
       setShowModal(false);
       setSelectedApp(null);
@@ -285,6 +308,7 @@ export default function AdminDashboard() {
         barangay: editForm.barangay !== selectedUser.barangay ? editForm.barangay : undefined,
       });
       addToast('User updated successfully.', 'success');
+      await fetchApprovedUsers();
       setShowEditConfirm(false);
       setShowEditModal(false);
       setSelectedUser(null);
@@ -318,6 +342,7 @@ export default function AdminDashboard() {
       const deleteUserFn = httpsCallable(functions, 'deleteUser');
       await deleteUserFn({ uid: selectedUser.uid });
       addToast('User deleted successfully.', 'success');
+      await fetchApprovedUsers();
       closeDeleteConfirm();
     } catch (error: unknown) {
       console.error(error);
@@ -1361,11 +1386,24 @@ export default function AdminDashboard() {
           />
         </>
       ) : activeSection === 'submissions' ? (
-        <AdminSubmissionsSection defaultSearch={submissionsSearch} defaultBarangay={submissionsBarangay} />
+        <AdminSubmissionsSection
+          defaultSearch={submissionsSearch}
+          defaultBarangay={submissionsBarangay}
+          pending={pendingSubs}
+          history={historySubs}
+          loading={loadingHistory}
+          refreshHistory={fetchHistory}
+        />
       ) : activeSection === 'history' ? (
-        <AdminSubmissionHistory />
+        <AdminSubmissionHistory
+          history={historySubs}
+          loading={loadingHistory}
+        />
       ) : activeSection === 'analytics' ? (
-        <AdminAnalyticsSection />
+        <AdminAnalyticsSection
+          pending={pendingSubs}
+          history={historySubs}
+        />
       ) : (
         <Card className="border-0 shadow-sm text-center p-5">
           <Card.Body className="py-5">
