@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
-import { db, storage, functions } from '../firebase';
-import { collection, onSnapshot, query, Timestamp, getDocs } from 'firebase/firestore';
+import { db, storage, functions, auth } from '../firebase';
+import { collection, onSnapshot, query, Timestamp, getDocs, doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { onAuthStateChanged } from 'firebase/auth';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
 import DashboardShell from '../components/layout/DashboardShell';
@@ -54,6 +55,7 @@ export default function AdminDashboard() {
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [approvedCount, setApprovedCount] = useState(0);
   const [activeSection, setActiveSection] = useState<string>('home');
+  const [adminName, setAdminName] = useState<string>('Admin');
   const [submissionsSearch, setSubmissionsSearch] = useState('');
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
 
@@ -64,6 +66,28 @@ export default function AdminDashboard() {
     [historySubs]
   );
   const compliance = useComplianceData(currentYear, pendingSubs, approvedSubs, BARANGAYS);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        if (user.displayName) {
+          setAdminName(user.displayName);
+        }
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data.fullName) {
+              setAdminName(data.fullName);
+            }
+          }
+        } catch (err) {
+          console.error('Error loading admin profile:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (activeSection === 'home' || activeSection === 'history' || activeSection === 'analytics' || activeSection === 'submissions' || activeSection === 'matrix') {
@@ -80,6 +104,22 @@ export default function AdminDashboard() {
       return timeB - timeA;
     });
   }, [pendingSubs, historySubs]);
+
+  // ── Welcome Banner Dynamic Description ─────────────────────────────────────
+  const bannerDescription = useMemo(() => {
+    const userCount = pendingUsers.length;
+    const subCount = pendingSubs.length;
+    if (userCount === 0 && subCount === 0) {
+      return "All caught up! No pending registrations or document submissions require your attention.";
+    }
+    if (userCount > 0 && subCount > 0) {
+      return `There are currently ${userCount} pending registration request${userCount !== 1 ? 's' : ''} and ${subCount} document submission${subCount !== 1 ? 's' : ''} awaiting your review.`;
+    }
+    if (userCount > 0) {
+      return `There are currently ${userCount} pending registration request${userCount !== 1 ? 's' : ''} awaiting your review.`;
+    }
+    return `There are currently ${subCount} document submission${subCount !== 1 ? 's' : ''} awaiting your review.`;
+  }, [pendingUsers.length, pendingSubs.length]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBarangay, setFilterBarangay] = useState('');
@@ -463,7 +503,7 @@ export default function AdminDashboard() {
       title="LYDO Admin Portal"
       activeSection={activeSection}
       onSectionSelect={setActiveSection}
-      pageHeader={sectionHeaders[activeSection]}
+      pageHeader={activeSection === 'home' ? undefined : sectionHeaders[activeSection]}
     >
       {activeSection === 'home' ? (
         <div className="py-2">
@@ -483,7 +523,7 @@ export default function AdminDashboard() {
                       border: '1px solid rgba(255,255,255,0.2)',
                       fontSize: '11px',
                       fontWeight: 700,
-                      color: 'rgba(255,255,255,0.9)',
+                      color: '#FFFFFF',
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
                     }}
@@ -493,51 +533,30 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <h2
+                  className="text-white"
                   style={{
                     fontFamily: 'var(--font-headline)',
-                    fontSize: '26px',
+                    fontSize: '28px',
                     fontWeight: 800,
                     color: '#FFFFFF',
-                    margin: '0 0 8px',
+                    margin: '0',
                     lineHeight: 1.2,
                   }}
                 >
-                  Compliance Control Center
+                  Hello, {adminName}
                 </h2>
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'rgba(255,255,255,0.8)', margin: '0 0 16px' }}>
-                  Real-time compliance monitoring across all barangays. Take quick actions on submissions and applicants.
+                <p
+                  className="text-white"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '14px',
+                    color: '#FFFFFF',
+                    margin: '8px 0 0',
+                    opacity: 0.9,
+                  }}
+                >
+                  {bannerDescription}
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>
-                    System Status
-                  </span>
-                  <span
-                    style={{
-                      padding: '3px 12px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.18)',
-                      border: '1px solid rgba(255,255,255,0.25)',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    {compliance.overallRate}% Compliance Rate
-                  </span>
-                  <span
-                    style={{
-                      padding: '3px 12px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.18)',
-                      border: '1px solid rgba(255,255,255,0.25)',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    {compliance.fullyCompliantCount} Fully Compliant
-                  </span>
-                </div>
               </div>
             </div>
 

@@ -130,16 +130,18 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
 
       {/* ── Matrix Card ── */}
       <div className="analytics-card" style={{ background: '#fff', maxWidth: '100%' }}>
-        <div className="chart-card-header chart-header-violet">
+        <div className="chart-card-header chart-header-dark">
           <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div>
-              <p className="chart-card-title">
-                <span className="material-symbols-outlined icon-violet" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+              <p className="chart-card-title" style={{ color: '#FFFFFF' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'rgba(255,255,255,0.8)', fontVariationSettings: "'FILL' 1", marginRight: '8px' }}>
                   grid_on
                 </span>
                 Compliance Matrix
               </p>
-              <p className="chart-card-subtitle">Barangay × Period status for selected document type</p>
+              <p className="chart-card-subtitle" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                Barangay × Period status for selected document type
+              </p>
             </div>
             <Form.Select
               value={matrixDocType}
@@ -240,27 +242,7 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
           paddingTop: '28px',
         }}
       >
-        <div className="mb-3 d-flex align-items-center gap-2">
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '20px', color: '#7C3AED', fontVariationSettings: "'FILL' 1" }}
-          >
-            analytics
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-headline)',
-              fontSize: '16px',
-              fontWeight: 800,
-              color: '#18181B',
-            }}
-          >
-            Year-End Reports
-          </span>
-          <span style={{ fontSize: '12px', color: '#71717A', fontWeight: 500 }}>
-            &mdash; Per-barangay resolution &amp; accomplishment breakdown
-          </span>
-        </div>
+
         <YearEndReports pending={pending} history={history} selectedBarangay={selectedBarangay} />
       </div>
     </>
