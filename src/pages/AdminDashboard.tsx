@@ -17,6 +17,7 @@ import AdminSubmissionsSection from '../components/submissions/AdminSubmissionsS
 import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHistory';
 import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
 import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
+import UserSettings from '../components/settings/UserSettings';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -495,6 +496,11 @@ export default function AdminDashboard() {
       title: 'Compliance Matrix',
       subtitle: 'Detailed Barangay × Period submission status across all document types',
       icon: 'grid_on',
+    },
+    settings: {
+      title: 'User Settings',
+      subtitle: 'Manage your account profile and credentials',
+      icon: 'settings',
     },
   };
 
@@ -1434,6 +1440,8 @@ export default function AdminDashboard() {
           pending={pendingSubs}
           history={historySubs}
         />
+      ) : activeSection === 'settings' ? (
+        <UserSettings />
       ) : (
         <Card className="border-0 shadow-sm text-center p-5">
           <Card.Body className="py-5">
@@ -1442,7 +1450,6 @@ export default function AdminDashboard() {
             </div>
             <h2 className="text-primary fw-bold mb-3">
               {activeSection === 'home' && 'Home'}
-              {activeSection === 'settings' && 'User Settings'}
               {' '}Section
             </h2>
             <p className="text-muted mb-4 fs-5">

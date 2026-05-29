@@ -25,7 +25,7 @@ const DEFAULT_SECTIONS: NavigationSection[] = [
   { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'description' },
   { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
   { id: 'analytics', label: 'Analytics', isImplemented: true, icon: 'bar_chart' },
-  { id: 'settings', label: 'User Settings', isImplemented: false, icon: 'settings' },
+  { id: 'settings', label: 'User Settings', isImplemented: true, icon: 'settings' },
 ];
 
 const DashboardNavbar: React.FC<DashboardNavbarProps> = ({

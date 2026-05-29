@@ -22,6 +22,7 @@ export default function UserSettings() {
   // Original state to detect changes
   const [origFullName, setOrigFullName] = useState('');
   const [origEmail, setOrigEmail] = useState('');
+  const [role, setRole] = useState('user');
 
   // Re-auth Modal State
   const [showReauthModal, setShowReauthModal] = useState(false);
@@ -45,6 +46,7 @@ export default function UserSettings() {
             const data = userDoc.data();
             setFullName(data.fullName || '');
             setOrigFullName(data.fullName || '');
+            setRole(data.role || 'user');
           }
           setEmail(user.email || '');
           setOrigEmail(user.email || '');
@@ -343,20 +345,22 @@ export default function UserSettings() {
       </div>
 
       {/* Danger Zone */}
-      <div className="analytics-card mt-4" style={{ background: '#fff', width: '100%', border: '1px solid #FEE2E2' }}>
-        <div className="px-4 py-4">
-          <h6 className="mb-2 fw-bold text-danger d-flex align-items-center" style={{ fontSize: '14px', letterSpacing: '0.02em' }}>
-            <span className="material-symbols-outlined me-2" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>warning</span>
-            Danger Zone
-          </h6>
-          <p className="text-muted small mb-4" style={{ maxWidth: '600px' }}>
-            Once you delete your account, there is no going back. Please be certain. Your past submissions will be retained for administrative auditing, but your personal account and login will be permanently removed.
-          </p>
-          <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)} style={{ fontWeight: 600, fontSize: '14px', borderRadius: '8px' }}>
-            Delete Account
-          </Button>
+      {role !== 'admin' && (
+        <div className="analytics-card mt-4" style={{ background: '#fff', width: '100%', border: '1px solid #FEE2E2' }}>
+          <div className="px-4 py-4">
+            <h6 className="mb-2 fw-bold text-danger d-flex align-items-center" style={{ fontSize: '14px', letterSpacing: '0.02em' }}>
+              <span className="material-symbols-outlined me-2" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>warning</span>
+              Danger Zone
+            </h6>
+            <p className="text-muted small mb-4" style={{ maxWidth: '600px' }}>
+              Once you delete your account, there is no going back. Please be certain. Your past submissions will be retained for administrative auditing, but your personal account and login will be permanently removed.
+            </p>
+            <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)} style={{ fontWeight: 600, fontSize: '14px', borderRadius: '8px' }}>
+              Delete Account
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Re-auth Modal */}
       <Modal show={showReauthModal} onHide={() => !reauthLoading && setShowReauthModal(false)} centered backdrop="static">
