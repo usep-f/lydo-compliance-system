@@ -18,13 +18,14 @@ interface DashboardSidebarProps {
 }
 
 const DEFAULT_SECTIONS: NavigationSection[] = [
-  { id: 'home',        label: 'Home',          isImplemented: true,  icon: 'home' },
-  { id: 'applicants',  label: 'Applicants',    isImplemented: true,  icon: 'badge' },
-  { id: 'users',       label: 'Users',         isImplemented: true,  icon: 'group' },
-  { id: 'submissions', label: 'Submissions',   isImplemented: true,  icon: 'description' },
-  { id: 'history',     label: 'History',       isImplemented: true,  icon: 'history' },
-  { id: 'analytics',   label: 'Analytics',     isImplemented: true,  icon: 'bar_chart' },
-  { id: 'settings',    label: 'User Settings', isImplemented: false, icon: 'settings' },
+  { id: 'home',        label: 'Home',               isImplemented: true,  icon: 'home' },
+  { id: 'applicants',  label: 'Applicants',         isImplemented: true,  icon: 'badge' },
+  { id: 'users',       label: 'Users',              isImplemented: true,  icon: 'group' },
+  { id: 'submissions', label: 'Submissions',        isImplemented: true,  icon: 'description' },
+  { id: 'history',     label: 'History',            isImplemented: true,  icon: 'history' },
+  { id: 'analytics',   label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
+  { id: 'matrix',      label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
+  { id: 'settings',    label: 'User Settings',      isImplemented: false, icon: 'settings' },
 ];
 
 /** Per-section icon color class applied when the link is NOT active */
@@ -35,6 +36,7 @@ const SECTION_ICON_CLASS: Record<string, string> = {
   submissions: 'sidebar-icon-submissions',
   history:     'sidebar-icon-history',
   analytics:   'sidebar-icon-analytics',
+  matrix:      'sidebar-icon-matrix',
   settings:    'sidebar-icon-settings',
 };
 

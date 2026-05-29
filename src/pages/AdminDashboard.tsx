@@ -15,6 +15,7 @@ import { useToast } from '../context/ToastContext';
 import AdminSubmissionsSection from '../components/submissions/AdminSubmissionsSection';
 import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHistory';
 import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
+import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -65,7 +66,7 @@ export default function AdminDashboard() {
   const compliance = useComplianceData(currentYear, pendingSubs, approvedSubs, BARANGAYS);
 
   useEffect(() => {
-    if (activeSection === 'home' || activeSection === 'history' || activeSection === 'analytics' || activeSection === 'submissions') {
+    if (activeSection === 'home' || activeSection === 'history' || activeSection === 'analytics' || activeSection === 'submissions' || activeSection === 'matrix') {
       fetchHistory();
     }
   }, [activeSection, fetchHistory]);
@@ -449,6 +450,11 @@ export default function AdminDashboard() {
       title: 'Compliance Analytics',
       subtitle: 'Real-time overview of barangay compliance across all document types',
       icon: 'bar_chart',
+    },
+    matrix: {
+      title: 'Compliance Matrix',
+      subtitle: 'Detailed Barangay × Period submission status across all document types',
+      icon: 'grid_on',
     },
   };
 
@@ -1401,6 +1407,11 @@ export default function AdminDashboard() {
         />
       ) : activeSection === 'analytics' ? (
         <AdminAnalyticsSection
+          pending={pendingSubs}
+          history={historySubs}
+        />
+      ) : activeSection === 'matrix' ? (
+        <ComplianceMatrix
           pending={pendingSubs}
           history={historySubs}
         />
