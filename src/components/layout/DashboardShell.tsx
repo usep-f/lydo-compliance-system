@@ -54,7 +54,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="main-content-wrapper flex-grow-1 d-flex flex-column min-vh-100">
+      <div className="main-content-wrapper flex-grow-1 d-flex flex-column min-vh-100" style={{ minWidth: 0 }}>
         {/* Top Navbar: Mobile Only */}
         <DashboardNavbar
           title={title}

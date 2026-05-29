@@ -174,7 +174,7 @@ export const pruneExpiredNotifications = onSchedule(
 
     try {
       // Collection group query across all users' items subcollections
-      let query = db
+      const query = db
         .collectionGroup('items')
         .where('expiresAt', '<', now)
         .limit(BATCH_SIZE);

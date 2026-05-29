@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
 import { db, storage, functions } from '../firebase';
-import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, Timestamp, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
@@ -15,6 +15,20 @@ import { useToast } from '../context/ToastContext';
 import AdminSubmissionsSection from '../components/submissions/AdminSubmissionsSection';
 import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHistory';
 import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
+import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip as ChartTooltip,
+  Legend as ChartLegend,
+} from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+import { useSubmissions } from '../hooks/useSubmissions';
+import { useComplianceData } from '../hooks/useComplianceData';
+import { formatPeriodLabel } from '../utils/periodUtils';
+
+// Register Chart.js modules needed for the doughnut
+ChartJS.register(ArcElement, ChartTooltip, ChartLegend);
 
 interface PendingUser {
   id: string;
@@ -39,7 +53,33 @@ export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [approvedCount, setApprovedCount] = useState(0);
-  const [activeSection, setActiveSection] = useState<string>('applicants');
+  const [activeSection, setActiveSection] = useState<string>('home');
+  const [submissionsSearch, setSubmissionsSearch] = useState('');
+  const [submissionsBarangay, setSubmissionsBarangay] = useState('');
+
+  const currentYear = new Date().getFullYear();
+  const { pending: pendingSubs = [], history: historySubs = [], loadingHistory, fetchHistory } = useSubmissions(undefined, true);
+  const approvedSubs = useMemo(
+    () => historySubs.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
+    [historySubs]
+  );
+  const compliance = useComplianceData(currentYear, pendingSubs, approvedSubs, BARANGAYS);
+
+  useEffect(() => {
+    if (activeSection === 'home' || activeSection === 'history' || activeSection === 'analytics' || activeSection === 'submissions' || activeSection === 'matrix') {
+      fetchHistory();
+    }
+  }, [activeSection, fetchHistory]);
+  
+  // ── Recent Submissions Feed Helper ─────────────────────────────────────────
+  const recentSubmissionsFeed = useMemo(() => {
+    const all = [...pendingSubs, ...historySubs];
+    return all.sort((a, b) => {
+      const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : new Date(a.submittedAt as unknown as string | number).getTime();
+      const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : new Date(b.submittedAt as unknown as string | number).getTime();
+      return timeB - timeA;
+    });
+  }, [pendingSubs, historySubs]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBarangay, setFilterBarangay] = useState('');
@@ -68,6 +108,38 @@ export default function AdminDashboard() {
 
 
 
+  const fetchApprovedUsers = useCallback(async () => {
+    try {
+      const qApproved = query(collection(db, 'users'));
+      const snapshot = await getDocs(qApproved);
+      const users: ApprovedUser[] = [];
+      snapshot.forEach((doc) => {
+        users.push({ id: doc.id, ...doc.data() } as ApprovedUser);
+      });
+      users.sort((a, b) => {
+        const timeA = a.approvedAt?.toMillis() || 0;
+        const timeB = b.approvedAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
+      setApprovedUsers(users);
+      setApprovedCount(users.length);
+    } catch (err) {
+      console.error("Error loading approved users:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === 'users' || activeSection === 'applicants') {
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) fetchApprovedUsers();
+      });
+      return () => {
+        active = false;
+      };
+    }
+  }, [activeSection, fetchApprovedUsers]);
+
   useEffect(() => {
     const qPending = query(collection(db, 'pending_users'));
     const unsubPending = onSnapshot(qPending, (snapshot) => {
@@ -83,24 +155,8 @@ export default function AdminDashboard() {
       setPendingUsers(users);
     });
 
-    const qApproved = query(collection(db, 'users'));
-    const unsubApproved = onSnapshot(qApproved, (snapshot) => {
-      const users: ApprovedUser[] = [];
-      snapshot.forEach((doc) => {
-        users.push({ id: doc.id, ...doc.data() } as ApprovedUser);
-      });
-      users.sort((a, b) => {
-        const timeA = a.approvedAt?.toMillis() || 0;
-        const timeB = b.approvedAt?.toMillis() || 0;
-        return timeB - timeA;
-      });
-      setApprovedUsers(users);
-      setApprovedCount(users.length);
-    });
-
     return () => {
       unsubPending();
-      unsubApproved();
     };
   }, []);
 
@@ -139,6 +195,7 @@ export default function AdminDashboard() {
       const approveUserFn = httpsCallable(functions, 'approveUser');
       await approveUserFn({ applicationId: selectedApp.id });
       addToast('User approved successfully! A setup email has been sent.', 'success');
+      await fetchApprovedUsers();
       setShowApproveConfirm(false);
       setShowModal(false);
       setSelectedApp(null);
@@ -252,6 +309,7 @@ export default function AdminDashboard() {
         barangay: editForm.barangay !== selectedUser.barangay ? editForm.barangay : undefined,
       });
       addToast('User updated successfully.', 'success');
+      await fetchApprovedUsers();
       setShowEditConfirm(false);
       setShowEditModal(false);
       setSelectedUser(null);
@@ -285,6 +343,7 @@ export default function AdminDashboard() {
       const deleteUserFn = httpsCallable(functions, 'deleteUser');
       await deleteUserFn({ uid: selectedUser.uid });
       addToast('User deleted successfully.', 'success');
+      await fetchApprovedUsers();
       closeDeleteConfirm();
     } catch (error: unknown) {
       console.error(error);
@@ -362,6 +421,11 @@ export default function AdminDashboard() {
 
   // ── Section page header config ──
   const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string }> = {
+    home: {
+      title: 'Compliance Control Center',
+      subtitle: 'System-wide compliance rates, pending actions, and recent activity overview',
+      icon: 'home',
+    },
     applicants: {
       title: 'Pending Applications',
       subtitle: 'Review and manage incoming SK Official registration requests',
@@ -387,6 +451,11 @@ export default function AdminDashboard() {
       subtitle: 'Real-time overview of barangay compliance across all document types',
       icon: 'bar_chart',
     },
+    matrix: {
+      title: 'Compliance Matrix',
+      subtitle: 'Detailed Barangay × Period submission status across all document types',
+      icon: 'grid_on',
+    },
   };
 
   return (
@@ -396,7 +465,586 @@ export default function AdminDashboard() {
       onSectionSelect={setActiveSection}
       pageHeader={sectionHeaders[activeSection]}
     >
-      {activeSection === 'applicants' ? (
+      {activeSection === 'home' ? (
+        <div className="py-2">
+          {/* Welcome Banner */}
+          <div className="welcome-card mb-4">
+            <div className="welcome-card-banner" style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 12px',
+                      borderRadius: '9999px',
+                      background: 'rgba(255,255,255,0.15)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: 'rgba(255,255,255,0.9)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#86EFAC', display: 'inline-block' }} />
+                    LYDO Administrator Portal
+                  </span>
+                </div>
+                <h2
+                  style={{
+                    fontFamily: 'var(--font-headline)',
+                    fontSize: '26px',
+                    fontWeight: 800,
+                    color: '#FFFFFF',
+                    margin: '0 0 8px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Compliance Control Center
+                </h2>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'rgba(255,255,255,0.8)', margin: '0 0 16px' }}>
+                  Real-time compliance monitoring across all barangays. Take quick actions on submissions and applicants.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>
+                    System Status
+                  </span>
+                  <span
+                    style={{
+                      padding: '3px 12px',
+                      borderRadius: '9999px',
+                      background: 'rgba(255,255,255,0.18)',
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    {compliance.overallRate}% Compliance Rate
+                  </span>
+                  <span
+                    style={{
+                      padding: '3px 12px',
+                      borderRadius: '9999px',
+                      background: 'rgba(255,255,255,0.18)',
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    {compliance.fullyCompliantCount} Fully Compliant
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Action Footer */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                padding: '16px 28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                borderTop: '1px solid #F4F4F5',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmissionsSearch('');
+                  setSubmissionsBarangay('');
+                  setActiveSection('submissions');
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '8px',
+                  background: 'transparent', color: '#4F46E5',
+                  fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
+                  border: '1px solid #C7D2FE', cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#EEF2FF')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>description</span>
+                Review Submissions ({pendingSubs.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setActiveSection('applicants');
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 18px', borderRadius: '8px',
+                  background: '#4F46E5', color: '#FFFFFF',
+                  fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
+                  border: 'none', cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#4338CA')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#4F46E5')}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>badge</span>
+                Review Applications ({pendingUsers.length})
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Row */}
+          <Row className="mb-4 g-3">
+            {[
+              { title: 'Overall Compliance', value: `${compliance.overallRate}%`, variant: 'primary' as const, icon: 'check_circle' },
+              { title: 'Fully Compliant', value: `${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`, variant: 'success' as const, icon: 'verified' },
+              { title: 'Pending Submissions', value: pendingSubs.length, variant: 'warning' as const, icon: 'pending_actions' },
+              { title: 'Pending Applications', value: pendingUsers.length, variant: 'info' as const, icon: 'badge' },
+            ].map((card, i) => (
+              <Col md={3} sm={6} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
+                <StatCard
+                  title={card.title}
+                  value={card.value}
+                  variant={card.variant}
+                  icon={card.icon}
+                />
+              </Col>
+            ))}
+          </Row>
+
+          {/* Middle Analytics Row */}
+          <Row className="mb-4 g-3">
+            {/* Doughnut Chart */}
+            <Col md={4}>
+              <div className="analytics-card h-100" style={{ background: '#fff' }}>
+                <div className="chart-card-header chart-header-primary">
+                  <p className="chart-card-title">
+                    <span className="material-symbols-outlined icon-primary" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+                      donut_large
+                    </span>
+                    Compliance Status
+                  </p>
+                  <p className="chart-card-subtitle">Distribution of all required documents</p>
+                </div>
+                <div className="p-4 d-flex align-items-center justify-content-center">
+                  <div style={{ height: '220px', width: '100%', position: 'relative' }}>
+                    <Doughnut
+                      data={{
+                        labels: ['Approved', 'Pending Review', 'Missing/Overdue'],
+                        datasets: [{
+                          data: [
+                            compliance.overallRate,
+                            Math.round((pendingSubs.length / Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100),
+                            Math.max(0, 100 - compliance.overallRate - Math.round((pendingSubs.length / Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100)),
+                          ],
+                          backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
+                          borderWidth: 0,
+                        }],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '72%',
+                        plugins: {
+                          legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { boxWidth: 10, padding: 12, font: { size: 11, family: 'Inter' } },
+                          },
+                          tooltip: {
+                            callbacks: {
+                              label: (ctx) => `${ctx.label}: ${ctx.raw}%`,
+                            },
+                          },
+                        },
+                      }}
+                    />
+                    {/* Centered label */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '40%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        textAlign: 'center',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div style={{ fontFamily: 'var(--font-headline)', fontSize: '28px', fontWeight: 800, color: '#18181B', lineHeight: 1 }}>
+                        {compliance.overallRate}%
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#71717A', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginTop: '3px' }}>
+                        Compliant
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Col>
+
+            {/* Pending Registration Requests (Styled like Missing Documents) */}
+            <Col md={8}>
+              <div className="analytics-card h-100" style={{ background: '#fff' }}>
+                <div className="chart-card-header chart-header-info">
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div>
+                      <p className="chart-card-title">
+                        <span className="material-symbols-outlined icon-info" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
+                          badge
+                        </span>
+                        Pending Registration Requests
+                      </p>
+                      <p className="chart-card-subtitle">
+                        {pendingUsers.length === 0
+                          ? 'All registration requests have been reviewed'
+                          : `${pendingUsers.length} account${pendingUsers.length !== 1 ? 's' : ''} awaiting approval`}
+                      </p>
+                    </div>
+                    {pendingUsers.length > 0 && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '28px',
+                          height: '28px',
+                          borderRadius: '9999px',
+                          background: '#E0E7FF',
+                          color: '#4F46E5',
+                          border: '1px solid #C7D2FE',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {pendingUsers.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="px-4 pt-2 pb-3" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                  {pendingUsers.length === 0 ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: '32px 0',
+                        gap: '10px',
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: '44px', color: '#93C5FD', fontVariationSettings: "'FILL' 1" }}
+                      >
+                        verified_user
+                      </span>
+                      <p
+                        style={{
+                          fontFamily: 'var(--font-headline)',
+                          fontSize: '15px',
+                          fontWeight: 700,
+                          color: '#2563EB',
+                          margin: 0,
+                        }}
+                      >
+                        All Caught Up!
+                      </p>
+                      <p style={{ fontSize: '13px', color: '#71717A', margin: 0, textAlign: 'center' }}>
+                        No pending registration requests to review.
+                      </p>
+                    </div>
+                  ) : (
+                    pendingUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 0',
+                          borderBottom: '1px solid #F4F4F5',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{
+                              fontSize: '18px',
+                              color: '#F59E0B',
+                              fontVariationSettings: "'FILL' 1",
+                              flexShrink: 0,
+                            }}
+                          >
+                            pending
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontFamily: 'var(--font-body)',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#18181B',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {user.fullName}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#71717A', marginTop: '1px' }}>
+                              {user.barangay} • {user.email}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <span className="matrix-chip matrix-chip-pending">Pending</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearchTerm(user.fullName);
+                              setActiveSection('applicants');
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              background: '#4F46E5',
+                              color: '#FFFFFF',
+                              fontFamily: 'var(--font-body)',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'background 0.15s ease',
+                              whiteSpace: 'nowrap',
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#4338CA')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#4F46E5')}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
+                            Review
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </Col>
+          </Row>
+
+          {/* Bottom Row - Recent Submissions Feed */}
+          <Row className="mb-4 g-3">
+            <Col md={12}>
+              <div className="analytics-card" style={{ background: '#fff' }}>
+                <div className="chart-card-header chart-header-info">
+                  <p className="chart-card-title">
+                    <span
+                      className="material-symbols-outlined icon-info"
+                      style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}
+                    >
+                      history
+                    </span>
+                    Recent Submissions Activity
+                  </p>
+                  <p className="chart-card-subtitle">Latest compliance updates across all barangays</p>
+                </div>
+
+                <div className="px-4 py-2">
+                  {recentSubmissionsFeed.length === 0 ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: '28px 0',
+                        gap: '8px',
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: '36px', color: '#D4D4D8' }}
+                      >
+                        inbox
+                      </span>
+                      <p style={{ fontSize: '13px', color: '#A1A1AA', margin: 0, fontFamily: 'var(--font-body)' }}>
+                        No submissions yet. Activity will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    recentSubmissionsFeed.slice(0, 5).map((item, idx) => {
+                      const periodLabel = item.period === 'ASAP' ? 'ASAP' : item.period ? formatPeriodLabel(item.period) : '—';
+                      const dateStr = item.submittedAt
+                        ? (item.submittedAt.toDate ? item.submittedAt.toDate() : new Date(item.submittedAt as unknown as string | number)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '—';
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '14px',
+                            padding: '12px 0',
+                            borderBottom: idx < Math.min(5, recentSubmissionsFeed.length) - 1 ? '1px solid #F4F4F5' : 'none',
+                          }}
+                        >
+                          {/* Icon */}
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '9px',
+                              flexShrink: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background:
+                                item.status === 'approved' ? '#F0FDF4' :
+                                item.status === 'denied'   ? '#FEF2F2' :
+                                                             '#FFF7ED',
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                fontSize: '18px',
+                                fontVariationSettings: "'FILL' 1",
+                                color:
+                                  item.status === 'approved' ? '#16A34A' :
+                                  item.status === 'denied'   ? '#DC2626' :
+                                                               '#D97706',
+                              }}
+                            >
+                              {item.status === 'approved' ? 'check_circle' :
+                               item.status === 'denied'   ? 'cancel'       :
+                                                            'pending'}
+                            </span>
+                          </div>
+
+                          {/* Label + Period */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontFamily: 'var(--font-body)',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#18181B',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {item.documentLabel}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#71717A', marginTop: '1px' }}>
+                              {item.barangay} • {periodLabel}
+                            </div>
+                          </div>
+
+                          {/* Date */}
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: '#A1A1AA',
+                              fontFamily: 'var(--font-body)',
+                              flexShrink: 0,
+                              display: 'none',
+                            }}
+                            className="d-none d-sm-block"
+                          >
+                            {dateStr}
+                          </div>
+
+                          {/* Action Button */}
+                          <div style={{ flexShrink: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {item.status === 'pending' || !item.status ? (
+                               <span className="matrix-chip matrix-chip-pending">Pending Review</span>
+                            ) : item.status === 'approved' ? (
+                               <span className="matrix-chip matrix-chip-compliant">Approved</span>
+                            ) : (
+                               <span className="matrix-chip matrix-chip-missing">Denied</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSubmissionsSearch(item.documentLabel);
+                                setSubmissionsBarangay(item.barangay);
+                                setActiveSection(item.status && item.status !== 'pending' ? 'history' : 'submissions');
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                background: '#4F46E5',
+                                color: '#FFFFFF',
+                                fontFamily: 'var(--font-body)',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'background 0.15s ease',
+                                whiteSpace: 'nowrap',
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#4338CA')}
+                              onMouseLeave={e => (e.currentTarget.style.background = '#4F46E5')}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
+                              View
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {recentSubmissionsFeed.length > 5 && (
+                  <div
+                    style={{
+                      padding: '12px 20px',
+                      borderTop: '1px solid #F4F4F5',
+                      textAlign: 'right',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection('history')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#4F46E5',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      View all {recentSubmissionsFeed.length} submissions
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Col>
+          </Row>
+        </div>
+      ) : activeSection === 'applicants' ? (
         <>
           <Row className="mb-4 g-3">
             <Col md={6} className="kpi-animate">
@@ -744,11 +1392,29 @@ export default function AdminDashboard() {
           />
         </>
       ) : activeSection === 'submissions' ? (
-        <AdminSubmissionsSection />
+        <AdminSubmissionsSection
+          defaultSearch={submissionsSearch}
+          defaultBarangay={submissionsBarangay}
+          pending={pendingSubs}
+          history={historySubs}
+          loading={loadingHistory}
+          refreshHistory={fetchHistory}
+        />
       ) : activeSection === 'history' ? (
-        <AdminSubmissionHistory />
+        <AdminSubmissionHistory
+          history={historySubs}
+          loading={loadingHistory}
+        />
       ) : activeSection === 'analytics' ? (
-        <AdminAnalyticsSection />
+        <AdminAnalyticsSection
+          pending={pendingSubs}
+          history={historySubs}
+        />
+      ) : activeSection === 'matrix' ? (
+        <ComplianceMatrix
+          pending={pendingSubs}
+          history={historySubs}
+        />
       ) : (
         <Card className="border-0 shadow-sm text-center p-5">
           <Card.Body className="py-5">

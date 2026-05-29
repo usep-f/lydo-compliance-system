@@ -565,7 +565,7 @@ export const updateOwnProfile = functions.https.onCall(
       }
 
       // 3. Notify Admins
-      let changes: string[] = [];
+      const changes: string[] = [];
       if (fullName) changes.push('Name');
       if (email) changes.push('Email');
       if (passwordChanged) changes.push('Password');
