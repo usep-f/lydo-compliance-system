@@ -8,6 +8,7 @@ import { httpsCallable } from 'firebase/functions';
 import { BARANGAYS } from '../../constants/barangays';
 import FormField from '../common/FormField';
 import LoadingButton from '../common/LoadingButton';
+import lydoLogo from '../../assets/lydo-logo.webp';
 
 interface AuthModalProps {
   show: boolean;
@@ -127,6 +128,12 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
       
       <Modal.Body className="px-4 px-md-5 pb-5 pt-0">
         <div className="text-center mb-4">
+          <img 
+            src={lydoLogo} 
+            alt="LYDO Logo" 
+            style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '12px' }} 
+            className="transition-all"
+          />
           <h3 className="mb-1 text-primary fw-bold headline-text" style={{ letterSpacing: '-0.02em' }}>
             Lydo Compliance
           </h3>

@@ -31,10 +31,10 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 // Section nav config
 // ---------------------------------------------------------------------------
 const USER_SECTIONS = [
-  { id: 'home',        label: 'Home',          isImplemented: true, icon: 'home'        },
-  { id: 'submissions', label: 'Submissions',   isImplemented: true, icon: 'upload_file' },
-  { id: 'history',     label: 'History',       isImplemented: true, icon: 'history'     },
-  { id: 'settings',    label: 'User Settings', isImplemented: true, icon: 'settings'    },
+  { id: 'home', label: 'Home', isImplemented: true, icon: 'home' },
+  { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'upload_file' },
+  { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
+  { id: 'settings', label: 'User Settings', isImplemented: true, icon: 'settings' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -234,7 +234,7 @@ export default function UserDashboard() {
   if (!userInfo) {
     return (
       <DashboardShell
-        title="SK Dashboard"
+        title="User Dashboard"
         activeSection={activeSection}
         onSectionSelect={setActiveSection}
         sections={USER_SECTIONS}
@@ -265,7 +265,7 @@ export default function UserDashboard() {
 
   return (
     <DashboardShell
-      title="SK Dashboard"
+      title="User Dashboard"
       activeSection={activeSection}
       onSectionSelect={setActiveSection}
       sections={USER_SECTIONS}
@@ -408,10 +408,10 @@ export default function UserDashboard() {
           {/* ── KPI Stat Cards ─────────────────────────────────────────── */}
           <Row className="mb-4 g-3">
             {[
-              { title: 'Total Submitted',  value: analytics.totalSubmitted,  variant: 'primary' as const, icon: 'upload_file'    },
-              { title: 'Pending Review',   value: analytics.pendingCount,     variant: 'warning' as const, icon: 'pending_actions' },
-              { title: 'Approved',         value: analytics.approvedCount,    variant: 'success' as const, icon: 'task_alt'        },
-              { title: 'Denied',           value: analytics.deniedCount,      variant: 'danger'  as const, icon: 'cancel'          },
+              { title: 'Total Submitted', value: analytics.totalSubmitted, variant: 'primary' as const, icon: 'upload_file' },
+              { title: 'Pending Review', value: analytics.pendingCount, variant: 'warning' as const, icon: 'pending_actions' },
+              { title: 'Approved', value: analytics.approvedCount, variant: 'success' as const, icon: 'task_alt' },
+              { title: 'Denied', value: analytics.deniedCount, variant: 'danger' as const, icon: 'cancel' },
             ].map((card, i) => (
               <Col md={3} sm={6} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
                 <StatCard
@@ -666,8 +666,8 @@ export default function UserDashboard() {
                           justifyContent: 'center',
                           background:
                             item.status === 'approved' ? '#F0FDF4' :
-                            item.status === 'denied'   ? '#FEF2F2' :
-                                                         '#FFF7ED',
+                              item.status === 'denied' ? '#FEF2F2' :
+                                '#FFF7ED',
                         }}
                       >
                         <span
@@ -677,13 +677,13 @@ export default function UserDashboard() {
                             fontVariationSettings: "'FILL' 1",
                             color:
                               item.status === 'approved' ? '#16A34A' :
-                              item.status === 'denied'   ? '#DC2626' :
-                                                           '#D97706',
+                                item.status === 'denied' ? '#DC2626' :
+                                  '#D97706',
                           }}
                         >
                           {item.status === 'approved' ? 'check_circle' :
-                           item.status === 'denied'   ? 'cancel'       :
-                                                        'pending'}
+                            item.status === 'denied' ? 'cancel' :
+                              'pending'}
                         </span>
                       </div>
 

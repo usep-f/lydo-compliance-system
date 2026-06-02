@@ -5,6 +5,8 @@ import { auth } from '../../firebase';
 import { signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 
+import lydoLogo from '../../assets/lydo-logo.webp';
+
 interface HomeNavbarProps {
   user: User | null;
   role: string | null;
@@ -40,7 +42,15 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
           className="d-flex align-items-center gap-2 text-primary fw-bold fs-4 brand-title" 
           style={{ cursor: 'pointer', fontFamily: 'var(--font-headline)' }}
         >
-          <span className="material-symbols-outlined fs-3 text-primary">verified_user</span>
+          <img 
+            src={lydoLogo} 
+            alt="LYDO Logo" 
+            height="32" 
+            className="d-inline-block align-top transition-all"
+            style={{ objectFit: 'contain' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          />
           <span>LYDO Compliance</span>
         </Navbar.Brand>
 
