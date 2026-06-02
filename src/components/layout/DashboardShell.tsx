@@ -66,10 +66,10 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
         {/* Inner Content Body */}
         <main className="flex-grow-1 py-4 px-3 px-md-5">
           <Container fluid={fluid} className="h-100 p-0">
-            {/* Section Page Header — always rendered so the bell is always visible */}
-            <div className={pageHeader ? 'section-page-header' : 'section-page-header-minimal'}>
-              {/* Left: title + subtitle (only when a header is provided) */}
-              {pageHeader ? (
+            {/* Section Page Header — rendered only when pageHeader is provided */}
+            {pageHeader && (
+              <div className="section-page-header">
+                {/* Left: title + subtitle */}
                 <div>
                   <p className="sph-title d-flex align-items-center gap-2">
                     {pageHeader.icon && (
@@ -86,14 +86,11 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
                     <p className="sph-subtitle">{pageHeader.subtitle}</p>
                   )}
                 </div>
-              ) : (
-                // Empty placeholder so the bell stays on the right via space-between
-                <div />
-              )}
 
-              {/* Notification Bell — always top-right */}
-              <NotificationBell uid={currentUid} />
-            </div>
+                {/* Notification Bell — always top-right */}
+                <NotificationBell uid={currentUid} />
+              </div>
+            )}
 
             <div key={activeSection} className="dashboard-content-fade">
               {children}

@@ -1069,15 +1069,59 @@ textarea.form-control {
    Section Page Header
    ========================================== */
 
+@keyframes header-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .section-page-header {
-  background: #e0e0e0;
-  border-bottom: 1px solid #E4E4E7;
-  padding: 20px 24px;
-  margin: -16px -12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  background: linear-gradient(135deg, #475569 0%, #1E293B 100%) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 24px 32px !important;
+  margin: 0 0 24px 0 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px -5px rgba(30, 41, 59, 0.15), 0 4px 12px -4px rgba(30, 41, 59, 0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  z-index: 1;
+  animation: header-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.section-page-header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -5%;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.section-page-header::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  right: 15%;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Bell-only bar: shown when a section has no pageHeader (e.g. Home) */
@@ -1093,25 +1137,57 @@ textarea.form-control {
 
 @media (min-width: 768px) {
   .section-page-header {
-    margin: -16px -16px 28px;
-    padding: 22px 32px;
+    margin: 0 0 28px 0 !important;
+    padding: 26px 36px !important;
   }
 }
 
 .section-page-header .sph-title {
-  font-family: var(--font-headline);
-  font-size: 50px;
-  font-weight: 700;
-  color: #18181B;
+  font-family: var(--font-headline) !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  color: #FFFFFF !important;
   margin: 0;
   line-height: 1.2;
+  position: relative;
+  z-index: 1;
+}
+
+.section-page-header .sph-title .material-symbols-outlined {
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 
 .section-page-header .sph-subtitle {
-  font-family: var(--font-body);
-  font-size: 13px;
-  color: #71717A;
-  margin: 3px 0 0;
+  font-family: var(--font-body) !important;
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin: 6px 0 0 !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Custom Glassmorphism style for Notification Bell inside the Slate Section Header */
+.section-page-header button[aria-label^="Notifications"] {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.section-page-header button[aria-label^="Notifications"]:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+.section-page-header button[aria-label^="Notifications"][aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15) !important;
+}
+
+.section-page-header button[aria-label^="Notifications"] .material-symbols-outlined {
+  color: #FFFFFF !important;
 }
 
 .section-page-header .sph-badge {
@@ -1209,8 +1285,8 @@ textarea.form-control {
 }
 
 .welcome-card:hover {
-  transform: translateY(-6px) scale(1.01) !important;
-  box-shadow: 0 24px 48px -12px rgba(79, 70, 229, 0.25), 0 12px 24px -12px rgba(79, 70, 229, 0.15) !important;
+  transform: none !important;
+  box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.15), 0 4px 12px -4px rgba(79, 70, 229, 0.08) !important;
 }
 
 .welcome-card-banner {

@@ -18,6 +18,7 @@ import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHis
 import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
 import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
 import UserSettings from '../components/settings/UserSettings';
+import NotificationBell from '../components/common/NotificationBell';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -516,28 +517,11 @@ export default function AdminDashboard() {
           {/* Welcome Banner */}
           <div className="welcome-card mb-4">
             <div className="welcome-card-banner" style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}>
+              {/* Notification Bell in top right */}
+              <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
+                <NotificationBell uid={auth.currentUser?.uid || null} />
+              </div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.15)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#FFFFFF',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#86EFAC', display: 'inline-block' }} />
-                    LYDO Administrator Portal
-                  </span>
-                </div>
                 <h2
                   className="text-white"
                   style={{
