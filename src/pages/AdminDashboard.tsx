@@ -517,6 +517,7 @@ export default function AdminDashboard() {
           {/* Welcome Banner */}
           <div className="welcome-card mb-4">
             <div className="welcome-card-banner" style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}>
+              <div className="welcome-card-bg" />
               {/* Notification Bell in top right */}
               <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
                 <NotificationBell uid={auth.currentUser?.uid || null} />
@@ -560,6 +561,8 @@ export default function AdminDashboard() {
                 justifyContent: 'flex-end',
                 gap: '12px',
                 borderTop: '1px solid #F4F4F5',
+                borderBottomLeftRadius: '16px',
+                borderBottomRightRadius: '16px',
               }}
             >
               <button

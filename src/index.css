@@ -1087,7 +1087,7 @@ textarea.form-control {
   padding: 24px 32px !important;
   margin: 0 0 24px 0 !important;
   position: relative !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   box-shadow: 0 10px 30px -5px rgba(30, 41, 59, 0.15), 0 4px 12px -4px rgba(30, 41, 59, 0.08) !important;
   display: flex !important;
   align-items: center !important;
@@ -1098,7 +1098,16 @@ textarea.form-control {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.section-page-header::before {
+.section-page-header-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.section-page-header-bg::before {
   content: '';
   position: absolute;
   top: -40%;
@@ -1111,7 +1120,7 @@ textarea.form-control {
   z-index: 0;
 }
 
-.section-page-header::after {
+.section-page-header-bg::after {
   content: '';
   position: absolute;
   bottom: -30%;
@@ -1279,7 +1288,7 @@ textarea.form-control {
 .welcome-card {
   border: none !important;
   border-radius: 16px !important;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.15), 0 4px 12px -4px rgba(79, 70, 229, 0.08) !important;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
@@ -1293,10 +1302,21 @@ textarea.form-control {
   background: linear-gradient(135deg, #312E81 0%, #4F46E5 60%, #6366F1 100%);
   padding: 32px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
-.welcome-card-banner::before {
+.welcome-card-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.welcome-card-bg::before {
   content: '';
   position: absolute;
   top: -40%;
@@ -1305,9 +1325,11 @@ textarea.form-control {
   height: 220px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.welcome-card-banner::after {
+.welcome-card-bg::after {
   content: '';
   position: absolute;
   bottom: -30%;
@@ -1316,6 +1338,8 @@ textarea.form-control {
   height: 140px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ==========================================

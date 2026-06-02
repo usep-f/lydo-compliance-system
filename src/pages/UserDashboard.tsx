@@ -295,6 +295,7 @@ export default function UserDashboard() {
           {/* Welcome Banner */}
           <div className="welcome-card mb-4">
             <div className="welcome-card-banner">
+              <div className="welcome-card-bg" />
               {/* Notification Bell in top right */}
               <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
                 <NotificationBell uid={userInfo.uid} />
@@ -366,6 +367,8 @@ export default function UserDashboard() {
                 justifyContent: 'flex-end',
                 gap: '12px',
                 borderTop: '1px solid #F4F4F5',
+                borderBottomLeftRadius: '16px',
+                borderBottomRightRadius: '16px',
               }}
             >
               <button
