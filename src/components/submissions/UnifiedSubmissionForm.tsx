@@ -20,6 +20,8 @@ import type { PdfScreeningResult } from '../../utils/pdfScreening';
 interface UnifiedSubmissionFormProps {
   currentYear: number;
   existingSubmissions?: Array<PendingSubmission | HistoricalSubmission>;
+  initialDocumentTypeId?: string;
+  initialPeriod?: string;
   onSubmitReady: (payload: {
     file: File;
     documentType: SubmissionTypeDefinition;
@@ -39,16 +41,21 @@ const BASE_DOCUMENT_TYPES = [
 const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ 
   currentYear, 
   existingSubmissions = [], 
+  initialDocumentTypeId = '',
+  initialPeriod = '',
   onSubmitReady 
 }) => {
-  const [selectedBaseTypeId, setSelectedBaseTypeId] = useState<string>('');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('');
+  const [selectedBaseTypeId, setSelectedBaseTypeId] = useState<string>(initialDocumentTypeId);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(initialPeriod);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const selectedYear = currentYear;
 
   const [file, setFile] = useState<File | null>(null);
   const [screening, setScreening] = useState<PdfScreeningResult | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+
+  const [prevInitialDocumentTypeId, setPrevInitialDocumentTypeId] = useState<string>(initialDocumentTypeId);
+  const [prevInitialPeriod, setPrevInitialPeriod] = useState<string>(initialPeriod);
 
   // Derived state
   const baseType = BASE_DOCUMENT_TYPES.find((t) => t.id === selectedBaseTypeId);
@@ -82,6 +89,19 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
     return false;
   }, [baseType, actualDocTypeId, isPeriodSubmitted, selectedYear]);
 
+  // Synchronize incoming prefilled changes during rendering to avoid useEffect cascading renders
+  if (initialDocumentTypeId !== prevInitialDocumentTypeId) {
+    setPrevInitialDocumentTypeId(initialDocumentTypeId);
+    setSelectedBaseTypeId(initialDocumentTypeId);
+  }
+
+  if (initialPeriod !== prevInitialPeriod) {
+    setPrevInitialPeriod(initialPeriod);
+    if (initialPeriod) {
+      setSelectedPeriod(initialPeriod);
+    }
+  }
+
   // Reset dependent fields when parent fields change
   useEffect(() => {
     let active = true;
@@ -96,16 +116,20 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
       } else if (baseType.category === 'perennial') {
         setSelectedPeriod(selectedYear.toString());
       } else if (baseType.category === 'scheduled') {
-        // Auto-select the first unsubmitted period
-        const available = elapsedPeriods.find(p => !isPeriodSubmitted(p));
-        setSelectedPeriod(available || '');
+        if (baseType.id === initialDocumentTypeId && initialPeriod) {
+          setSelectedPeriod(initialPeriod);
+        } else {
+          // Auto-select the first unsubmitted period
+          const available = elapsedPeriods.find(p => !isPeriodSubmitted(p));
+          setSelectedPeriod(available || '');
+        }
       }
     });
     
     return () => {
       active = false;
     };
-  }, [selectedBaseTypeId, baseType, selectedYear, elapsedPeriods, isPeriodSubmitted]);
+  }, [selectedBaseTypeId, baseType, selectedYear, elapsedPeriods, isPeriodSubmitted, initialDocumentTypeId, initialPeriod]);
 
   // Handle file selection and screening immediately
   const handleFileSelect = useCallback(async (selectedFile: File) => {
@@ -255,7 +279,8 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
               disabled={
                 !baseType || 
                 isFullySubmitted || 
-                (baseType.category === 'scheduled' && (!selectedPeriod || isPeriodSubmitted(selectedPeriod)))
+                (baseType.category === 'scheduled' && (!selectedPeriod || isPeriodSubmitted(selectedPeriod))) ||
+                !!file
               }
             />
             {fileError && <Alert variant="danger" className="mt-3 py-2">{fileError}</Alert>}

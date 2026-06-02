@@ -148,6 +148,10 @@ export default function UserDashboard() {
 
   const currentYear = new Date().getFullYear();
 
+  // Auto-fill state
+  const [prefilledDocType, setPrefilledDocType] = useState<string>('');
+  const [prefilledPeriod, setPrefilledPeriod] = useState<string>('');
+
   // Fetch user profile info
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -176,7 +180,19 @@ export default function UserDashboard() {
   // Client-side analytics — zero extra Firestore reads
   const analytics = useUserAnalytics(pending, history, currentYear);
 
+  const handleAutoFillSubmission = (docTypeId: string, period: string) => {
+    setPrefilledDocType(docTypeId);
+    setPrefilledPeriod(period);
+    setActiveSection('submissions');
+  };
 
+  const handleSectionSelect = (section: string) => {
+    setActiveSection(section);
+    if (section !== 'submissions') {
+      setPrefilledDocType('');
+      setPrefilledPeriod('');
+    }
+  };
 
   const handleUploadSuccess = () => {
     setShowConfirmModal(false);
@@ -237,7 +253,7 @@ export default function UserDashboard() {
       <DashboardShell
         title="User Dashboard"
         activeSection={activeSection}
-        onSectionSelect={setActiveSection}
+        onSectionSelect={handleSectionSelect}
         sections={USER_SECTIONS}
       >
         <div
@@ -268,7 +284,7 @@ export default function UserDashboard() {
     <DashboardShell
       title="User Dashboard"
       activeSection={activeSection}
-      onSectionSelect={setActiveSection}
+      onSectionSelect={handleSectionSelect}
       sections={USER_SECTIONS}
       pageHeader={sectionHeaders[activeSection]}
     >
@@ -371,7 +387,11 @@ export default function UserDashboard() {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveSection('submissions')}
+                onClick={() => {
+                  setPrefilledDocType('');
+                  setPrefilledPeriod('');
+                  setActiveSection('submissions');
+                }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '8px 18px', borderRadius: '8px',
@@ -575,7 +595,7 @@ export default function UserDashboard() {
                         label={doc.label}
                         period={doc.period}
                         isOverdue={doc.isOverdue}
-                        onSubmit={() => setActiveSection('submissions')}
+                        onSubmit={() => handleAutoFillSubmission(doc.id, doc.period)}
                       />
                     ))
                   )}
@@ -754,6 +774,8 @@ export default function UserDashboard() {
           <UnifiedSubmissionForm
             currentYear={currentYear}
             existingSubmissions={[...pending, ...history]}
+            initialDocumentTypeId={prefilledDocType}
+            initialPeriod={prefilledPeriod}
             onSubmitReady={(payload) => {
               setPendingUpload(payload);
               setShowConfirmModal(true);
