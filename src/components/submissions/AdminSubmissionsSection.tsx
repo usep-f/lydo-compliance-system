@@ -23,7 +23,7 @@ interface AdminSubmissionsSectionProps {
   pending: PendingSubmission[];
   history: HistoricalSubmission[];
   loading: boolean;
-  refreshHistory: () => Promise<void>;
+  refreshHistory: () => void;
 }
 
 /**

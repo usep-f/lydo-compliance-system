@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Query } from 'firebase/firestore';
 import type { PendingSubmission, HistoricalSubmission } from '../constants/submissionTypes';
 
@@ -10,7 +10,7 @@ export interface UseSubmissionsResult {
   loadingPending: boolean;
   loadingHistory: boolean;
   loading: boolean;
-  fetchHistory: () => Promise<void>;
+  fetchHistory: () => void;
 }
 
 /**
@@ -56,27 +56,41 @@ export function useSubmissions(
   const [history, setHistory] = useState<HistoricalSubmission[]>([]);
   const [loadingPending, setLoadingPending] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [shouldListenToHistory, setShouldListenToHistory] = useState(false);
 
-  // Lazy on-demand fetch for historical submissions
-  const fetchHistory = useCallback(async () => {
+  // Lazy on-demand trigger to start listening to history
+  const fetchHistory = useCallback(() => {
+    setLoadingHistory(true);
+    setShouldListenToHistory(true);
+  }, []);
+
+  // Real-time listener for historical submissions (only active after fetchHistory is triggered)
+  useEffect(() => {
+    if (!shouldListenToHistory) return;
     if (!isAdmin && !barangay && !userId) return;
 
-    setLoadingHistory(true);
-    try {
-      const q = buildHistoryQuery(barangay, userId);
-      const snapshot = await getDocs(q);
-      const docs: HistoricalSubmission[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as HistoricalSubmission);
-      });
-      setHistory(docs);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn('submissions fetch error:', message);
-    } finally {
-      setLoadingHistory(false);
-    }
-  }, [barangay, isAdmin, userId]);
+    const q = buildHistoryQuery(barangay, userId);
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const docs: HistoricalSubmission[] = [];
+        snapshot.forEach((doc) => {
+          docs.push({ id: doc.id, ...doc.data() } as HistoricalSubmission);
+        });
+        setHistory(docs);
+        setLoadingHistory(false);
+      },
+      (error) => {
+        console.warn('history submissions listener error:', error.message);
+        setLoadingHistory(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [shouldListenToHistory, barangay, isAdmin, userId]);
 
   // Real-time listener for pending submissions
   useEffect(() => {
