@@ -48,6 +48,7 @@ export function useUserAnalytics(
   pending: PendingSubmission[],
   history: HistoricalSubmission[],
   year: number,
+  currentUserId?: string | null,
 ): UserAnalytics {
   return useMemo(() => {
     const now = new Date();
@@ -112,15 +113,18 @@ export function useUserAnalytics(
       totalExpected > 0 ? Math.round((approvedCount / totalExpected) * 100) : 100;
 
     // ── Recent Activity ────────────────────────────────────────────────────
+    const recentPending = currentUserId ? pending.filter((s) => s.userId === currentUserId) : pending;
+    const recentHistory = currentUserId ? history.filter((s) => s.userId === currentUserId) : history;
+
     const allItems: RecentItem[] = [
-      ...pending.map((s) => ({
+      ...recentPending.map((s) => ({
         id: s.id,
         documentLabel: s.documentLabel || '',
         period: s.period || '',
         status: 'pending' as const,
         date: s.submittedAt?.toDate ? s.submittedAt.toDate() : null,
       })),
-      ...history.map((s) => ({
+      ...recentHistory.map((s) => ({
         id: s.id,
         documentLabel: s.documentLabel || '',
         period: s.period || '',
@@ -148,5 +152,5 @@ export function useUserAnalytics(
       missingDocs,
       recentActivity,
     };
-  }, [pending, history, year]);
+  }, [pending, history, year, currentUserId]);
 }

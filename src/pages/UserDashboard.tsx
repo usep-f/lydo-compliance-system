@@ -174,11 +174,22 @@ export default function UserDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time submissions for this barangay
-  const { pending = [], history = [] } = useSubmissions(userInfo?.barangay);
+  // Real-time submissions for this barangay (wide data query)
+  const { pending = [], history = [], fetchHistory } = useSubmissions(userInfo?.barangay, false);
 
-  // Client-side analytics — zero extra Firestore reads
-  const analytics = useUserAnalytics(pending, history, currentYear);
+  // Filter lists to personal only for specific views
+  const personalPending = pending.filter((s) => s.userId === userInfo?.uid);
+  const personalHistory = history.filter((s) => s.userId === userInfo?.uid);
+
+  // Client-side analytics — zero extra Firestore reads (hybrid scoping)
+  const analytics = useUserAnalytics(pending, history, currentYear, userInfo?.uid);
+
+  // Fetch history when user info is available (resolving technical oversight)
+  useEffect(() => {
+    if (userInfo?.barangay) {
+      fetchHistory();
+    }
+  }, [userInfo?.barangay, fetchHistory]);
 
   const handleAutoFillSubmission = (docTypeId: string, period: string) => {
     setPrefilledDocType(docTypeId);
@@ -738,7 +749,7 @@ export default function UserDashboard() {
               )}
             </div>
 
-            {history.length > 5 && (
+            {personalHistory.length > 5 && (
               <div
                 style={{
                   padding: '12px 20px',
@@ -762,7 +773,7 @@ export default function UserDashboard() {
                     gap: '4px',
                   }}
                 >
-                  View all {history.length} submissions
+                  View all {personalHistory.length} submissions
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
                 </button>
               </div>
@@ -784,13 +795,13 @@ export default function UserDashboard() {
               setShowConfirmModal(true);
             }}
           />
-          <UserPendingSubmissions pending={pending} />
+          <UserPendingSubmissions pending={personalPending} />
         </div>
       )}
 
       {/* ====== HISTORY SECTION ====== */}
       {activeSection === 'history' && (
-        <UserSubmissionHistory history={history} />
+        <UserSubmissionHistory history={personalHistory} />
       )}
 
       {/* ====== SETTINGS SECTION ====== */}
