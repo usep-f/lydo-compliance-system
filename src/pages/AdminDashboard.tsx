@@ -17,6 +17,7 @@ import AdminSubmissionsSection from '../components/submissions/AdminSubmissionsS
 import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHistory';
 import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
 import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
+import ComplianceCalendar from '../components/analytics/ComplianceCalendar';
 import UserSettings from '../components/settings/UserSettings';
 import NotificationBell from '../components/common/NotificationBell';
 import {
@@ -607,6 +608,11 @@ export default function AdminDashboard() {
                 Review Applications ({pendingUsers.length})
               </button>
             </div>
+          </div>
+
+          {/* Compliance Calendar */}
+          <div className="mb-4">
+            <ComplianceCalendar currentYear={currentYear} />
           </div>
 
           {/* KPI Row */}

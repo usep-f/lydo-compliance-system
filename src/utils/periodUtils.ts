@@ -139,16 +139,31 @@ export function getDueDateLabel(period: string): string {
   });
 }
 
+/** Returns the absolute end of the grace period (7 days after the period end date). */
+export function getGracePeriodEndDate(period: string): Date {
+  const endDate = getPeriodEndDate(period);
+  endDate.setHours(23, 59, 59, 999);
+  return new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+}
+
+/** Returns the due date string for the grace period display. */
+export function getGracePeriodLabel(period: string): string {
+  const graceDate = getGracePeriodEndDate(period);
+  return graceDate.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Period Status Checks
 // ---------------------------------------------------------------------------
 
-/** Returns true if the period has fully elapsed (overdue if not submitted). */
+/** Returns true if the period and its 1-week grace period have fully elapsed (overdue if not submitted). */
 export function isPeriodOverdue(period: string, date: Date = new Date()): boolean {
-  const endDate = getPeriodEndDate(period);
-  // Set end of day for fair comparison
-  endDate.setHours(23, 59, 59, 999);
-  return date > endDate;
+  const graceEndDate = getGracePeriodEndDate(period);
+  return date > graceEndDate;
 }
 
 /** Returns true if the period is currently in progress (submittable, not yet overdue). */
