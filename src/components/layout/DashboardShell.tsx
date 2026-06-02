@@ -64,7 +64,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
         />
 
         {/* Inner Content Body */}
-        <main className="flex-grow-1 py-4 px-3 px-md-4">
+        <main className="flex-grow-1 py-4 px-3 px-md-5">
           <Container fluid={fluid} className="h-100 p-0">
             {/* Section Page Header — always rendered so the bell is always visible */}
             <div className={pageHeader ? 'section-page-header' : 'section-page-header-minimal'}>
