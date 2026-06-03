@@ -1643,6 +1643,26 @@ textarea.form-control {
   letter-spacing: 0.04em;
 }
 
+.hero-animate {
+  opacity: 0;
+  transform: translateY(50px) scale(0.85);
+  transition: opacity 1s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+.home-hero-section.visible .hero-animate {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.hero-anim-1 { transition-delay: 100ms; }
+.hero-anim-2 { transition-delay: 250ms; }
+.hero-anim-3 { transition-delay: 400ms; }
+.hero-anim-4 { transition-delay: 550ms; }
+.hero-anim-5 { transition-delay: 650ms; }
+.hero-anim-6 { transition-delay: 750ms; }
+
 /* Glowing Logo */
 .hero-logo-container {
   position: relative;
@@ -1652,12 +1672,23 @@ textarea.form-control {
   width: 100%;
   max-width: 480px;
   height: 480px;
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 1;
+  opacity: 0;
+  transform: scale(0) rotate(-45deg);
+  transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+.home-hero-section.visible .hero-logo-container {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  transition-delay: 300ms;
 }
 
 .hero-logo-container:hover {
-  transform: scale(1.06);
+  transform: scale(1.06) rotate(0deg) !important;
+  transition-delay: 0s !important;
 }
 
 .hero-logo-glow {
@@ -2239,5 +2270,6 @@ textarea.form-control {
   .hero-blob-1, .hero-blob-2, .hero-blob-3, .hero-blob-4 { animation: none !important; }
   .hero-logo-glow { animation: none !important; }
   .kinetic-section, .sr-item, .sr-heading { transition: none !important; opacity: 1; transform: none; }
+  .hero-animate, .hero-logo-container { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 

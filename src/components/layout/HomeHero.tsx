@@ -43,7 +43,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
   const animatedSubmissions = useCountUp(totalSubmissions, 1200);
 
   return (
-    <section className="home-hero-section">
+    <section className="home-hero-section kinetic-section">
       {/* Animated mesh blobs */}
       <div className="hero-blob-wrap">
         <div className="hero-blob hero-blob-1" />
@@ -62,19 +62,19 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
           {/* Left: Text */}
           <Col lg={7} className="text-center text-lg-start">
             {/* Headline */}
-            <h1 className="hero-headline">
+            <h1 className="hero-headline hero-animate hero-anim-1">
               Empowering Youth.
               <br />
               <span className="hero-headline-accent">Ensuring Accountability.</span>
             </h1>
 
             {/* Sub-description */}
-            <p className="hero-subtext">
+            <p className="hero-subtext hero-animate hero-anim-2">
               The official compliance system of the Local Youth Development Office. Streamlining Sangguniang Kabataan governance with modern digital tools for transparency, accountability, and youth empowerment.
             </p>
 
             {/* CTAs */}
-            <div className="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start align-items-center gap-3">
+            <div className="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start align-items-center gap-3 hero-animate hero-anim-3">
               {user ? (
                 <Button
                   className="hero-cta-primary d-flex align-items-center gap-2"
@@ -110,19 +110,19 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
 
             {/* Stat chips */}
             <div className="hero-stat-chips">
-              <div className="hero-stat-chip">
+              <div className="hero-stat-chip hero-animate hero-anim-4">
                 <div>
                   <div className="hero-stat-chip-value">{animatedBarangays}</div>
                   <div className="hero-stat-chip-label">Active Branches</div>
                 </div>
               </div>
-              <div className="hero-stat-chip">
+              <div className="hero-stat-chip hero-animate hero-anim-5">
                 <div>
                   <div className="hero-stat-chip-value">{animatedUsers}</div>
                   <div className="hero-stat-chip-label">Authorized Users</div>
                 </div>
               </div>
-              <div className="hero-stat-chip">
+              <div className="hero-stat-chip hero-animate hero-anim-6">
                 <div>
                   <div className="hero-stat-chip-value">{animatedSubmissions}</div>
                   <div className="hero-stat-chip-label">Submissions</div>

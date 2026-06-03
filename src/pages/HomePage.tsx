@@ -187,6 +187,11 @@ export default function HomePage() {
         />
       </div>
 
+      {/* 7. Bulletins board */}
+      <div className="kinetic-section">
+        <HomeNews />
+      </div>
+
       {/* 4. Searchable Barangay Compliance Ledger Directory */}
       <div className="kinetic-section">
         <HomeLeaderboard 
@@ -205,10 +210,6 @@ export default function HomePage() {
         <HomeTimeline />
       </div>
 
-      {/* 7. Bulletins board */}
-      <div className="kinetic-section">
-        <HomeNews />
-      </div>
 
       {/* 8. Accordions FAQ */}
       <div className="kinetic-section">

@@ -57,9 +57,9 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
 
   const navLinks = [
     { label: 'Statistics', target: 'stats' },
+    { label: 'Announcements', target: 'news' },
     { label: 'Leaderboard', target: 'leaderboard' },
     { label: 'Requirements', target: 'guidelines' },
-    { label: 'Announcements', target: 'news' },
     { label: 'FAQ', target: 'faq' },
     { label: 'Support', target: 'contact' },
   ];
