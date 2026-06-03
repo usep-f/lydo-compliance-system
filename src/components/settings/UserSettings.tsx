@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Alert, Modal, Button } from 'react-bootstrap';
 import { auth, db, functions } from '../../firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import FormField from '../common/FormField';
@@ -164,36 +164,47 @@ export default function UserSettings() {
       if (!user) throw new Error('User not logged in.');
 
       let passwordChanged = false;
-      let emailChanged = false;
+      let emailVerificationSent = false;
 
-      // 1. Update Auth Email
-      if (email !== origEmail) {
-        await updateEmail(user, email);
-        emailChanged = true;
-      }
-
-      // 2. Update Auth Password
+      // 1. Update Auth Password
       if (password) {
         await updatePassword(user, password);
         passwordChanged = true;
       }
 
-      // 3. Update Firestore + Notify Admins using Cloud Function
+      // 2. Update Auth Profile details (and/or request email verification) via single Cloud Function call
       const nameChanged = fullName !== origFullName;
+      const emailChanged = email !== origEmail;
+
       if (nameChanged || emailChanged || passwordChanged) {
         const updateOwnProfile = httpsCallable(functions, 'updateOwnProfile');
-        await updateOwnProfile({
+        const res = await updateOwnProfile({
           fullName: nameChanged ? fullName : undefined,
           email: emailChanged ? email : undefined,
           passwordChanged
         });
+        const data = res.data as { verificationSent?: boolean };
+        if (data.verificationSent) {
+          emailVerificationSent = true;
+        }
       }
 
       setOrigFullName(fullName);
-      setOrigEmail(email);
+      
+      if (emailVerificationSent) {
+        setEmail(origEmail);
+        if (nameChanged || passwordChanged) {
+          setSuccess('Profile details updated. A verification link has been sent to your new email. Please verify it to complete the email change.');
+        } else {
+          setSuccess('A verification link has been sent to your new email. Please check your inbox and verify the email before it can be updated.');
+        }
+      } else {
+        setOrigEmail(email);
+        setSuccess('Profile updated successfully.');
+      }
+      
       setPassword('');
       setConfirmPassword('');
-      setSuccess('Profile updated successfully.');
       
       // Auto-hide success message after 5 seconds
       setTimeout(() => setSuccess(''), 5000);
