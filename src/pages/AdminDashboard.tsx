@@ -71,6 +71,11 @@ export default function AdminDashboard() {
   );
   const compliance = useComplianceData(currentYear, pendingSubs, approvedSubs, BARANGAYS);
 
+  // Set tab title
+  useEffect(() => {
+    document.title = "LYDO | Admin Dashboard";
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {

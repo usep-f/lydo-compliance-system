@@ -31,6 +31,11 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Set tab title
+  useEffect(() => {
+    document.title = "LYDO | Home";
+  }, []);
+
   // 1. URL search parameter checking for redirect modal triggers
   useEffect(() => {
     if (searchParams.get('login') === 'true') {

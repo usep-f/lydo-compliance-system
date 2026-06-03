@@ -154,6 +154,11 @@ export default function UserDashboard() {
   const [prefilledDocType, setPrefilledDocType] = useState<string>('');
   const [prefilledPeriod, setPrefilledPeriod] = useState<string>('');
 
+  // Set tab title
+  useEffect(() => {
+    document.title = "LYDO | User Dashboard";
+  }, []);
+
   // Fetch user profile info
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

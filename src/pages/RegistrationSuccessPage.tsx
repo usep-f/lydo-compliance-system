@@ -1,9 +1,14 @@
+import { useEffect } from 'react';
 import { Container, Card, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import lydoLogo from '../assets/lydo-logo.webp';
 
 export default function RegistrationSuccessPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "LYDO | Registration Success";
+  }, []);
 
   return (
     <div className="min-vh-100 bg-light d-flex flex-column justify-content-center py-5">
