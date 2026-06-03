@@ -10,7 +10,7 @@ import {
 } from '../../constants/submissionTypes';
 import { useComplianceData } from '../../hooks/useComplianceData';
 import { formatPeriodLabel } from '../../utils/periodUtils';
-import { exportComplianceMatrixToCsv } from '../../utils/csvUtils';
+import { exportBarangayProfileToCsv } from '../../utils/csvUtils';
 import YearEndReports from './YearEndReports';
 
 /* ─────────────────────────────────────────────
@@ -129,23 +129,24 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
         )}
         <div className="ms-auto">
           <button
-            onClick={() => {
-              const docTypeLabel = [...SCHEDULED_TYPES, ...ASAP_TYPES].find(d => d.id === matrixDocType)?.label || matrixDocType;
-              exportComplianceMatrixToCsv(matrixForDocType.cells, activeBarangays, matrixForDocType.periods, docTypeLabel);
-            }}
+            onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
+            disabled={!selectedBarangay}
+            title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '8px',
-              background: '#FFFFFF', color: '#4F46E5',
+              padding: '6px 14px', borderRadius: '8px',
+              background: !selectedBarangay ? '#F4F4F5' : '#FFFFFF', 
+              color: !selectedBarangay ? '#A1A1AA' : '#4F46E5',
               fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
-              border: '1px solid #C7D2FE', cursor: 'pointer',
+              border: !selectedBarangay ? '1px solid #E4E4E7' : '1px solid #C7D2FE', 
+              cursor: !selectedBarangay ? 'not-allowed' : 'pointer',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#4F46E5'; e.currentTarget.style.color = '#FFFFFF'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#4F46E5'; }}
+            onMouseEnter={e => { if (selectedBarangay) { e.currentTarget.style.background = '#4F46E5'; e.currentTarget.style.color = '#FFFFFF'; } }}
+            onMouseLeave={e => { if (selectedBarangay) { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#4F46E5'; } }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-            Export Matrix CSV
+            Export Barangay Profile CSV
           </button>
         </div>
       </div>
