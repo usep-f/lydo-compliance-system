@@ -1,16 +1,16 @@
 import { Container, Card, Alert } from 'react-bootstrap';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import PasswordSetupForm from '../components/auth/PasswordSetupForm';
 import lydoLogo from '../assets/lydo-logo.webp';
 
 export default function SetupPasswordPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const oobCode = searchParams.get('oobCode');
   const isValidCode = !!oobCode;
 
   const handleSuccess = () => {
-    // Force a full page navigation to ensure it doesn't get caught in the router's loading state
-    window.location.href = '/registration-success';
+    navigate('/registration-success');
   };
 
   return (
