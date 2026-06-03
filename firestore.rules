@@ -111,5 +111,19 @@ service cloud.firestore {
       // All creates and deletes are handled by Cloud Functions via Admin SDK
       allow create, delete: if false;
     }
+
+    // ── CMS Bulletins ──
+    // Guests can read bulletins; only admins can write
+    match /cms_bulletins/{bulletinId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Global System Settings ──
+    // Guests/users can read settings; only admins can write
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
