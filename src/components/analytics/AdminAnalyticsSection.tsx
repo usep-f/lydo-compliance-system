@@ -21,6 +21,7 @@ import {
 } from '../../constants/submissionTypes';
 import { useComplianceData } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
+import { exportBarangayRankingsToCsv } from '../../utils/csvUtils';
 
 // Register Chart.js
 ChartJS.register(
@@ -410,6 +411,24 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
             </button>
           </>
         )}
+        <div className="ms-auto">
+          <button
+            onClick={() => exportBarangayRankingsToCsv(sortedRanking)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px', borderRadius: '8px',
+              background: '#FFFFFF', color: '#16A34A',
+              fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
+              border: '1px solid #BBF7D0', cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#FFFFFF'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#16A34A'; }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+            Export Rankings CSV
+          </button>
+        </div>
       </div>
 
       {/* 1 ── Row 1: KPI Stat Cards */}

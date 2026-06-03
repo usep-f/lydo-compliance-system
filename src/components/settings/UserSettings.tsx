@@ -38,6 +38,13 @@ export default function UserSettings() {
   const [deleteError, setDeleteError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Admin Purge Modal State
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [purgePassword, setPurgePassword] = useState('');
+  const [purgeConfirmation, setPurgeConfirmation] = useState('');
+  const [purgeError, setPurgeError] = useState('');
+  const [purgeLoading, setPurgeLoading] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -243,6 +250,51 @@ export default function UserSettings() {
     }
   };
 
+  const handlePurgeSystem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPurgeError('');
+
+    if (purgeConfirmation !== 'PURGE ALL SUBMISSIONS AND METRICS') {
+      setPurgeError('Please type the exact phrase to confirm.');
+      return;
+    }
+
+    setPurgeLoading(true);
+
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.email) throw new Error('User not found.');
+
+      // 1. Re-authenticate
+      const credential = EmailAuthProvider.credential(user.email, purgePassword);
+      await reauthenticateWithCredential(user, credential);
+      
+      // 2. Trigger automatic backup
+      const { triggerSystemBackup } = await import('../../utils/backupUtils');
+      await triggerSystemBackup();
+
+      // 3. Call purgeSystemData function
+      const purgeSystemDataFn = httpsCallable(functions, 'purgeSystemData');
+      await purgeSystemDataFn();
+      
+      setSuccess('System data purged successfully. A backup was downloaded.');
+      setShowPurgeModal(false);
+      setPurgePassword('');
+      setPurgeConfirmation('');
+      setTimeout(() => setSuccess(''), 8000);
+      
+    } catch (err: unknown) {
+      const error = err as Error & { code?: string };
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setPurgeError('Incorrect password.');
+      } else {
+        setPurgeError(error.message || 'Failed to purge system data.');
+      }
+    } finally {
+      setPurgeLoading(false);
+    }
+  };
+
   if (initLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
@@ -366,6 +418,23 @@ export default function UserSettings() {
         </div>
       )}
 
+      {role === 'admin' && (
+        <div className="analytics-card mt-4" style={{ background: '#fff', width: '100%', border: '1px solid #FEE2E2' }}>
+          <div className="px-4 py-4">
+            <h6 className="mb-2 fw-bold text-danger d-flex align-items-center" style={{ fontSize: '14px', letterSpacing: '0.02em' }}>
+              <span className="material-symbols-outlined me-2" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>warning</span>
+              Admin Danger Zone
+            </h6>
+            <p className="text-muted small mb-4" style={{ maxWidth: '600px' }}>
+              Purging system data will permanently wipe all pending and historical submissions, file uploads, and perennial counts. User accounts and system settings will remain intact. This action cannot be undone. A JSON backup will be generated before deletion.
+            </p>
+            <Button variant="danger" onClick={() => setShowPurgeModal(true)} style={{ fontWeight: 600, fontSize: '14px', borderRadius: '8px' }}>
+              Purge System Data
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Re-auth Modal */}
       <Modal show={showReauthModal} onHide={() => !reauthLoading && setShowReauthModal(false)} centered backdrop="static">
         <Modal.Header closeButton={!reauthLoading} className="border-0 pb-0" />
@@ -463,6 +532,62 @@ export default function UserSettings() {
                 loading={deleteLoading}
               >
                 Permanently Delete
+              </LoadingButton>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* System Purge Modal */}
+      <Modal show={showPurgeModal} onHide={() => !purgeLoading && setShowPurgeModal(false)} centered backdrop="static">
+        <Modal.Header closeButton={!purgeLoading} className="border-0 pb-0" />
+        <Modal.Body className="px-4 pb-4 pt-0">
+          <div className="text-center mb-4">
+            <span className="material-symbols-outlined text-danger mb-2" style={{ fontSize: '40px' }}>
+              delete_forever
+            </span>
+            <h5 className="fw-bold mb-1 text-danger">Purge System Data</h5>
+            <p className="text-muted small mb-0">
+              This will irreversibly delete all submissions and files. A JSON backup will be created automatically.
+            </p>
+          </div>
+          
+          {purgeError && <Alert variant="danger" className="py-2 small">{purgeError}</Alert>}
+          
+          <Form onSubmit={handlePurgeSystem}>
+            <FormField
+              label="Admin Password"
+              type="password"
+              required
+              value={purgePassword}
+              onChange={(e) => setPurgePassword(e.target.value)}
+              disabled={purgeLoading}
+            />
+            
+            <FormField
+              label='Type "PURGE ALL SUBMISSIONS AND METRICS" to confirm'
+              type="text"
+              required
+              value={purgeConfirmation}
+              onChange={(e) => setPurgeConfirmation(e.target.value)}
+              disabled={purgeLoading}
+              className="mb-4"
+            />
+            
+            <div className="d-flex justify-content-end gap-2">
+              <Button 
+                variant="light" 
+                onClick={() => setShowPurgeModal(false)}
+                disabled={purgeLoading}
+              >
+                Cancel
+              </Button>
+              <LoadingButton 
+                variant="danger" 
+                type="submit" 
+                loading={purgeLoading}
+              >
+                Purge Data
               </LoadingButton>
             </div>
           </Form>
