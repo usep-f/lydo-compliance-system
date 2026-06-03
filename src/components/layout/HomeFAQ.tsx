@@ -25,7 +25,7 @@ export const HomeFAQ: React.FC = () => {
     <section id="faq" className="py-5 bg-light border-bottom">
       <Container className="py-4">
         {/* Section Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-5 sr-heading">
           <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
             Frequently Asked Questions
           </div>
@@ -36,7 +36,7 @@ export const HomeFAQ: React.FC = () => {
         </div>
 
         {/* Accordion Layout */}
-        <div className="mx-auto" style={{ maxWidth: '800px' }}>
+        <div className="mx-auto sr-item" style={{ maxWidth: '800px' }}>
           <Accordion className="faq-accordion">
             {faqs.map((faq, idx) => (
               <Accordion.Item eventKey={idx.toString()} key={idx}>

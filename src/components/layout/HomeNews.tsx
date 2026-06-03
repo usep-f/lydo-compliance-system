@@ -30,7 +30,7 @@ export const HomeNews: React.FC = () => {
     <section id="news" className="py-5 bg-white border-bottom">
       <Container className="py-4">
         {/* Section Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-5 sr-heading">
           <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
             Office Advisories
           </div>
@@ -43,7 +43,7 @@ export const HomeNews: React.FC = () => {
         {/* News Grid */}
         <Row className="gy-4">
           {newsItems.map((item, idx) => (
-            <Col lg={4} key={idx}>
+            <Col lg={4} key={idx} className="sr-item">
               <div 
                 className="card h-100 p-4 shadow-sm glow-hover-card d-flex flex-column justify-content-between"
                 style={{ borderRadius: '16px', backgroundColor: '#FFFFFF' }}

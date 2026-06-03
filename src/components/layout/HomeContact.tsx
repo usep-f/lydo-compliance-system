@@ -29,7 +29,7 @@ export const HomeContact: React.FC = () => {
     <section id="contact" className="py-5 bg-white border-bottom">
       <Container className="py-4">
         {/* Section Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-5 sr-heading">
           <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
             Get In Touch
           </div>
@@ -41,7 +41,7 @@ export const HomeContact: React.FC = () => {
 
         <Row className="gy-5">
           {/* Contact Details */}
-          <Col lg={5}>
+          <Col lg={5} className="sr-item">
             <div className="p-4 bg-light rounded-3 border h-100 d-flex flex-column justify-content-between shadow-sm">
               <div>
                 <h5 className="fw-bold text-dark mb-4 font-headline" style={{ fontSize: '16px' }}>Local Youth Development Office</h5>
@@ -98,7 +98,7 @@ export const HomeContact: React.FC = () => {
           </Col>
 
           {/* Contact Form */}
-          <Col lg={7}>
+          <Col lg={7} className="sr-item">
             <div className="p-4 bg-white rounded-3 border shadow-sm">
               <h5 className="fw-bold text-dark mb-4 font-headline" style={{ fontSize: '16px' }}>Send An Inquiry</h5>
               

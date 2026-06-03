@@ -27,7 +27,7 @@ export const HomeTimeline: React.FC = () => {
     <section className="py-5 bg-light border-bottom position-relative">
       <Container className="py-4">
         {/* Section Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-5 sr-heading">
           <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
             Portal Onboarding
           </div>
@@ -42,7 +42,7 @@ export const HomeTimeline: React.FC = () => {
           <Col lg={9}>
             <div className="home-timeline">
               {steps.map((step, idx) => (
-                <div key={idx} className="d-flex gap-4 mb-4 pb-2 position-relative">
+                <div key={idx} className="d-flex gap-4 mb-4 pb-2 position-relative sr-item">
                   {/* Step Badge */}
                   <div className="home-timeline-badge flex-shrink-0">
                     {step.step}

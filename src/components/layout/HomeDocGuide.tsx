@@ -51,7 +51,7 @@ export const HomeDocGuide: React.FC = () => {
     const el = sectionRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
+      setVisible(entry.isIntersecting);
     }, { threshold: 0.1 });
     obs.observe(el);
     return () => obs.disconnect();

@@ -9,19 +9,24 @@ interface HomeStatsProps {
 
 function useCountUp(target: number, isVisible: boolean, duration = 1400) {
   const [value, setValue] = useState(0);
-  const started = useRef(false);
 
   useEffect(() => {
-    if (!isVisible || started.current) return;
-    started.current = true;
+    if (!isVisible) {
+      const resetId = requestAnimationFrame(() => setValue(0));
+      return () => cancelAnimationFrame(resetId);
+    }
     const start = performance.now();
+    let frameId: number;
     const step = (now: number) => {
       const progress = Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(step);
+      }
     };
-    requestAnimationFrame(step);
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
   }, [isVisible, target, duration]);
 
   return value;
@@ -41,8 +46,8 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ liveData, totalSubmissions
     const el = sectionRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
-    }, { threshold: 0.2 });
+      setVisible(entry.isIntersecting);
+    }, { threshold: 0.1 });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
@@ -98,7 +103,19 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ liveData, totalSubmissions
       className="home-stats-section py-5"
       ref={sectionRef}
     >
-      <Container className="py-4" style={{ position: 'relative', zIndex: 1 }}>
+      <div 
+        className="stats-blackout-mask"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: '#000000',
+          opacity: visible ? 0 : 1,
+          transition: 'opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          pointerEvents: 'none',
+          zIndex: 3
+        }}
+      />
+      <Container className="py-4" style={{ position: 'relative', zIndex: 2 }}>
         {/* Section Header */}
         <div className={`text-center mb-5 sr-heading${visible ? ' visible' : ''}`}>
           <div className="home-section-overline" style={{ justifyContent: 'center', color: 'rgba(92,184,255,0.8)' }}>

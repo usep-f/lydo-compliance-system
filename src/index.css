@@ -1442,11 +1442,7 @@ textarea.form-control {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes section-badge-pop {
-  0%   { opacity: 0; transform: scale(0.8) translateY(-6px); }
-  60%  { transform: scale(1.05) translateY(0); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
+
 
 /* ── Hero Section ───────────────────────────────── */
 .home-hero-section {
@@ -1538,34 +1534,7 @@ textarea.form-control {
   z-index: 2;
 }
 
-/* Hero tag badge */
-.hero-tag-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border-radius: 9999px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  backdrop-filter: blur(8px);
-  color: rgba(255,255,255,0.9);
-  font-family: var(--font-headline);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-bottom: 28px;
-  animation: section-badge-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
 
-.hero-tag-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #FBA100;
-  box-shadow: 0 0 0 3px rgba(251,161,0,0.3);
-  animation: amber-pulse 2s ease-in-out infinite;
-}
 
 /* Hero headline */
 .hero-headline {
@@ -1822,7 +1791,9 @@ textarea.form-control {
 
 /* ── Stats Section (Dark) ───────────────────────── */
 .home-stats-section {
-  background: linear-gradient(135deg, #001B2E 0%, #00264A 50%, #003566 100%);
+  background: linear-gradient(135deg, #01050a 0%, #031526 40%, #005a96 100%);
+  background-size: 200% 200%;
+  animation: hero-gradient-shift 15s ease infinite;
   position: relative;
   overflow: hidden;
 }
@@ -2006,16 +1977,27 @@ textarea.form-control {
 }
 
 /* ── Scroll Reveal ──────────────────────────────── */
+.kinetic-section {
+  opacity: 0.9;
+  transition: opacity 0.6s ease;
+  will-change: opacity;
+}
+
+.kinetic-section.visible {
+  opacity: 1;
+}
+
 .sr-item {
   opacity: 0;
-  transform: translateY(36px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(40px) scale(0.96);
+  transition: opacity 0.85s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
 }
 
 .sr-item.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 .sr-item:nth-child(1) { transition-delay: 0ms; }
@@ -2027,14 +2009,15 @@ textarea.form-control {
 
 .sr-heading {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(25px) scale(0.98);
+  transition: opacity 0.75s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
 }
 
 .sr-heading.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 /* ── Premium Card (glassmorphic + color accent) ─── */
@@ -2254,8 +2237,7 @@ textarea.form-control {
 /* ── Prefers Reduced Motion ─────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .hero-blob-1, .hero-blob-2, .hero-blob-3, .hero-blob-4 { animation: none !important; }
-  .hero-tag-dot { animation: none !important; }
   .hero-logo-glow { animation: none !important; }
-  .sr-item, .sr-heading { transition: none !important; opacity: 1; transform: none; }
+  .kinetic-section, .sr-item, .sr-heading { transition: none !important; opacity: 1; transform: none; }
 }
 

@@ -156,7 +156,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, user
     <section id="leaderboard" className="py-5 bg-light border-bottom">
       <Container className="py-4">
         {/* Section Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-5 sr-heading">
           <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
             CIVIC TRANSPARENCY
           </div>
@@ -167,7 +167,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, user
         </div>
 
         {/* Directory Filters */}
-        <Row className="mb-4 align-items-center justify-content-between g-3">
+        <Row className="mb-4 align-items-center justify-content-between g-3 sr-item">
           <Col md={6} lg={5}>
             <div className="d-flex flex-column gap-2">
               <InputGroup className="shadow-sm rounded-pill" style={{ overflow: 'hidden' }}>
@@ -238,7 +238,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, user
         </Row>
 
         {/* Leaderboard Table View */}
-        <div className="table-responsive shadow-sm bg-white rounded-3 border">
+        <div className="table-responsive shadow-sm bg-white rounded-3 border sr-item">
           <Table hover className="mb-0 align-middle">
             <thead>
               <tr>

@@ -61,12 +61,6 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
         <Row className="align-items-center gy-5" style={{ paddingTop: '100px', paddingBottom: '80px' }}>
           {/* Left: Text */}
           <Col lg={7} className="text-center text-lg-start">
-            {/* Tag badge */}
-            <div className="hero-tag-badge">
-              <span className="hero-tag-dot" />
-              <span>Official LYDO Portal · Republic of the Philippines</span>
-            </div>
-
             {/* Headline */}
             <h1 className="hero-headline">
               Empowering Youth.

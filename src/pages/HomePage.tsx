@@ -135,10 +135,12 @@ export default function HomePage() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible');
+          } else {
+            entry.target.classList.remove('visible');
           }
         });
       },
-      { threshold: 0.06 }
+      { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
     );
 
     const targets = document.querySelectorAll('.kinetic-section, .sr-item, .sr-heading');
