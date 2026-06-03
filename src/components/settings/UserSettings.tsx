@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import FormField from '../common/FormField';
 import LoadingButton from '../common/LoadingButton';
+import { validatePassword } from '../../utils/passwordValidation';
 
 export default function UserSettings() {
   const [loading, setLoading] = useState(false);
@@ -74,9 +75,12 @@ export default function UserSettings() {
       return;
     }
 
-    if (password && password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
+    if (password) {
+      const validation = validatePassword(password);
+      if (!validation.isValid) {
+        setError(validation.errors.join(' '));
+        return;
+      }
     }
 
     // If email is being changed, verify it's available first

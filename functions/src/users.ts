@@ -7,7 +7,8 @@ import {
   validateReason, 
   sendEmailViaBrevo, 
   safeDeleteStorageFile, 
-  escapeHtml 
+  escapeHtml,
+  validatePasswordStrength
 } from './helpers';
 import { writeNotification, writeNotificationToAdmins, deleteUserNotifications } from './notifications';
 
@@ -360,12 +361,7 @@ export const updateUser = functions.https.onCall(
 
     // Password is only updated if explicitly provided and non-empty
     if (password !== undefined && password !== null && password !== '') {
-      if (typeof password !== 'string' || password.length < 6) {
-        throw new functions.https.HttpsError(
-          'invalid-argument',
-          'Password must be at least 6 characters long.'
-        );
-      }
+      validatePasswordStrength(password);
       authUpdate.password = password;
     }
 

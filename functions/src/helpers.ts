@@ -142,3 +142,27 @@ export async function safeDeleteStorageFile(storagePath: unknown): Promise<void>
     console.error('Failed to delete storage file:', e);
   }
 }
+
+/**
+ * Validates password strength server-side.
+ * Enforces: min 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character.
+ */
+export function validatePasswordStrength(password: string): void {
+  if (typeof password !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Password must be a string.');
+  }
+
+  const errors: string[] = [];
+  if (password.length < 8) errors.push('at least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('an uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('a lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('a digit');
+  if (!/[^A-Za-z0-9]/.test(password)) errors.push('a special character');
+
+  if (errors.length > 0) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      `Password is too weak. It must contain: ${errors.join(', ')}.`
+    );
+  }
+}
