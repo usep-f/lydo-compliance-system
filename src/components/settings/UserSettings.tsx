@@ -192,6 +192,7 @@ export default function UserSettings() {
       setOrigFullName(fullName);
       
       if (emailVerificationSent) {
+        localStorage.setItem('pendingEmailChange', email);
         setEmail(origEmail);
         if (nameChanged || passwordChanged) {
           setSuccess('Profile details updated. A verification link has been sent to your new email. Please verify it to complete the email change.');

@@ -69,6 +69,11 @@ function AppInner() {
       } else {
         setUser(null);
         setRole(null);
+        const pendingEmail = localStorage.getItem('pendingEmailChange');
+        if (pendingEmail) {
+          addToast(`Your email change was verified. Please log in with your new email: ${pendingEmail}`, 'info');
+          localStorage.removeItem('pendingEmailChange');
+        }
       }
       setLoading(false);
     });
