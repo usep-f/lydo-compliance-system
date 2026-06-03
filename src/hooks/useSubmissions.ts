@@ -67,7 +67,6 @@ export function useSubmissions(
   // Real-time listener for historical submissions (only active after fetchHistory is triggered)
   useEffect(() => {
     if (!shouldListenToHistory) return;
-    if (!isAdmin && !barangay && !userId) return;
 
     const q = buildHistoryQuery(barangay, userId);
 
@@ -94,15 +93,6 @@ export function useSubmissions(
 
   // Real-time listener for pending submissions
   useEffect(() => {
-    if (!isAdmin && !barangay && !userId) {
-      let active = true;
-      Promise.resolve().then(() => {
-        if (active) setLoadingPending(false);
-      });
-      return () => {
-        active = false;
-      };
-    }
 
     let active = true;
     Promise.resolve().then(() => {

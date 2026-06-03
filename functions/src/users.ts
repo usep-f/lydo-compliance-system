@@ -501,7 +501,7 @@ export const updateOwnProfile = functions.https.onCall(
       throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
     }
     const uid = request.auth.uid;
-    const { email, fullName, passwordChanged } = request.data;
+    const { email, fullName, passwordChanged, syncEmail } = request.data;
 
     // Validate email
     if (email !== undefined && email !== null) {
@@ -517,17 +517,80 @@ export const updateOwnProfile = functions.https.onCall(
     }
 
     try {
-      // 1. Update the 'users' document
+      // Fetch current profile details
       const userDocRef = db.collection('users').doc(uid);
       const userDoc = await userDocRef.get();
       if (!userDoc.exists) {
         throw new functions.https.HttpsError('not-found', 'User not found.');
       }
-      
+
+      let emailVerificationSent = false;
       const updateData: any = {};
-      if (email) updateData.email = email.trim();
       if (fullName) updateData.fullName = fullName.trim();
 
+      if (email) {
+        const cleanEmail = email.trim().toLowerCase();
+        if (syncEmail === true) {
+          // Sync with the actual authenticated email
+          const userRecord = await admin.auth().getUser(uid);
+          if (userRecord.email?.toLowerCase() !== cleanEmail) {
+            throw new functions.https.HttpsError('permission-denied', 'Cannot sync unverified email.');
+          }
+          updateData.email = cleanEmail;
+        } else {
+          // Initiate email change flow
+          const userRecord = await admin.auth().getUser(uid);
+          const currentEmail = userRecord.email;
+          if (!currentEmail) {
+            throw new Error('Current email not found in auth.');
+          }
+          if (currentEmail.toLowerCase() !== cleanEmail) {
+            // Check availability in both Firebase Auth and Firestore collections
+            try {
+              await admin.auth().getUserByEmail(cleanEmail);
+              throw new functions.https.HttpsError('already-exists', 'This email address is already in use.');
+            } catch (err: any) {
+              if (err.code !== 'auth/user-not-found') throw err;
+            }
+
+            const pendingQuery = await db.collection('pending_users').where('email', '==', cleanEmail).limit(1).get();
+            if (!pendingQuery.empty) {
+              throw new functions.https.HttpsError('already-exists', 'This email address is currently associated with a pending application.');
+            }
+
+            const userQuery = await db.collection('users').where('email', '==', cleanEmail).limit(1).get();
+            if (!userQuery.empty) {
+              throw new functions.https.HttpsError('already-exists', 'This email address is already in use by another account.');
+            }
+
+            // Generate link and send via Brevo
+            const actionCodeSettings = {
+              url: 'https://lydo-compliance-system-ce8c3.firebaseapp.com/dashboard',
+              handleCodeInApp: false,
+            };
+            const link = await admin.auth().generateVerifyAndChangeEmailLink(
+              currentEmail,
+              cleanEmail,
+              actionCodeSettings
+            );
+
+            const safeName = fullName || userDoc.data()?.fullName || 'SK Official';
+            await sendEmailViaBrevo(
+              cleanEmail,
+              escapeHtml(safeName),
+              'Verify Your New Email Address',
+              `<h1>Email Change Verification</h1>
+               <p>Dear ${escapeHtml(safeName)},</p>
+               <p>You requested to change your email address for the LYDO Compliance System.</p>
+               <p>Please <a href="${link}">click here to verify your new email address</a>.</p>
+               <p>If you did not request this change, please ignore this email.</p>`
+            );
+            emailVerificationSent = true;
+          }
+        }
+      }
+
+      // Update Firestore user document
       if (Object.keys(updateData).length > 0) {
         await userDocRef.update(updateData);
       }
@@ -561,10 +624,10 @@ export const updateOwnProfile = functions.https.onCall(
         }
       }
 
-      // 3. Notify Admins
+      // 3. Notify Admins and User on final updates
       const changes: string[] = [];
       if (fullName) changes.push('Name');
-      if (email) changes.push('Email');
+      if (email && syncEmail === true) changes.push('Email');
       if (passwordChanged) changes.push('Password');
       
       if (changes.length > 0) {
@@ -580,7 +643,7 @@ export const updateOwnProfile = functions.https.onCall(
         });
 
         // 4. Notify User via Brevo Email
-        const targetEmail = email || userDoc.data()?.email;
+        const targetEmail = updateData.email || userDoc.data()?.email;
         if (targetEmail) {
           const changeListHtml = changes.map(c => `<li>${escapeHtml(c)}</li>`).join('');
           await sendEmailViaBrevo(
@@ -598,9 +661,14 @@ export const updateOwnProfile = functions.https.onCall(
         }
       }
 
-      return { success: true, message: 'Profile updated successfully.' };
+      return { 
+        success: true, 
+        message: 'Profile updated successfully.',
+        verificationSent: emailVerificationSent
+      };
     } catch (error: any) {
       console.error('updateOwnProfile error:', error);
+      if (error instanceof functions.https.HttpsError) throw error;
       throw new functions.https.HttpsError('internal', 'Failed to update profile.');
     }
   }
@@ -708,7 +776,9 @@ export const deleteOwnAccount = functions.https.onCall(
   }
 );
 
-// ---------------------------------------------------------------------------
+
+
+// -------------------------------------------------------------------------------------------
 // onApplicationCreated (Document trigger)
 // ---------------------------------------------------------------------------
 export const onApplicationCreated = onDocumentCreated('pending_users/{applicationId}', async (event) => {

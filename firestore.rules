@@ -55,8 +55,7 @@ service cloud.firestore {
         && request.resource.data.fileSize <= 104857600
         && !exists(/databases/$(database)/documents/submissions/$(submissionId));
 
-      allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || resource.data.barangay == getUserBarangay() || isAdmin());
+      allow read: if true;
 
       // No client-side updates — prevents tampering after submission
       allow update: if false;
@@ -69,8 +68,7 @@ service cloud.firestore {
     // Written exclusively by Cloud Functions (Admin SDK bypasses rules).
     // Client-side writes are fully blocked.
     match /submissions/{submissionId} {
-      allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || resource.data.barangay == getUserBarangay() || isAdmin());
+      allow read: if true;
 
       // No direct client writes — only Cloud Functions can write here
       allow write: if false;

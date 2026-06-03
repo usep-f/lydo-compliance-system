@@ -5,6 +5,7 @@ import { ALL_UPLOAD_TYPES } from '../../constants/submissionTypes';
 import type { HistoricalSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import { formatFileSize } from '../../utils/pdfScreening';
+import { exportSubmissionHistoryToCsv } from '../../utils/csvUtils';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
@@ -181,6 +182,16 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
               <option key={dt.id} value={dt.id}>{dt.label}</option>
             ))}
           </Form.Select>
+          <div className="ms-auto d-flex align-items-center">
+            <Button
+              variant="outline-success"
+              className="d-flex align-items-center gap-2 fw-semibold"
+              onClick={() => exportSubmissionHistoryToCsv(filteredHistory)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+              Export History CSV
+            </Button>
+          </div>
         </Card.Body>
       </Card>
 

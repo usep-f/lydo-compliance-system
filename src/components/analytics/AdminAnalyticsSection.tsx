@@ -21,6 +21,7 @@ import {
 } from '../../constants/submissionTypes';
 import { useComplianceData } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
+import { exportBarangayProfileToCsv } from '../../utils/csvUtils';
 
 // Register Chart.js
 ChartJS.register(
@@ -410,6 +411,28 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
             </button>
           </>
         )}
+        <div className="ms-auto">
+          <button
+            onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
+            disabled={!selectedBarangay}
+            title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px', borderRadius: '8px',
+              background: !selectedBarangay ? '#F4F4F5' : '#FFFFFF', 
+              color: !selectedBarangay ? '#A1A1AA' : '#16A34A',
+              fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
+              border: !selectedBarangay ? '1px solid #E4E4E7' : '1px solid #BBF7D0', 
+              cursor: !selectedBarangay ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => { if (selectedBarangay) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#FFFFFF'; } }}
+            onMouseLeave={e => { if (selectedBarangay) { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#16A34A'; } }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+            Export Barangay Profile CSV
+          </button>
+        </div>
       </div>
 
       {/* 1 ── Row 1: KPI Stat Cards */}

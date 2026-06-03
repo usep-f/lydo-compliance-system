@@ -35,3 +35,7 @@ export {
 export { 
   pruneExpiredNotifications 
 } from './notifications';
+
+export {
+  purgeSystemData
+} from './maintenance';

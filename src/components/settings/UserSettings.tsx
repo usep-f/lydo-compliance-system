@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Alert, Modal, Button } from 'react-bootstrap';
 import { auth, db, functions } from '../../firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import FormField from '../common/FormField';
@@ -37,6 +37,13 @@ export default function UserSettings() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Admin Purge Modal State
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [purgePassword, setPurgePassword] = useState('');
+  const [purgeConfirmation, setPurgeConfirmation] = useState('');
+  const [purgeError, setPurgeError] = useState('');
+  const [purgeLoading, setPurgeLoading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -157,36 +164,48 @@ export default function UserSettings() {
       if (!user) throw new Error('User not logged in.');
 
       let passwordChanged = false;
-      let emailChanged = false;
+      let emailVerificationSent = false;
 
-      // 1. Update Auth Email
-      if (email !== origEmail) {
-        await updateEmail(user, email);
-        emailChanged = true;
-      }
-
-      // 2. Update Auth Password
+      // 1. Update Auth Password
       if (password) {
         await updatePassword(user, password);
         passwordChanged = true;
       }
 
-      // 3. Update Firestore + Notify Admins using Cloud Function
+      // 2. Update Auth Profile details (and/or request email verification) via single Cloud Function call
       const nameChanged = fullName !== origFullName;
+      const emailChanged = email !== origEmail;
+
       if (nameChanged || emailChanged || passwordChanged) {
         const updateOwnProfile = httpsCallable(functions, 'updateOwnProfile');
-        await updateOwnProfile({
+        const res = await updateOwnProfile({
           fullName: nameChanged ? fullName : undefined,
           email: emailChanged ? email : undefined,
           passwordChanged
         });
+        const data = res.data as { verificationSent?: boolean };
+        if (data.verificationSent) {
+          emailVerificationSent = true;
+        }
       }
 
       setOrigFullName(fullName);
-      setOrigEmail(email);
+      
+      if (emailVerificationSent) {
+        localStorage.setItem('pendingEmailChange', email);
+        setEmail(origEmail);
+        if (nameChanged || passwordChanged) {
+          setSuccess('Profile details updated. A verification link has been sent to your new email. Please verify it to complete the email change.');
+        } else {
+          setSuccess('A verification link has been sent to your new email. Please check your inbox and verify the email before it can be updated.');
+        }
+      } else {
+        setOrigEmail(email);
+        setSuccess('Profile updated successfully.');
+      }
+      
       setPassword('');
       setConfirmPassword('');
-      setSuccess('Profile updated successfully.');
       
       // Auto-hide success message after 5 seconds
       setTimeout(() => setSuccess(''), 5000);
@@ -240,6 +259,51 @@ export default function UserSettings() {
         setDeleteError(error.message || 'Failed to delete account.');
       }
       setDeleteLoading(false);
+    }
+  };
+
+  const handlePurgeSystem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPurgeError('');
+
+    if (purgeConfirmation !== 'PURGE ALL SUBMISSIONS AND METRICS') {
+      setPurgeError('Please type the exact phrase to confirm.');
+      return;
+    }
+
+    setPurgeLoading(true);
+
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.email) throw new Error('User not found.');
+
+      // 1. Re-authenticate
+      const credential = EmailAuthProvider.credential(user.email, purgePassword);
+      await reauthenticateWithCredential(user, credential);
+      
+      // 2. Trigger automatic backup
+      const { triggerSystemBackup } = await import('../../utils/backupUtils');
+      await triggerSystemBackup();
+
+      // 3. Call purgeSystemData function
+      const purgeSystemDataFn = httpsCallable(functions, 'purgeSystemData');
+      await purgeSystemDataFn();
+      
+      setSuccess('System data purged successfully. A backup was downloaded.');
+      setShowPurgeModal(false);
+      setPurgePassword('');
+      setPurgeConfirmation('');
+      setTimeout(() => setSuccess(''), 8000);
+      
+    } catch (err: unknown) {
+      const error = err as Error & { code?: string };
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setPurgeError('Incorrect password.');
+      } else {
+        setPurgeError(error.message || 'Failed to purge system data.');
+      }
+    } finally {
+      setPurgeLoading(false);
     }
   };
 
@@ -366,6 +430,23 @@ export default function UserSettings() {
         </div>
       )}
 
+      {role === 'admin' && (
+        <div className="analytics-card mt-4" style={{ background: '#fff', width: '100%', border: '1px solid #FEE2E2' }}>
+          <div className="px-4 py-4">
+            <h6 className="mb-2 fw-bold text-danger d-flex align-items-center" style={{ fontSize: '14px', letterSpacing: '0.02em' }}>
+              <span className="material-symbols-outlined me-2" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>warning</span>
+              Admin Danger Zone
+            </h6>
+            <p className="text-muted small mb-4" style={{ maxWidth: '600px' }}>
+              Purging system data will permanently wipe all pending and historical submissions, file uploads, and perennial counts. User accounts and system settings will remain intact. This action cannot be undone. A JSON backup will be generated before deletion.
+            </p>
+            <Button variant="danger" onClick={() => setShowPurgeModal(true)} style={{ fontWeight: 600, fontSize: '14px', borderRadius: '8px' }}>
+              Purge System Data
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Re-auth Modal */}
       <Modal show={showReauthModal} onHide={() => !reauthLoading && setShowReauthModal(false)} centered backdrop="static">
         <Modal.Header closeButton={!reauthLoading} className="border-0 pb-0" />
@@ -463,6 +544,62 @@ export default function UserSettings() {
                 loading={deleteLoading}
               >
                 Permanently Delete
+              </LoadingButton>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* System Purge Modal */}
+      <Modal show={showPurgeModal} onHide={() => !purgeLoading && setShowPurgeModal(false)} centered backdrop="static">
+        <Modal.Header closeButton={!purgeLoading} className="border-0 pb-0" />
+        <Modal.Body className="px-4 pb-4 pt-0">
+          <div className="text-center mb-4">
+            <span className="material-symbols-outlined text-danger mb-2" style={{ fontSize: '40px' }}>
+              delete_forever
+            </span>
+            <h5 className="fw-bold mb-1 text-danger">Purge System Data</h5>
+            <p className="text-muted small mb-0">
+              This will irreversibly delete all submissions and files. A JSON backup will be created automatically.
+            </p>
+          </div>
+          
+          {purgeError && <Alert variant="danger" className="py-2 small">{purgeError}</Alert>}
+          
+          <Form onSubmit={handlePurgeSystem}>
+            <FormField
+              label="Admin Password"
+              type="password"
+              required
+              value={purgePassword}
+              onChange={(e) => setPurgePassword(e.target.value)}
+              disabled={purgeLoading}
+            />
+            
+            <FormField
+              label='Type "PURGE ALL SUBMISSIONS AND METRICS" to confirm'
+              type="text"
+              required
+              value={purgeConfirmation}
+              onChange={(e) => setPurgeConfirmation(e.target.value)}
+              disabled={purgeLoading}
+              className="mb-4"
+            />
+            
+            <div className="d-flex justify-content-end gap-2">
+              <Button 
+                variant="light" 
+                onClick={() => setShowPurgeModal(false)}
+                disabled={purgeLoading}
+              >
+                Cancel
+              </Button>
+              <LoadingButton 
+                variant="danger" 
+                type="submit" 
+                loading={purgeLoading}
+              >
+                Purge Data
               </LoadingButton>
             </div>
           </Form>

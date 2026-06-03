@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from 'react-bootstrap';
-import { auth, db } from './firebase';
+import { auth, db, functions } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
@@ -34,6 +35,16 @@ function AppInner() {
             if (userData.status === 'approved') {
               setUser(currentUser);
               setRole(userData.role || 'user');
+              
+              // Sync email if verified in Auth but out of sync in Firestore
+              if (currentUser.email && userData.email !== currentUser.email) {
+                try {
+                  const updateOwnProfile = httpsCallable(functions, 'updateOwnProfile');
+                  await updateOwnProfile({ email: currentUser.email, syncEmail: true });
+                } catch (syncErr) {
+                  console.error("Error syncing email to Firestore:", syncErr);
+                }
+              }
             } else {
               // Should not happen with Approach A, but just in case
               await signOut(auth);
@@ -58,6 +69,11 @@ function AppInner() {
       } else {
         setUser(null);
         setRole(null);
+        const pendingEmail = localStorage.getItem('pendingEmailChange');
+        if (pendingEmail) {
+          addToast(`Your email change was verified. Please log in with your new email: ${pendingEmail}`, 'info');
+          localStorage.removeItem('pendingEmailChange');
+        }
       }
       setLoading(false);
     });
