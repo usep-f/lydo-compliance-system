@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -30,7 +30,6 @@ export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const fetchTriggerRef = useRef(false);
 
   // 1. URL search parameter checking for redirect modal triggers
   useEffect(() => {
@@ -88,15 +87,10 @@ export default function HomePage() {
     isAdminQuery
   );
 
-  // Trigger historical listener if user logs in
+  // Trigger historical listener on mount to load live public compliance data
   useEffect(() => {
-    if (user && role && !fetchTriggerRef.current) {
-      submissionsHook.fetchHistory();
-      fetchTriggerRef.current = true;
-    } else if (!user) {
-      fetchTriggerRef.current = false;
-    }
-  }, [user, role, submissionsHook]);
+    submissionsHook.fetchHistory();
+  }, [submissionsHook]);
 
   // Calculate live statistics from data stream
   const computedData = useComplianceData(
@@ -109,67 +103,30 @@ export default function HomePage() {
   // Total submissions tracked helper
   const totalSubmissionsCount = submissionsHook.history.length + submissionsHook.pending.length;
 
-  // 4. Guest mock dataset merging helper for a polished user experience
-  const mergedComplianceData = useMemo(() => {
-    if (!user || !role) return null;
-    if (role === 'admin') return computedData;
+  // Calculate active registered branches count
+  const activeBarangaysCount = useMemo(() => {
+    const uniqueBrgys = new Set([
+      ...submissionsHook.history.map(s => s.barangay),
+      ...submissionsHook.pending.map(s => s.barangay)
+    ]);
+    return uniqueBrgys.size;
+  }, [submissionsHook.history, submissionsHook.pending]);
 
-    // For a standard SK official, we only have data for their specific barangay.
-    // We construct a combined ComplianceData structure matching guest defaults with their real live rates.
-    const userBarangay = barangay || '';
-    
-    // Generate base mock ranking list
-    const defaultMockRanking = BARANGAYS.map(b => {
-      if (b === userBarangay) {
-        const liveRank = computedData.barangayRanking.find(r => r.barangay === userBarangay);
-        return {
-          barangay: b,
-          approved: liveRank ? liveRank.approved : 0,
-          expected: liveRank ? liveRank.expected : 15,
-          rate: liveRank ? liveRank.rate : 0
-        };
-      }
-      // Guest static values
-      let hash = 0;
-      for (let i = 0; i < b.length; i++) {
-        hash = b.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const rates = [100, 95, 90, 85, 80, 75, 60];
-      const idx = Math.abs(hash) % rates.length;
-      const rate = rates[idx];
-      return {
-        barangay: b,
-        approved: Math.round((rate / 100) * 15),
-        expected: 15,
-        rate
-      };
-    }).sort((a, b) => b.rate - a.rate);
+  // Calculate active registered users count
+  const activeUsersCount = useMemo(() => {
+    const uniqueUsers = new Set([
+      ...submissionsHook.history.map(s => s.userId),
+      ...submissionsHook.pending.map(s => s.userId)
+    ]);
+    return uniqueUsers.size;
+  }, [submissionsHook.history, submissionsHook.pending]);
 
-    // Merge stats card averages
-    const totalExpected = defaultMockRanking.reduce((sum, item) => sum + item.expected, 0);
-    const totalApproved = defaultMockRanking.reduce((sum, item) => sum + item.approved, 0);
-    const overallRate = Math.round((totalApproved / totalExpected) * 100);
-    const fullyCompliantCount = defaultMockRanking.filter(r => r.rate === 100).length;
+  // Calculate total submissions count for the hero chip
+  const totalSubmissions = useMemo(() => {
+    return totalSubmissionsCount;
+  }, [totalSubmissionsCount]);
 
-    // Merge matrix cells
-    const userLiveMatrix = computedData.matrixData;
-    // Generate mock matrix cells for other barangays
-    const mergedMatrix = [...userLiveMatrix];
-    
-    return {
-      overallRate,
-      fullyCompliantCount,
-      totalBarangays: BARANGAYS.length,
-      overdueCount: totalExpected - totalApproved,
-      pendingReviewCount: computedData.pendingReviewCount,
-      barangayRanking: defaultMockRanking,
-      docTypeCompliance: computedData.docTypeCompliance,
-      monthlyTrend: computedData.monthlyTrend,
-      matrixData: mergedMatrix,
-      asapStatus: computedData.asapStatus,
-      barangayPerennialSummary: computedData.barangayPerennialSummary
-    };
-  }, [user, role, barangay, computedData]);
+
 
   // 5. Scroll animation trigger via Intersection Observer
   useEffect(() => {
@@ -215,12 +172,15 @@ export default function HomePage() {
         onLoginClick={() => setShowAuthModal(true)}
         user={user}
         handleDashboardRedirect={handleDashboardRedirect}
+        activeBarangaysCount={activeBarangaysCount}
+        activeUsersCount={activeUsersCount}
+        totalSubmissions={totalSubmissions}
       />
 
       {/* 3. System Compliance stats */}
       <div className="kinetic-section">
         <HomeStats 
-          liveData={mergedComplianceData} 
+          liveData={computedData} 
           totalSubmissionsCount={totalSubmissionsCount}
         />
       </div>
@@ -228,7 +188,8 @@ export default function HomePage() {
       {/* 4. Searchable Barangay Compliance Ledger Directory */}
       <div className="kinetic-section">
         <HomeLeaderboard 
-          liveData={mergedComplianceData} 
+          liveData={computedData} 
+          userBarangay={barangay}
         />
       </div>
 

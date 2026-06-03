@@ -2049,6 +2049,49 @@ textarea.form-control {
 .rank-badge-silver { background: linear-gradient(135deg, #94A3B8, #CBD5E1); color: #1E293B; }
 .rank-badge-bronze { background: linear-gradient(135deg, #CD7F32, #E8A860); color: #431407; }
 
+/* Segmented Control Buttons */
+.segmented-control {
+  display: flex;
+  background-color: #F1F5F9;
+  padding: 4px;
+  border-radius: 9999px;
+  border: 1px solid #E2E8F0;
+  width: fit-content;
+  gap: 4px;
+}
+
+.btn-segmented {
+  border: none;
+  background: transparent;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.btn-segmented:hover:not(.active-top):not(.active-bottom) {
+  background-color: rgba(226, 232, 240, 0.6);
+  color: #334155;
+}
+
+.btn-segmented.active-top {
+  background-color: #006EB7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 110, 183, 0.25);
+}
+
+.btn-segmented.active-bottom {
+  background-color: #DC2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+
 /* ── Timeline ───────────────────────────────────── */
 .home-timeline {
   position: relative;

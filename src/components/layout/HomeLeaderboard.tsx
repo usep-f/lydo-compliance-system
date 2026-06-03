@@ -1,16 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { Container, Row, Col, Table, Form, InputGroup, Button, Tabs, Tab, Modal, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Table, Form, InputGroup, Button, Modal, Badge } from 'react-bootstrap';
 import type { ComplianceData } from '../../hooks/useComplianceData';
 import { BARANGAYS } from '../../constants/barangays';
 import { SCHEDULED_TYPES } from '../../constants/submissionTypes';
 
 interface HomeLeaderboardProps {
   liveData: ComplianceData | null;
+  userBarangay?: string | null;
 }
 
-export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData }) => {
+export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, userBarangay }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'directory'>('leaderboard');
+  const [filterType, setFilterType] = useState<'top' | 'bottom'>('top');
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -43,12 +44,20 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData }) =>
     return getMockData;
   }, [liveData, getMockData]);
 
-  // Filtered leaderboard list based on search query
+  // Filtered leaderboard list based on search query and Top 5 / Bottom 5 filters
   const filteredDataset = useMemo(() => {
-    return leaderboardDataset.filter(item => 
-      item.barangay.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [leaderboardDataset, searchTerm]);
+    if (searchTerm.trim() !== '') {
+      return leaderboardDataset.filter(item => 
+        item.barangay.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (filterType === 'top') {
+      return leaderboardDataset.slice(0, 5);
+    } else {
+      const bottomFive = leaderboardDataset.slice(-5);
+      return [...bottomFive].reverse();
+    }
+  }, [leaderboardDataset, searchTerm, filterType]);
 
   // Open checklist detail modal for a Barangay
   const handleOpenDetail = (barangay: string) => {
@@ -151,159 +160,155 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData }) =>
           <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
             CIVIC TRANSPARENCY
           </div>
-          <h2 className="home-section-title mb-3">Barangay Compliance Directory</h2>
+          <h2 className="home-section-title mb-3">Barangay Compliance Leaderboard</h2>
           <p className="home-section-subtitle">
-            Search, sort, and examine the active compliance rankings and submission checklists of individual Barangay SK branches.
+            Search and examine the active compliance rankings and submission checklists of individual Barangay SK branches.
           </p>
         </div>
 
         {/* Directory Filters */}
         <Row className="mb-4 align-items-center justify-content-between g-3">
           <Col md={6} lg={5}>
-            <InputGroup className="shadow-sm rounded-pill" style={{ overflow: 'hidden' }}>
-              <InputGroup.Text className="bg-white border-end-0 px-3">
-                <span className="material-symbols-outlined text-secondary">search</span>
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
-                placeholder="Search barangay name..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="border-start-0 ps-1"
-                style={{ borderTopRightRadius: '9999px', borderBottomRightRadius: '9999px', height: '42px' }}
-              />
-            </InputGroup>
+            <div className="d-flex flex-column gap-2">
+              <InputGroup className="shadow-sm rounded-pill" style={{ overflow: 'hidden' }}>
+                <InputGroup.Text className="bg-white border-end-0 px-3">
+                  <span className="material-symbols-outlined text-secondary">search</span>
+                </InputGroup.Text>
+                <Form.Control
+                  type="text"
+                  placeholder="Search barangay name..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="border-start-0 ps-1"
+                  style={{ borderTopRightRadius: searchTerm ? '0' : '9999px', borderBottomRightRadius: searchTerm ? '0' : '9999px', height: '42px' }}
+                />
+                {searchTerm && (
+                  <Button 
+                    variant="white" 
+                    onClick={() => setSearchTerm('')} 
+                    className="border border-start-0 px-3 d-flex align-items-center justify-content-center"
+                    style={{ borderTopRightRadius: '9999px', borderBottomRightRadius: '9999px', height: '42px', zIndex: 5 }}
+                  >
+                    <span className="material-symbols-outlined text-secondary fs-5">close</span>
+                  </Button>
+                )}
+              </InputGroup>
+              {userBarangay && (
+                <div className="ps-2">
+                  <span className="text-muted small">Quick link: </span>
+                  <Button 
+                    variant="link" 
+                    className="p-0 text-primary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 align-baseline"
+                    onClick={() => setSearchTerm(userBarangay)}
+                  >
+                    <span className="material-symbols-outlined fs-6">near_me</span>
+                    View {userBarangay}
+                  </Button>
+                </div>
+              )}
+            </div>
           </Col>
-          <Col md={5} lg={4} className="d-flex justify-content-md-end">
-            <Tabs 
-              activeKey={activeTab} 
-              onSelect={(k) => setActiveTab(k as 'leaderboard' | 'directory')}
-              id="directory-tab-toggle"
-              className="border-0 shadow-sm p-1 bg-white rounded-pill"
-            >
-              <Tab 
-                eventKey="leaderboard" 
-                title={
-                  <div className="d-flex align-items-center gap-1.5 px-3 py-1 fw-bold fs-7">
-                    <span className="material-symbols-outlined fs-5">format_list_bulleted</span>
-                    <span>Leaderboard</span>
-                  </div>
-                } 
-              />
-              <Tab 
-                eventKey="directory" 
-                title={
-                  <div className="d-flex align-items-center gap-1.5 px-3 py-1 fw-bold fs-7">
-                    <span className="material-symbols-outlined fs-5">grid_view</span>
-                    <span>Directory Grid</span>
-                  </div>
-                } 
-              />
-            </Tabs>
+          <Col md={5} lg={4} className="d-flex justify-content-md-end align-items-center">
+            {searchTerm.trim() !== '' ? (
+              <div className="text-secondary small fw-semibold d-flex align-items-center gap-1">
+                <span className="material-symbols-outlined fs-5">search</span>
+                <span>Search Results ({filteredDataset.length} found)</span>
+              </div>
+            ) : (
+              <div className="segmented-control shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setFilterType('top')}
+                  className={`btn-segmented ${filterType === 'top' ? 'active-top' : ''}`}
+                >
+                  <span className="material-symbols-outlined fs-5">trending_up</span>
+                  <span>Top 5 Compliant</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('bottom')}
+                  className={`btn-segmented ${filterType === 'bottom' ? 'active-bottom' : ''}`}
+                >
+                  <span className="material-symbols-outlined fs-5">trending_down</span>
+                  <span>Least Compliant</span>
+                </button>
+              </div>
+            )}
           </Col>
         </Row>
 
-        {/* Tab Content rendering */}
-        {activeTab === 'leaderboard' ? (
-          /* Leaderboard Table View */
-          <div className="table-responsive shadow-sm bg-white rounded-3 border">
-            <Table hover className="mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th style={{ width: '80px' }} className="text-center">Rank</th>
-                  <th>Barangay Name</th>
-                  <th style={{ width: '180px' }} className="text-center">Compliance Rate</th>
-                  <th style={{ width: '160px' }} className="text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDataset.length > 0 ? (
-                  filteredDataset.map((item) => {
-                    const originalIndex = leaderboardDataset.findIndex(r => r.barangay === item.barangay) + 1;
-                    return (
-                      <tr key={item.barangay}>
-                        <td className="text-center fw-bold text-secondary">
-                          {originalIndex === 1 ? (
-                            <span className="badge rounded-circle bg-warning text-dark p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
-                          ) : originalIndex === 2 ? (
-                            <span className="badge rounded-circle bg-light text-dark border p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
-                          ) : originalIndex === 3 ? (
-                            <span className="badge rounded-circle bg-light text-dark border p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-                          ) : (
-                            originalIndex
+        {/* Leaderboard Table View */}
+        <div className="table-responsive shadow-sm bg-white rounded-3 border">
+          <Table hover className="mb-0 align-middle">
+            <thead>
+              <tr>
+                <th style={{ width: '80px' }} className="text-center">Rank</th>
+                <th>Barangay Name</th>
+                <th style={{ width: '180px' }} className="text-center">Compliance Rate</th>
+                <th style={{ width: '160px' }} className="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDataset.length > 0 ? (
+                filteredDataset.map((item) => {
+                  const originalIndex = leaderboardDataset.findIndex(r => r.barangay === item.barangay) + 1;
+                  const isUserBrgy = item.barangay === userBarangay;
+                  return (
+                    <tr 
+                      key={item.barangay} 
+                      style={isUserBrgy ? { backgroundColor: 'rgba(0, 110, 183, 0.08)', borderLeft: '4px solid var(--primary, #006EB7)' } : undefined}
+                    >
+                      <td className="text-center fw-bold text-secondary">
+                        {originalIndex === 1 ? (
+                          <span className="badge rank-badge-gold rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
+                        ) : originalIndex === 2 ? (
+                          <span className="badge rank-badge-silver rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
+                        ) : originalIndex === 3 ? (
+                          <span className="badge rank-badge-bronze rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
+                        ) : (
+                          originalIndex
+                        )}
+                      </td>
+                      <td className="fw-bold text-dark">
+                        <div className="d-flex align-items-center gap-2">
+                          <span>{item.barangay}</span>
+                          {isUserBrgy && (
+                            <Badge bg="primary" className="text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                              Your Barangay
+                            </Badge>
                           )}
-                        </td>
-                        <td className="fw-bold text-dark">{item.barangay}</td>
-                        <td className="text-center">
-                          <Badge className={`${getBadgeColor(item.rate)} px-3 py-1.5 text-uppercase`} style={{ fontSize: '11.5px', letterSpacing: '0.03em' }}>
-                            {item.rate}%
-                          </Badge>
-                        </td>
-                        <td className="text-center">
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm" 
-                            className="rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5"
-                            onClick={() => handleOpenDetail(item.barangay)}
-                          >
-                            <span className="material-symbols-outlined fs-6">find_in_page</span>
-                            <span>Verify Stats</span>
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="text-center py-5 text-muted">
-                      <span className="material-symbols-outlined fs-1 text-secondary mb-2">search_off</span>
-                      <div>No barangays match "{searchTerm}"</div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </div>
-        ) : (
-          /* Card Directory Grid View */
-          <Row className="g-3">
-            {filteredDataset.length > 0 ? (
-              filteredDataset.map((item) => (
-                <Col key={item.barangay} xs={12} sm={6} md={4} lg={3}>
-                  <div 
-                    className="card glow-hover-card p-3 h-100 d-flex flex-column justify-content-between"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleOpenDetail(item.barangay)}
-                  >
-                    <div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <span className="material-symbols-outlined text-primary fs-3">location_city</span>
-                        <Badge className={`${getBadgeColor(item.rate)} rounded-pill`}>
+                        </div>
+                      </td>
+                      <td className="text-center">
+                        <Badge className={`${getBadgeColor(item.rate)} px-3 py-1.5 text-uppercase`} style={{ fontSize: '11.5px', letterSpacing: '0.03em' }}>
                           {item.rate}%
                         </Badge>
-                      </div>
-                      <h6 className="fw-bold text-dark mb-1 text-truncate" title={item.barangay}>
-                        {item.barangay}
-                      </h6>
-                      <p className="text-muted small mb-0">
-                        {item.approved} / {item.expected} documents approved.
-                      </p>
-                    </div>
-                    <div className="mt-3 pt-2 border-top d-flex align-items-center justify-content-between text-primary fw-bold small">
-                      <span>Review Reports</span>
-                      <span className="material-symbols-outlined fs-5">arrow_right_alt</span>
-                    </div>
-                  </div>
-                </Col>
-              ))
-            ) : (
-              <Col xs={12} className="text-center py-5 text-muted border bg-white rounded-3 shadow-sm">
-                <span className="material-symbols-outlined fs-1 text-secondary mb-2">search_off</span>
-                <div>No barangays match "{searchTerm}"</div>
-              </Col>
-            )}
-          </Row>
-        )}
+                      </td>
+                      <td className="text-center">
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm" 
+                          className="rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5"
+                          onClick={() => handleOpenDetail(item.barangay)}
+                        >
+                          <span className="material-symbols-outlined fs-6">find_in_page</span>
+                          <span>Verify Stats</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={4} className="text-center py-5 text-muted">
+                    <span className="material-symbols-outlined fs-1 text-secondary mb-2">search_off</span>
+                    <div>No barangays match "{searchTerm}"</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </div>
 
         {/* Barangay Compliance Detail Modal Popup */}
         <Modal 

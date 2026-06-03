@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import type { User } from 'firebase/auth';
 
@@ -6,10 +6,42 @@ interface HomeHeroProps {
   onLoginClick: () => void;
   user: User | null;
   handleDashboardRedirect: () => void;
+  activeBarangaysCount: number;
+  activeUsersCount: number;
+  totalSubmissions: number;
 }
 
-export const HomeHero: React.FC<HomeHeroProps> = ({ onLoginClick, user, handleDashboardRedirect }) => {
+function useCountUp(target: number, duration = 1000): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    let frameId: number;
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(progress * target));
+      if (progress < 1) {
+        frameId = requestAnimationFrame(step);
+      }
+    };
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [target, duration]);
+  return value;
+}
+
+export const HomeHero: React.FC<HomeHeroProps> = ({ 
+  onLoginClick, 
+  user, 
+  handleDashboardRedirect,
+  activeBarangaysCount,
+  activeUsersCount,
+  totalSubmissions
+}) => {
   const cardRef = useRef<HTMLDivElement>(null);
+
+  const animatedBarangays = useCountUp(activeBarangaysCount);
+  const animatedUsers = useCountUp(activeUsersCount);
+  const animatedSubmissions = useCountUp(totalSubmissions, 1200);
 
   // Mouse-parallax tilt on card
   useEffect(() => {
@@ -113,20 +145,20 @@ export const HomeHero: React.FC<HomeHeroProps> = ({ onLoginClick, user, handleDa
             <div className="hero-stat-chips">
               <div className="hero-stat-chip">
                 <div>
-                  <div className="hero-stat-chip-value">33</div>
-                  <div className="hero-stat-chip-label">SK Offices</div>
+                  <div className="hero-stat-chip-value">{animatedBarangays}</div>
+                  <div className="hero-stat-chip-label">Active Branches</div>
                 </div>
               </div>
               <div className="hero-stat-chip">
                 <div>
-                  <div className="hero-stat-chip-value">88%</div>
-                  <div className="hero-stat-chip-label">Compliance Rate</div>
+                  <div className="hero-stat-chip-value">{animatedUsers}</div>
+                  <div className="hero-stat-chip-label">Authorized Users</div>
                 </div>
               </div>
               <div className="hero-stat-chip">
                 <div>
-                  <div className="hero-stat-chip-value">3</div>
-                  <div className="hero-stat-chip-label">Doc Categories</div>
+                  <div className="hero-stat-chip-value">{animatedSubmissions}</div>
+                  <div className="hero-stat-chip-label">Submissions</div>
                 </div>
               </div>
             </div>

@@ -68,7 +68,7 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ liveData, totalSubmissions
     },
     {
       variant: 'success',
-      icon: 'reward',
+      icon: 'emoji_events',
       iconClass: 'stat-icon-green',
       label: 'Compliant Branches',
       desc: 'SK councils with 100% compliance records in the current reporting period.',
