@@ -20,7 +20,7 @@ import StatCard from '../components/common/StatCard';
 import StatusBadge from '../components/common/StatusBadge';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useUserAnalytics } from '../hooks/useUserAnalytics';
-import { formatPeriodLabel, getGracePeriodLabel } from '../utils/periodUtils';
+import { formatPeriodLabel } from '../utils/periodUtils';
 import UserSettings from '../components/settings/UserSettings';
 import type { SubmissionTypeDefinition } from '../constants/submissionTypes';
 import type { PdfScreeningResult } from '../utils/pdfScreening';
@@ -88,11 +88,6 @@ const MissingDocRow: React.FC<MissingDocRowProps> = ({ label, period, isOverdue,
           </div>
           <div style={{ fontSize: '11px', color: '#71717A', marginTop: '1px' }}>
             {periodLabel}
-            {period !== 'ASAP' && (
-              <span style={{ marginLeft: '6px', color: '#B45309', background: '#FEF3C7', padding: '2px 6px', borderRadius: '4px', fontWeight: 500 }}>
-                Grace until {getGracePeriodLabel(period)}
-              </span>
-            )}
           </div>
         </div>
       </div>
