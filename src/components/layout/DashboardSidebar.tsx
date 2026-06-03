@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -49,6 +50,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 }) => {
   const [adminName, setAdminName] = useState<string>('Loading...');
   const [adminRole, setAdminRole] = useState<string>('user');
+  const navigate = useNavigate();
 
   const handleLogout = () => signOut(auth);
 
@@ -165,6 +167,14 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         >
           <span className="material-symbols-outlined">logout</span>
           <span>Sign Out</span>
+        </button>
+        <button
+          type="button"
+          className="sidebar-home-btn"
+          onClick={() => navigate('/')}
+        >
+          <span className="material-symbols-outlined">home</span>
+          <span>Homepage</span>
         </button>
       </div>
     </aside>
