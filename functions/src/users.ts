@@ -9,7 +9,7 @@ import {
   safeDeleteStorageFile, 
   escapeHtml 
 } from './helpers';
-import { writeNotification, writeNotificationToAdmins } from './notifications';
+import { writeNotification, writeNotificationToAdmins, deleteUserNotifications } from './notifications';
 
 // ---------------------------------------------------------------------------
 // checkEmailAvailability
@@ -476,6 +476,7 @@ export const deleteUser = functions.https.onCall(
       // 6. Delete from Firebase Auth first, then Firestore
       await admin.auth().deleteUser(uid);
       await db.collection('users').doc(uid).delete();
+      await deleteUserNotifications(uid);
 
       return { success: true, message: 'User deleted successfully.' };
     } catch (error: any) {
@@ -647,6 +648,9 @@ export const deleteOwnAccount = functions.https.onCall(
 
       // 3. Delete from Firestore users collection
       await db.collection('users').doc(uid).delete();
+
+      // Clear user notifications
+      await deleteUserNotifications(uid);
 
       // 4. Notify Admins (In-App)
       await writeNotificationToAdmins({
