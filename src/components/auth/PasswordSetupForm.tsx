@@ -4,6 +4,7 @@ import { auth } from '../../firebase';
 import { confirmPasswordReset, verifyPasswordResetCode, signInWithEmailAndPassword } from 'firebase/auth';
 import FormField from '../common/FormField';
 import LoadingButton from '../common/LoadingButton';
+import { validatePassword } from '../../utils/passwordValidation';
 
 interface PasswordSetupFormProps {
   oobCode: string;
@@ -36,8 +37,9 @@ export default function PasswordSetupForm({ oobCode, onSuccess }: PasswordSetupF
     e.preventDefault();
     setError('');
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      setError(validation.errors.join(' '));
       return;
     }
 

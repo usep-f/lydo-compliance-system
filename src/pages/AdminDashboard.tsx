@@ -30,6 +30,7 @@ import { Doughnut } from 'react-chartjs-2';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useComplianceData } from '../hooks/useComplianceData';
 import { formatPeriodLabel } from '../utils/periodUtils';
+import { validatePassword } from '../utils/passwordValidation';
 
 // Register Chart.js modules needed for the doughnut
 ChartJS.register(ArcElement, ChartTooltip, ChartLegend);
@@ -341,6 +342,15 @@ export default function AdminDashboard() {
 
   const handleUpdateUser = async () => {
     if (!selectedUser) return;
+
+    if (editForm.password.trim() !== '') {
+      const validation = validatePassword(editForm.password);
+      if (!validation.isValid) {
+        addToast(validation.errors.join(' '), 'error');
+        return;
+      }
+    }
+
     setIsUserProcessing(true);
     try {
       const updateUserFn = httpsCallable(functions, 'updateUser');

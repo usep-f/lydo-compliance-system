@@ -10,6 +10,7 @@ import {
   escapeHtml 
 } from './helpers';
 import { writeNotification, writeNotificationToAdmins } from './notifications';
+import { verifyPdfBuffer } from './pdfScreening';
 
 // ---------------------------------------------------------------------------
 // approveSubmission
@@ -258,55 +259,142 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
   if (!snapshot) return;
 
   const submissionData = snapshot.data();
+  if (!submissionData) return;
 
-  if (submissionData?.fullName && submissionData?.userId) {
-    const userDoc = await db.collection('users').doc(submissionData.userId).get();
-    const userEmail = userDoc.data()?.email;
+  const submissionId = event.params.submissionId;
+  const { fileStoragePath, pageCount, userId, fullName, barangay, documentLabel, period } = submissionData;
 
+  if (!fileStoragePath || !userId || !fullName) {
+    console.error('onSubmissionCreated: Missing required fields in document data.');
+    return;
+  }
+
+  // 1. Perform Server-Side PDF verification
+  let verificationError = '';
+  try {
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(fileStoragePath);
+    const [exists] = await file.exists();
+
+    if (!exists) {
+      verificationError = 'File does not exist in storage.';
+    } else {
+      const [buffer] = await file.download();
+      const verification = await verifyPdfBuffer(buffer, Number(pageCount || 0));
+      if (!verification.isValid) {
+        verificationError = verification.error || 'Invalid PDF structure.';
+      }
+    }
+  } catch (err: any) {
+    console.error('PDF validation exception:', err);
+    verificationError = `Failed to process or parse document: ${err.message || 'Unknown error'}`;
+  }
+
+  const userDoc = await db.collection('users').doc(userId).get();
+  const userEmail = userDoc.data()?.email;
+
+  // 2. Handle Rejection Flow
+  if (verificationError) {
+    console.warn(`Auto-rejecting submission ${submissionId}: ${verificationError}`);
+
+    // A. Delete file from Storage
+    await safeDeleteStorageFile(fileStoragePath);
+
+    // B. Delete pending submission document
+    await snapshot.ref.delete();
+
+    // C. Write denied entry in 'submissions' collection
+    await db.collection('submissions').doc(submissionId).set({
+      ...submissionData,
+      status: 'denied',
+      fileStoragePath: null,
+      fileUrl: null,
+      deniedAt: admin.firestore.FieldValue.serverTimestamp(),
+      deniedBy: 'system',
+      reviewNotes: `System Auto-Rejection: ${verificationError}`,
+    });
+
+    // D. Notify User via Brevo Email
     if (userEmail) {
-      const safeName = escapeHtml(submissionData.fullName ?? 'SK Official');
-      const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
-      const safePeriod = escapeHtml(submissionData.period ?? '');
+      const safeName = escapeHtml(fullName ?? 'SK Official');
+      const safeDocLabel = escapeHtml(documentLabel ?? 'Document');
+      const safePeriod = escapeHtml(period ?? '');
+      const safeReason = escapeHtml(verificationError);
 
       await sendEmailViaBrevo(
         userEmail,
         safeName,
-        `Submission Received — ${submissionData.documentLabel ?? 'Document'}`,
-        `<h1>Submission Received</h1>
+        `Submission Rejected — ${documentLabel ?? 'Document'}`,
+        `<h1>Submission Verification Failed</h1>
          <p>Dear ${safeName},</p>
-         <p>This is to confirm that we have successfully received your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''}.</p>
-         <p>Your document is now <strong>Pending Review</strong> by the administration. You will receive another email once it has been processed.</p>
-         <p>Thank you.</p>`
+         <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been <strong>automatically rejected</strong> by the system.</p>
+         <p><strong>Reason:</strong> ${safeReason}</p>
+         <p>Please review your file, ensure it is a valid, uncorrupted PDF document, and try uploading again.</p>`
       );
     }
 
-    // Write in-app notification to the submitting user
-    const docLabel = submissionData.documentLabel ?? 'Document';
-    const period = submissionData.period ?? '';
-    await writeNotification(submissionData.userId, {
-      type: 'submission_received',
-      title: 'Submission Received',
-      body: `Your ${docLabel}${period ? ` (${period})` : ''} submission is now pending review.`,
+    // E. Write in-app notification to user
+    const docLabel = documentLabel ?? 'Document';
+    const cleanPeriod = period ?? '';
+    await writeNotification(userId, {
+      type: 'submission_denied',
+      title: 'Submission Rejected ❌',
+      body: `Your ${docLabel}${cleanPeriod ? ` (${cleanPeriod})` : ''} submission failed file verification and was auto-rejected.`,
       metadata: {
-        submissionId: event.params.submissionId,
+        submissionId,
         documentLabel: docLabel,
-        period,
-        barangay: submissionData.barangay ?? '',
+        period: cleanPeriod,
+        reason: `Auto-Rejection: ${verificationError}`,
       },
     });
 
-    // Write in-app notification to all admin users
-    await writeNotificationToAdmins({
-      type: 'new_submission',
-      title: 'New Submission',
-      body: `${submissionData.fullName} (${submissionData.barangay ?? 'Unknown'}) submitted ${docLabel}.`,
-      metadata: {
-        submissionId: event.params.submissionId,
-        documentLabel: docLabel,
-        period,
-        barangay: submissionData.barangay ?? '',
-        applicantName: submissionData.fullName ?? '',
-      },
-    });
+    return;
   }
+
+  // 3. Normal Flow (Verification Passed)
+  if (userEmail) {
+    const safeName = escapeHtml(fullName ?? 'SK Official');
+    const safeDocLabel = escapeHtml(documentLabel ?? 'Document');
+    const safePeriod = escapeHtml(period ?? '');
+
+    await sendEmailViaBrevo(
+      userEmail,
+      safeName,
+      `Submission Received — ${documentLabel ?? 'Document'}`,
+      `<h1>Submission Received</h1>
+       <p>Dear ${safeName},</p>
+       <p>This is to confirm that we have successfully received your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''}.</p>
+       <p>Your document is now <strong>Pending Review</strong> by the administration. You will receive another email once it has been processed.</p>
+       <p>Thank you.</p>`
+    );
+  }
+
+  // Write in-app notification to the submitting user
+  const docLabel = documentLabel ?? 'Document';
+  const cleanPeriod = period ?? '';
+  await writeNotification(userId, {
+    type: 'submission_received',
+    title: 'Submission Received',
+    body: `Your ${docLabel}${cleanPeriod ? ` (${cleanPeriod})` : ''} submission is now pending review.`,
+    metadata: {
+      submissionId,
+      documentLabel: docLabel,
+      period: cleanPeriod,
+      barangay: barangay ?? '',
+    },
+  });
+
+  // Write in-app notification to all admin users
+  await writeNotificationToAdmins({
+    type: 'new_submission',
+    title: 'New Submission',
+    body: `${fullName} (${barangay ?? 'Unknown'}) submitted ${docLabel}.`,
+    metadata: {
+      submissionId,
+      documentLabel: docLabel,
+      period: cleanPeriod,
+      barangay: barangay ?? '',
+      applicantName: fullName ?? '',
+    },
+  });
 });

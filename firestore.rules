@@ -40,6 +40,7 @@ service cloud.firestore {
     match /pending_submissions/{submissionId} {
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid
+        && request.resource.data.barangay == getUserBarangay()
         && request.resource.data.keys().hasOnly([
              'userId', 'barangay', 'fullName', 'category',
              'documentType', 'documentLabel', 'period', 'year',
@@ -80,6 +81,7 @@ service cloud.firestore {
     match /perennial_counts/{docId} {
       allow create, update: if request.auth != null
         && request.resource.data.userId == request.auth.uid
+        && request.resource.data.barangay == getUserBarangay()
         && request.resource.data.keys().hasOnly([
              'userId', 'barangay', 'fullName', 'year',
              'resolutions', 'accomplishmentReports', 'updatedAt'
