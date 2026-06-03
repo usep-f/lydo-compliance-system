@@ -11,6 +11,7 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import DashboardShell from '../components/layout/DashboardShell';
+import NotificationBell from '../components/common/NotificationBell';
 import UnifiedSubmissionForm from '../components/submissions/UnifiedSubmissionForm';
 import UserPendingSubmissions from '../components/submissions/UserPendingSubmissions';
 import ConfirmSubmissionModal from '../components/submissions/ConfirmSubmissionModal';
@@ -31,10 +32,10 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 // Section nav config
 // ---------------------------------------------------------------------------
 const USER_SECTIONS = [
-  { id: 'home',        label: 'Home',          isImplemented: true, icon: 'home'        },
-  { id: 'submissions', label: 'Submissions',   isImplemented: true, icon: 'upload_file' },
-  { id: 'history',     label: 'History',       isImplemented: true, icon: 'history'     },
-  { id: 'settings',    label: 'User Settings', isImplemented: true, icon: 'settings'    },
+  { id: 'home', label: 'Home', isImplemented: true, icon: 'home' },
+  { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'upload_file' },
+  { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
+  { id: 'settings', label: 'User Settings', isImplemented: true, icon: 'settings' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -85,7 +86,9 @@ const MissingDocRow: React.FC<MissingDocRowProps> = ({ label, period, isOverdue,
           >
             {label}
           </div>
-          <div style={{ fontSize: '11px', color: '#71717A', marginTop: '1px' }}>{periodLabel}</div>
+          <div style={{ fontSize: '11px', color: '#71717A', marginTop: '1px' }}>
+            {periodLabel}
+          </div>
         </div>
       </div>
 
@@ -147,6 +150,10 @@ export default function UserDashboard() {
 
   const currentYear = new Date().getFullYear();
 
+  // Auto-fill state
+  const [prefilledDocType, setPrefilledDocType] = useState<string>('');
+  const [prefilledPeriod, setPrefilledPeriod] = useState<string>('');
+
   // Fetch user profile info
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -169,13 +176,36 @@ export default function UserDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time submissions for this barangay
-  const { pending = [], history = [] } = useSubmissions(userInfo?.barangay);
+  // Real-time submissions for this barangay (wide data query)
+  const { pending = [], history = [], fetchHistory } = useSubmissions(userInfo?.barangay, false);
 
-  // Client-side analytics — zero extra Firestore reads
-  const analytics = useUserAnalytics(pending, history, currentYear);
+  // Filter lists to personal only for specific views
+  const personalPending = pending.filter((s) => s.userId === userInfo?.uid);
+  const personalHistory = history.filter((s) => s.userId === userInfo?.uid);
 
+  // Client-side analytics — zero extra Firestore reads (hybrid scoping)
+  const analytics = useUserAnalytics(pending, history, currentYear, userInfo?.uid);
 
+  // Fetch history when user info is available (resolving technical oversight)
+  useEffect(() => {
+    if (userInfo?.barangay) {
+      fetchHistory();
+    }
+  }, [userInfo?.barangay, fetchHistory]);
+
+  const handleAutoFillSubmission = (docTypeId: string, period: string) => {
+    setPrefilledDocType(docTypeId);
+    setPrefilledPeriod(period);
+    setActiveSection('submissions');
+  };
+
+  const handleSectionSelect = (section: string) => {
+    setActiveSection(section);
+    if (section !== 'submissions') {
+      setPrefilledDocType('');
+      setPrefilledPeriod('');
+    }
+  };
 
   const handleUploadSuccess = () => {
     setShowConfirmModal(false);
@@ -234,9 +264,9 @@ export default function UserDashboard() {
   if (!userInfo) {
     return (
       <DashboardShell
-        title="SK Dashboard"
+        title="User Dashboard"
         activeSection={activeSection}
-        onSectionSelect={setActiveSection}
+        onSectionSelect={handleSectionSelect}
         sections={USER_SECTIONS}
       >
         <div
@@ -265,9 +295,9 @@ export default function UserDashboard() {
 
   return (
     <DashboardShell
-      title="SK Dashboard"
+      title="User Dashboard"
       activeSection={activeSection}
-      onSectionSelect={setActiveSection}
+      onSectionSelect={handleSectionSelect}
       sections={USER_SECTIONS}
       pageHeader={sectionHeaders[activeSection]}
     >
@@ -278,28 +308,12 @@ export default function UserDashboard() {
           {/* Welcome Banner */}
           <div className="welcome-card mb-4">
             <div className="welcome-card-banner">
+              <div className="welcome-card-bg" />
+              {/* Notification Bell in top right */}
+              <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
+                <NotificationBell uid={userInfo.uid} />
+              </div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.15)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: 'rgba(255,255,255,0.9)',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase' as const,
-                    }}
-                  >
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#86EFAC', display: 'inline-block' }} />
-                    SK Compliance Portal
-                  </span>
-                </div>
                 <p
                   style={{
                     fontFamily: 'var(--font-headline)',
@@ -366,6 +380,8 @@ export default function UserDashboard() {
                 justifyContent: 'flex-end',
                 gap: '12px',
                 borderTop: '1px solid #F4F4F5',
+                borderBottomLeftRadius: '16px',
+                borderBottomRightRadius: '16px',
               }}
             >
               <button
@@ -387,7 +403,11 @@ export default function UserDashboard() {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveSection('submissions')}
+                onClick={() => {
+                  setPrefilledDocType('');
+                  setPrefilledPeriod('');
+                  setActiveSection('submissions');
+                }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   padding: '8px 18px', borderRadius: '8px',
@@ -408,10 +428,10 @@ export default function UserDashboard() {
           {/* ── KPI Stat Cards ─────────────────────────────────────────── */}
           <Row className="mb-4 g-3">
             {[
-              { title: 'Total Submitted',  value: analytics.totalSubmitted,  variant: 'primary' as const, icon: 'upload_file'    },
-              { title: 'Pending Review',   value: analytics.pendingCount,     variant: 'warning' as const, icon: 'pending_actions' },
-              { title: 'Approved',         value: analytics.approvedCount,    variant: 'success' as const, icon: 'task_alt'        },
-              { title: 'Denied',           value: analytics.deniedCount,      variant: 'danger'  as const, icon: 'cancel'          },
+              { title: 'Total Submitted', value: analytics.totalSubmitted, variant: 'primary' as const, icon: 'upload_file' },
+              { title: 'Pending Review', value: analytics.pendingCount, variant: 'warning' as const, icon: 'pending_actions' },
+              { title: 'Approved', value: analytics.approvedCount, variant: 'success' as const, icon: 'task_alt' },
+              { title: 'Denied', value: analytics.deniedCount, variant: 'danger' as const, icon: 'cancel' },
             ].map((card, i) => (
               <Col md={3} sm={6} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
                 <StatCard
@@ -591,7 +611,7 @@ export default function UserDashboard() {
                         label={doc.label}
                         period={doc.period}
                         isOverdue={doc.isOverdue}
-                        onSubmit={() => setActiveSection('submissions')}
+                        onSubmit={() => handleAutoFillSubmission(doc.id, doc.period)}
                       />
                     ))
                   )}
@@ -666,8 +686,8 @@ export default function UserDashboard() {
                           justifyContent: 'center',
                           background:
                             item.status === 'approved' ? '#F0FDF4' :
-                            item.status === 'denied'   ? '#FEF2F2' :
-                                                         '#FFF7ED',
+                              item.status === 'denied' ? '#FEF2F2' :
+                                '#FFF7ED',
                         }}
                       >
                         <span
@@ -677,13 +697,13 @@ export default function UserDashboard() {
                             fontVariationSettings: "'FILL' 1",
                             color:
                               item.status === 'approved' ? '#16A34A' :
-                              item.status === 'denied'   ? '#DC2626' :
-                                                           '#D97706',
+                                item.status === 'denied' ? '#DC2626' :
+                                  '#D97706',
                           }}
                         >
                           {item.status === 'approved' ? 'check_circle' :
-                           item.status === 'denied'   ? 'cancel'       :
-                                                        'pending'}
+                            item.status === 'denied' ? 'cancel' :
+                              'pending'}
                         </span>
                       </div>
 
@@ -731,7 +751,7 @@ export default function UserDashboard() {
               )}
             </div>
 
-            {history.length > 5 && (
+            {personalHistory.length > 5 && (
               <div
                 style={{
                   padding: '12px 20px',
@@ -755,7 +775,7 @@ export default function UserDashboard() {
                     gap: '4px',
                   }}
                 >
-                  View all {history.length} submissions
+                  View all {personalHistory.length} submissions
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
                 </button>
               </div>
@@ -770,18 +790,20 @@ export default function UserDashboard() {
           <UnifiedSubmissionForm
             currentYear={currentYear}
             existingSubmissions={[...pending, ...history]}
+            initialDocumentTypeId={prefilledDocType}
+            initialPeriod={prefilledPeriod}
             onSubmitReady={(payload) => {
               setPendingUpload(payload);
               setShowConfirmModal(true);
             }}
           />
-          <UserPendingSubmissions pending={pending} />
+          <UserPendingSubmissions pending={personalPending} />
         </div>
       )}
 
       {/* ====== HISTORY SECTION ====== */}
       {activeSection === 'history' && (
-        <UserSubmissionHistory history={history} />
+        <UserSubmissionHistory history={personalHistory} />
       )}
 
       {/* ====== SETTINGS SECTION ====== */}

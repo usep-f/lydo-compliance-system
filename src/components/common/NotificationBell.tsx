@@ -20,6 +20,8 @@ const TYPE_CONFIG: Record<NotificationType, TypeConfig> = {
   profile_updated:     { icon: 'manage_accounts', color: '#D97706', bg: '#FFFBEB' },
   new_application:     { icon: 'badge',           color: '#4F46E5', bg: '#EEF2FF' },
   new_submission:      { icon: 'description',     color: '#0284C7', bg: '#F0F9FF' },
+  submission_open:     { icon: 'calendar_today',  color: '#2563EB', bg: '#EFF6FF' },
+  submission_overdue:  { icon: 'warning',         color: '#EF4444', bg: '#FEF2F2' },
 };
 
 const DEFAULT_CONFIG: TypeConfig = {

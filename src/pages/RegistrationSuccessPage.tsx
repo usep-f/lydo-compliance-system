@@ -1,5 +1,6 @@
 import { Container, Card, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import lydoLogo from '../assets/lydo-logo.webp';
 
 export default function RegistrationSuccessPage() {
   const navigate = useNavigate();
@@ -10,6 +11,12 @@ export default function RegistrationSuccessPage() {
         <div className="row justify-content-center">
           <div className="col-12 col-md-8 col-lg-6">
             <div className="text-center mb-4">
+              <img 
+                src={lydoLogo} 
+                alt="LYDO Logo" 
+                style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '12px' }} 
+                className="transition-all"
+              />
               <h2 className="text-primary fw-bold headline-text" style={{ letterSpacing: '-0.02em' }}>
                 Lydo Compliance
               </h2>

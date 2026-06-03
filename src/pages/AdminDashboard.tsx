@@ -17,7 +17,9 @@ import AdminSubmissionsSection from '../components/submissions/AdminSubmissionsS
 import AdminSubmissionHistory from '../components/submissions/AdminSubmissionHistory';
 import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection';
 import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
+import ComplianceCalendar from '../components/analytics/ComplianceCalendar';
 import UserSettings from '../components/settings/UserSettings';
+import NotificationBell from '../components/common/NotificationBell';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -95,7 +97,7 @@ export default function AdminDashboard() {
       fetchHistory();
     }
   }, [activeSection, fetchHistory]);
-  
+
   // ── Recent Submissions Feed Helper ─────────────────────────────────────────
   const recentSubmissionsFeed = useMemo(() => {
     const all = [...pendingSubs, ...historySubs];
@@ -121,16 +123,16 @@ export default function AdminDashboard() {
     }
     return `There are currently ${subCount} document submission${subCount !== 1 ? 's' : ''} awaiting your review.`;
   }, [pendingUsers.length, pendingSubs.length]);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBarangay, setFilterBarangay] = useState('');
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userFilterBarangay, setUserFilterBarangay] = useState('');
-  
+
   const [selectedApp, setSelectedApp] = useState<PendingUser | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const [showDenyPrompt, setShowDenyPrompt] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showDenyConfirm, setShowDenyConfirm] = useState(false);
@@ -144,7 +146,7 @@ export default function AdminDashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUserProcessing, setIsUserProcessing] = useState(false);
   const [editForm, setEditForm] = useState({ email: '', password: '', fullName: '', barangay: '' });
-  
+
   const { addToast } = useToast();
 
 
@@ -273,8 +275,8 @@ export default function AdminDashboard() {
   };
 
   const filteredUsers = pendingUsers.filter(u => {
-    const matchesSearch = u.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = u.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBarangay = filterBarangay === '' || u.barangay === filterBarangay;
     return matchesSearch && matchesBarangay;
   });
@@ -307,8 +309,8 @@ export default function AdminDashboard() {
   ];
 
   const filteredApprovedUsers = approvedUsers.filter(u => {
-    const matchesSearch = u.fullName.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(userSearchTerm.toLowerCase());
+    const matchesSearch = u.fullName.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(userSearchTerm.toLowerCase());
     const matchesBarangay = userFilterBarangay === '' || u.barangay === userFilterBarangay;
     return matchesSearch && matchesBarangay;
   });
@@ -506,7 +508,7 @@ export default function AdminDashboard() {
 
   return (
     <DashboardShell
-      title="LYDO Admin Portal"
+      title="Admin Dashboard"
       activeSection={activeSection}
       onSectionSelect={setActiveSection}
       pageHeader={activeSection === 'home' ? undefined : sectionHeaders[activeSection]}
@@ -516,28 +518,12 @@ export default function AdminDashboard() {
           {/* Welcome Banner */}
           <div className="welcome-card mb-4">
             <div className="welcome-card-banner" style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}>
+              <div className="welcome-card-bg" />
+              {/* Notification Bell in top right */}
+              <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
+                <NotificationBell uid={auth.currentUser?.uid || null} />
+              </div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.15)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#FFFFFF',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#86EFAC', display: 'inline-block' }} />
-                    LYDO Administrator Portal
-                  </span>
-                </div>
                 <h2
                   className="text-white"
                   style={{
@@ -576,6 +562,8 @@ export default function AdminDashboard() {
                 justifyContent: 'flex-end',
                 gap: '12px',
                 borderTop: '1px solid #F4F4F5',
+                borderBottomLeftRadius: '16px',
+                borderBottomRightRadius: '16px',
               }}
             >
               <button
@@ -620,6 +608,11 @@ export default function AdminDashboard() {
                 Review Applications ({pendingUsers.length})
               </button>
             </div>
+          </div>
+
+          {/* Compliance Calendar */}
+          <div className="mb-4">
+            <ComplianceCalendar currentYear={currentYear} />
           </div>
 
           {/* KPI Row */}
@@ -936,8 +929,8 @@ export default function AdminDashboard() {
                               justifyContent: 'center',
                               background:
                                 item.status === 'approved' ? '#F0FDF4' :
-                                item.status === 'denied'   ? '#FEF2F2' :
-                                                             '#FFF7ED',
+                                  item.status === 'denied' ? '#FEF2F2' :
+                                    '#FFF7ED',
                             }}
                           >
                             <span
@@ -947,13 +940,13 @@ export default function AdminDashboard() {
                                 fontVariationSettings: "'FILL' 1",
                                 color:
                                   item.status === 'approved' ? '#16A34A' :
-                                  item.status === 'denied'   ? '#DC2626' :
-                                                               '#D97706',
+                                    item.status === 'denied' ? '#DC2626' :
+                                      '#D97706',
                               }}
                             >
                               {item.status === 'approved' ? 'check_circle' :
-                               item.status === 'denied'   ? 'cancel'       :
-                                                            'pending'}
+                                item.status === 'denied' ? 'cancel' :
+                                  'pending'}
                             </span>
                           </div>
 
@@ -994,11 +987,11 @@ export default function AdminDashboard() {
                           {/* Action Button */}
                           <div style={{ flexShrink: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
                             {item.status === 'pending' || !item.status ? (
-                               <span className="matrix-chip matrix-chip-pending">Pending Review</span>
+                              <span className="matrix-chip matrix-chip-pending">Pending Review</span>
                             ) : item.status === 'approved' ? (
-                               <span className="matrix-chip matrix-chip-compliant">Approved</span>
+                              <span className="matrix-chip matrix-chip-compliant">Approved</span>
                             ) : (
-                               <span className="matrix-chip matrix-chip-missing">Denied</span>
+                              <span className="matrix-chip matrix-chip-missing">Denied</span>
                             )}
                             <button
                               type="button"
@@ -1092,15 +1085,15 @@ export default function AdminDashboard() {
 
           <Card className="border-0 shadow-sm mb-4">
             <Card.Body className="d-flex flex-wrap gap-3">
-              <Form.Control 
-                type="text" 
-                placeholder="Search by name or email..." 
+              <Form.Control
+                type="text"
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ maxWidth: '300px' }}
               />
-              <Form.Select 
-                value={filterBarangay} 
+              <Form.Select
+                value={filterBarangay}
                 onChange={(e) => setFilterBarangay(e.target.value)}
                 style={{ maxWidth: '250px' }}
               >
@@ -1127,17 +1120,17 @@ export default function AdminDashboard() {
               <Row className="g-0 h-100" style={{ minHeight: '60vh' }}>
                 <Col md={4} className="bg-light p-4 border-end" style={{ borderRight: '1px solid #E4E4E7 !important' }}>
                   <h3 className="h5 fw-bold mb-4" style={{ fontFamily: 'var(--font-headline)' }}>Applicant Profile</h3>
-                  
+
                   <div className="mb-3">
                     <div className="overline-text text-muted mb-1">Full Name</div>
                     <div className="body-large text-dark fw-semibold">{selectedApp?.fullName}</div>
                   </div>
-                  
+
                   <div className="mb-3">
                     <div className="overline-text text-muted mb-1">Email Address</div>
                     <div className="body-text"><a href={`mailto:${selectedApp?.email}`} className="text-secondary text-decoration-none fw-semibold">{selectedApp?.email}</a></div>
                   </div>
-                  
+
                   <div className="mb-3">
                     <div className="overline-text text-muted mb-1">Barangay</div>
                     <div className="body-large text-dark fw-semibold">{selectedApp?.barangay}</div>
@@ -1192,24 +1185,24 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </Col>
-                
+
                 <Col md={8} className="bg-dark d-flex flex-column">
                   <div className="p-2 bg-secondary text-white small fw-bold">SK Validation Document</div>
                   <div className="flex-grow-1 d-flex align-items-center justify-content-center p-3" style={{ minHeight: '500px' }}>
                     {proofUrl ? (
                       proofUrl.includes('.pdf') || proofUrl.toLowerCase().includes('%2fpdf') || proofUrl.toLowerCase().includes('.pdf?') ? (
-                        <iframe 
-                          src={proofUrl} 
-                          width="100%" 
-                          height="100%" 
+                        <iframe
+                          src={proofUrl}
+                          width="100%"
+                          height="100%"
                           style={{ border: 'none', minHeight: '60vh', backgroundColor: 'white' }}
                           title="PDF Viewer"
                         />
                       ) : (
-                        <img 
-                          src={proofUrl} 
-                          alt="SK ID Proof" 
-                          style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} 
+                        <img
+                          src={proofUrl}
+                          alt="SK ID Proof"
+                          style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
                         />
                       )
                     ) : selectedApp ? (
@@ -1273,15 +1266,15 @@ export default function AdminDashboard() {
         <>
           <Card className="border-0 shadow-sm mb-4">
             <Card.Body className="d-flex flex-wrap gap-3">
-              <Form.Control 
-                type="text" 
-                placeholder="Search by name or email..." 
+              <Form.Control
+                type="text"
+                placeholder="Search by name or email..."
                 value={userSearchTerm}
                 onChange={(e) => setUserSearchTerm(e.target.value)}
                 style={{ maxWidth: '300px' }}
               />
-              <Form.Select 
-                value={userFilterBarangay} 
+              <Form.Select
+                value={userFilterBarangay}
                 onChange={(e) => setUserFilterBarangay(e.target.value)}
                 style={{ maxWidth: '250px' }}
               >
@@ -1456,8 +1449,8 @@ export default function AdminDashboard() {
               This section is currently under development.
             </p>
             <div className="d-flex justify-content-center">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={() => setActiveSection('applicants')}
                 className="px-4 py-2 shadow-sm rounded-pill fw-bold"
               >

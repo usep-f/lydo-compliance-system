@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../../firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import lydoLogo from '../../assets/lydo-logo.webp';
 
 export interface NavigationSection {
   id: string;
@@ -89,8 +90,12 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       {/* ── Brand Header ── */}
       <div className="sidebar-brand-wrapper">
         <div className="sidebar-brand-logo">
-          <div className="sidebar-brand-icon">
-            <span className="material-symbols-outlined">account_balance</span>
+          <div className="sidebar-brand-icon" style={{ background: '#FFFFFF', padding: '3px', overflow: 'hidden' }}>
+            <img 
+              src={lydoLogo} 
+              alt="LYDO Logo" 
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+            />
           </div>
           <div>
             <h4 className="m-0">{title}</h4>

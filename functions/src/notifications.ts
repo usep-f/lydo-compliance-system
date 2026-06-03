@@ -198,3 +198,28 @@ export const pruneExpiredNotifications = onSchedule(
     }
   }
 );
+
+/**
+ * Deletes all notifications (and the subcollection items) for a given user.
+ *
+ * @param uid - The UID of the user whose notifications should be deleted.
+ */
+export async function deleteUserNotifications(uid: string): Promise<void> {
+  if (!uid || typeof uid !== 'string') {
+    return;
+  }
+  const db = admin.firestore();
+  const itemsRef = db.collection('notifications').doc(uid).collection('items');
+  try {
+    const snapshot = await itemsRef.get();
+    if (!snapshot.empty) {
+      const batch = db.batch();
+      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    }
+    await db.collection('notifications').doc(uid).delete();
+  } catch (error) {
+    console.error(`deleteUserNotifications error for ${uid}:`, error);
+  }
+}
+

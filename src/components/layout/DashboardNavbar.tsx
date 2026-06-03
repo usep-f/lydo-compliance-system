@@ -3,6 +3,7 @@ import { Container, Button, Navbar, Nav } from 'react-bootstrap';
 import { auth, db } from '../../firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import lydoLogo from '../../assets/lydo-logo.webp';
 
 export interface NavigationSection {
   id: string;
@@ -73,9 +74,17 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
     <Navbar expanded={expanded} onToggle={setExpanded} expand={false} bg="white" className="shadow-sm py-3 mb-4 navbar-custom">
       <Container className="d-flex justify-content-between align-items-center flex-wrap">
         
-        <div className="d-flex flex-column">
-          <Navbar.Brand className="m-0 text-primary fw-bold fs-5 brand-title" style={{ lineHeight: '1.2' }}>{title}</Navbar.Brand>
-          <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.72rem', marginTop: '2px', letterSpacing: '0.05em' }}>{adminName}</span>
+        <div className="d-flex align-items-center gap-2">
+          <img 
+            src={lydoLogo} 
+            alt="LYDO Logo" 
+            height="32" 
+            style={{ objectFit: 'contain' }} 
+          />
+          <div className="d-flex flex-column">
+            <Navbar.Brand className="m-0 text-primary fw-bold fs-5 brand-title" style={{ lineHeight: '1.2' }}>{title}</Navbar.Brand>
+            <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.72rem', marginTop: '2px', letterSpacing: '0.05em' }}>{adminName}</span>
+          </div>
         </div>
 
         {/* Desktop Tabs: screens > 1000px */}
