@@ -58,7 +58,7 @@ service cloud.firestore {
         && request.resource.data.period is string
         && request.resource.data.year is number
         && request.resource.data.fileStoragePath is string
-        && request.resource.data.fileStoragePath.startsWith('submission_files/' + request.auth.uid + '/')
+        && request.resource.data.fileStoragePath.matches('^submission_files/' + request.auth.uid + '/.*')
         && request.resource.data.fileName is string
         && request.resource.data.fileSize is number
         && request.resource.data.fileSize <= 104857600
@@ -66,7 +66,7 @@ service cloud.firestore {
         && request.resource.data.pdfMetadata is map
         && request.resource.data.submittedAt is timestamp
         && (!('accomplishmentCategory' in request.resource.data.keys()) || request.resource.data.accomplishmentCategory is string)
-        && !exists(/databases/$(database)/documents/submissions/$(submissionId));
+        && (!exists(/databases/$(database)/documents/submissions/$(submissionId)) || get(/databases/$(database)/documents/submissions/$(submissionId)).data.status == 'denied');
 
       // Secured: Limit read access to authorized owners, barangay peers, and admins
       allow read: if request.auth != null && (

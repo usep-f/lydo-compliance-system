@@ -105,7 +105,11 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
           // Generate a deterministic ID to prevent simultaneous duplicate submissions
           const safeBarangay = barangay.replace(/[^a-zA-Z0-9]/g, '_');
           const safePeriod = period.replace(/[^a-zA-Z0-9]/g, '_');
-          const docId = `${safeBarangay}_${year}_${documentType.id}_${safePeriod}`;
+          let docId = `${safeBarangay}_${year}_${documentType.id}_${safePeriod}`;
+
+          if (documentType.category === 'perennial') {
+            docId += `_${Date.now()}`;
+          }
 
           await setDoc(doc(db, 'pending_submissions', docId), payload);
 

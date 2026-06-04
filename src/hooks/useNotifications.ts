@@ -306,12 +306,6 @@ export function useNotifications(uid: string | null): UseNotificationsReturn {
     const approvedAt = userProfile.approvedAt;
     const items: Notification[] = [];
 
-    console.log('useNotifications DEBUG:', {
-      uid,
-      isUser,
-      approvedAt: approvedAt.toISOString(),
-      dismissedReminders,
-    });
 
     SCHEDULED_TYPES.forEach((dt) => {
       const submittablePeriods = getSubmittablePeriods(dt.frequency || 'monthly', currentYear, now);

@@ -93,8 +93,14 @@ export function useSubmissions(
 
   // Real-time listener for pending submissions
   useEffect(() => {
-
     let active = true;
+
+    if (!isAdmin && !barangay && !userId) {
+      setPending([]);
+      setLoadingPending(false);
+      return;
+    }
+
     Promise.resolve().then(() => {
       if (active) setLoadingPending(true);
     });
