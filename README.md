@@ -136,13 +136,13 @@ Both workspaces require a local `.env` configuration file to communicate with th
    ```
 2. Open `.env` and fill in the Firebase client SDK credentials for your web app:
    ```env
-   VITE_FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY
-   VITE_FIREBASE_AUTH_DOMAIN=YOUR_FIREBASE_PROJECT_ID.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
-   VITE_FIREBASE_STORAGE_BUCKET=YOUR_FIREBASE_PROJECT_ID.firebasestorage.app
-   VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_MESSAGING_SENDER_ID
-   VITE_FIREBASE_APP_ID=YOUR_FIREBASE_APP_ID
-   VITE_FIREBASE_MEASUREMENT_ID=YOUR_FIREBASE_MEASUREMENT_ID
+   VITE_FIREBASE_API_KEY=
+   VITE_FIREBASE_AUTH_DOMAIN=
+   VITE_FIREBASE_PROJECT_ID=
+   VITE_FIREBASE_STORAGE_BUCKET=
+   VITE_FIREBASE_MESSAGING_SENDER_ID=
+   VITE_FIREBASE_APP_ID=
+   VITE_FIREBASE_MEASUREMENT_ID=
    ```
    > 💡 **How to obtain Firebase credentials:**
    > 1. Go to the [Firebase Console](https://console.firebase.google.com/).
