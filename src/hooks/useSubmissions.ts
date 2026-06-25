@@ -67,7 +67,9 @@ export function useSubmissions(
   useEffect(() => {
     if (!shouldListenToHistory) return;
 
-    setLoadingHistory(true);
+    Promise.resolve().then(() => {
+      setLoadingHistory(true);
+    });
 
     const q = buildHistoryQuery(barangay, userId);
 
@@ -97,8 +99,12 @@ export function useSubmissions(
     let active = true;
 
     if (!isAdmin && !barangay && !userId) {
-      setPending([]);
-      setLoadingPending(false);
+      Promise.resolve().then(() => {
+        if (active) {
+          setPending([]);
+          setLoadingPending(false);
+        }
+      });
       return;
     }
 

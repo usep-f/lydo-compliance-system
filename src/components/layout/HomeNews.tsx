@@ -27,29 +27,20 @@ export const HomeNews: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  let currentItemsToShow = 3;
-  let ratio = 3;
-
-  if (windowWidth < 768) {
-    currentItemsToShow = 1;
-    ratio = bulletins.length > 1 ? 1.15 : 1;
-  } else if (windowWidth < 992) {
-    currentItemsToShow = 2;
-    ratio = bulletins.length > 2 ? 2.15 : Math.max(1, bulletins.length);
-  } else {
-    currentItemsToShow = 3;
-    ratio = bulletins.length > 3 ? 3.15 : Math.max(1, bulletins.length);
-  }
+  const currentItemsToShow = windowWidth < 768 ? 1 : windowWidth < 992 ? 2 : 3;
+  const ratio = windowWidth < 768
+    ? (bulletins.length > 1 ? 1.15 : 1)
+    : windowWidth < 992
+    ? (bulletins.length > 2 ? 2.15 : Math.max(1, bulletins.length))
+    : (bulletins.length > 3 ? 3.15 : Math.max(1, bulletins.length));
 
   const maxIndex = Math.max(0, bulletins.length - currentItemsToShow);
   const hasOverflow = maxIndex > 0;
 
-  // Auto-correct out-of-bounds index on resize
-  useEffect(() => {
-    if (currentIndex > maxIndex) {
-      setCurrentIndex(maxIndex);
-    }
-  }, [maxIndex, currentIndex]);
+  // Auto-correct out-of-bounds index on resize synchronously during rendering
+  if (currentIndex > maxIndex) {
+    setCurrentIndex(maxIndex);
+  }
 
   // Autoscroll
   useEffect(() => {
