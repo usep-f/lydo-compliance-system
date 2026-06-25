@@ -65,13 +65,13 @@ Both the frontend and backend require local `.env` files to communicate with Fir
    ```
 2. Open `.env` and fill in the Firebase client SDK credentials for your web app (obtain these from your Firebase Console > Project Settings):
    ```env
-   VITE_FIREBASE_API_KEY=AIzaSy...
-   VITE_FIREBASE_AUTH_DOMAIN=lydo-compliance-system-ce8c3.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=lydo-compliance-system-ce8c3
-   VITE_FIREBASE_STORAGE_BUCKET=lydo-compliance-system-ce8c3.firebasestorage.app
-   VITE_FIREBASE_MESSAGING_SENDER_ID=918488276327
-   VITE_FIREBASE_APP_ID=1:918488276327:web:c37fe...
-   VITE_FIREBASE_MEASUREMENT_ID=G-1ETC238WB8
+   VITE_FIREBASE_API_KEY=
+   VITE_FIREBASE_AUTH_DOMAIN=
+   VITE_FIREBASE_PROJECT_ID=
+   VITE_FIREBASE_STORAGE_BUCKET=
+   VITE_FIREBASE_MESSAGING_SENDER_ID=
+   VITE_FIREBASE_APP_ID=
+   VITE_FIREBASE_MEASUREMENT_ID=
    ```
 
 ### B. Backend (Cloud Functions) Configuration
