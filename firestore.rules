@@ -23,7 +23,9 @@ service cloud.firestore {
                       ])
                       && request.resource.data.fullName is string
                       && request.resource.data.email is string
-                      && request.resource.data.barangay is string;
+                      && request.resource.data.barangay is string
+                      && request.resource.data.proofStoragePath is string
+                      && request.resource.data.submittedAt is timestamp;
 
       allow read, delete: if isAdmin();
       allow update: if false; // Applications cannot be tampered with after submission
@@ -49,13 +51,29 @@ service cloud.firestore {
            ])
         && request.resource.data.category in ['scheduled', 'asap', 'perennial']
         && request.resource.data.userId is string
+        && request.resource.data.barangay is string
+        && request.resource.data.fullName is string
         && request.resource.data.documentType is string
+        && request.resource.data.documentLabel is string
         && request.resource.data.period is string
+        && request.resource.data.year is number
+        && request.resource.data.fileStoragePath is string
+        && request.resource.data.fileStoragePath.matches('^submission_files/' + request.auth.uid + '/.*')
+        && request.resource.data.fileName is string
         && request.resource.data.fileSize is number
         && request.resource.data.fileSize <= 104857600
-        && !exists(/databases/$(database)/documents/submissions/$(submissionId));
+        && request.resource.data.pageCount is number
+        && request.resource.data.pdfMetadata is map
+        && request.resource.data.submittedAt is timestamp
+        && (!('accomplishmentCategory' in request.resource.data.keys()) || request.resource.data.accomplishmentCategory is string)
+        && (!exists(/databases/$(database)/documents/submissions/$(submissionId)) || get(/databases/$(database)/documents/submissions/$(submissionId)).data.status == 'denied');
 
-      allow read: if true;
+      // Secured: Limit read access to authorized owners, barangay peers, and admins
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.barangay == getUserBarangay() ||
+        isAdmin()
+      );
 
       // No client-side updates — prevents tampering after submission
       allow update: if false;
@@ -68,7 +86,12 @@ service cloud.firestore {
     // Written exclusively by Cloud Functions (Admin SDK bypasses rules).
     // Client-side writes are fully blocked.
     match /submissions/{submissionId} {
-      allow read: if true;
+      // Secured: Limit read access to authorized owners, barangay peers, and admins
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.barangay == getUserBarangay() ||
+        isAdmin()
+      );
 
       // No direct client writes — only Cloud Functions can write here
       allow write: if false;
@@ -84,9 +107,15 @@ service cloud.firestore {
              'userId', 'barangay', 'fullName', 'year',
              'resolutions', 'accomplishmentReports', 'updatedAt'
            ])
+        && request.resource.data.userId is string
+        && request.resource.data.barangay is string
+        && request.resource.data.fullName is string
+        && request.resource.data.year is number
         && request.resource.data.resolutions is number
         && request.resource.data.resolutions >= 0
-        && request.resource.data.year is number;
+        && request.resource.data.accomplishmentReports is number
+        && request.resource.data.accomplishmentReports >= 0
+        && request.resource.data.updatedAt is timestamp;
 
       allow read: if request.auth != null
         && (resource.data.userId == request.auth.uid || resource.data.barangay == getUserBarangay() || isAdmin());
@@ -110,6 +139,20 @@ service cloud.firestore {
 
       // All creates and deletes are handled by Cloud Functions via Admin SDK
       allow create, delete: if false;
+    }
+
+    // ── CMS Bulletins ──
+    // Guests can read bulletins; only admins can write
+    match /cms_bulletins/{bulletinId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Global System Settings ──
+    // Guests/users can read settings; only admins can write
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

@@ -19,6 +19,7 @@ import AdminAnalyticsSection from '../components/analytics/AdminAnalyticsSection
 import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
 import ComplianceCalendar from '../components/analytics/ComplianceCalendar';
 import UserSettings from '../components/settings/UserSettings';
+import AdminCMSSection from '../components/settings/AdminCMSSection';
 import NotificationBell from '../components/common/NotificationBell';
 import {
   Chart as ChartJS,
@@ -64,7 +65,7 @@ export default function AdminDashboard() {
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
 
   const currentYear = new Date().getFullYear();
-  const { pending: pendingSubs = [], history: historySubs = [], loadingHistory, fetchHistory } = useSubmissions(undefined, true);
+  const { pending: pendingSubs = [], history: historySubs = [], loadingPending, loadingHistory, fetchHistory } = useSubmissions(undefined, true);
   const approvedSubs = useMemo(
     () => historySubs.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [historySubs]
@@ -518,6 +519,11 @@ export default function AdminDashboard() {
       title: 'User Settings',
       subtitle: 'Manage your account profile and credentials',
       icon: 'settings',
+    },
+    cms: {
+      title: 'Content Management System',
+      subtitle: 'Control announcements, advisories, and system social links',
+      icon: 'campaign',
     },
   };
 
@@ -1430,7 +1436,7 @@ export default function AdminDashboard() {
           defaultBarangay={submissionsBarangay}
           pending={pendingSubs}
           history={historySubs}
-          loading={loadingHistory}
+          loading={loadingPending}
           refreshHistory={fetchHistory}
         />
       ) : activeSection === 'history' ? (
@@ -1450,6 +1456,8 @@ export default function AdminDashboard() {
         />
       ) : activeSection === 'settings' ? (
         <UserSettings />
+      ) : activeSection === 'cms' ? (
+        <AdminCMSSection />
       ) : (
         <Card className="border-0 shadow-sm text-center p-5">
           <Card.Body className="py-5">

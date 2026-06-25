@@ -39,3 +39,7 @@ export {
 export {
   purgeSystemData
 } from './maintenance';
+
+export {
+  publishDeadlineBulletins
+} from './bulletinScheduler';

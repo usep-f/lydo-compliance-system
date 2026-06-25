@@ -17,11 +17,14 @@ service firebase.storage {
       // Allow unauthenticated uploads for registration, but enforce:
       // - Hard 50 MB file size limit
       // - Only images and PDFs accepted
-      allow write: if request.resource.size < 50 * 1024 * 1024
+      allow create: if request.resource.size < 50 * 1024 * 1024
                     && request.resource.contentType.matches('image/.*|application/pdf');
 
-      // Only authenticated users (admins) can read or delete proof files
-      allow read, delete: if request.auth != null;
+      // Prevent tampering/modification of registration proofs once submitted
+      allow update: if false;
+
+      // Secured: Only authenticated admins can read or delete proof files
+      allow read, delete: if request.auth != null && isAdmin();
     }
 
     // ── Submission Files ──
@@ -29,10 +32,13 @@ service firebase.storage {
     // Only PDF format, max 100 MB.
     match /submission_files/{userId}/{allPaths=**} {
       // Upload: authenticated owner only, PDF only, 100 MB cap
-      allow write: if request.auth != null
+      allow create: if request.auth != null
                    && request.auth.uid == userId
                    && request.resource.size < 100 * 1024 * 1024
                    && request.resource.contentType == 'application/pdf';
+
+      // Secured: Prevent users from overwriting or updating their files post-upload
+      allow update: if false;
 
       // Read: owner, anyone in the same barangay, or admin
       allow read: if request.auth != null && (
