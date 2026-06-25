@@ -65,7 +65,7 @@ export default function AdminDashboard() {
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
 
   const currentYear = new Date().getFullYear();
-  const { pending: pendingSubs = [], history: historySubs = [], loadingHistory, fetchHistory } = useSubmissions(undefined, true);
+  const { pending: pendingSubs = [], history: historySubs = [], loadingPending, loadingHistory, fetchHistory } = useSubmissions(undefined, true);
   const approvedSubs = useMemo(
     () => historySubs.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [historySubs]
@@ -1436,7 +1436,7 @@ export default function AdminDashboard() {
           defaultBarangay={submissionsBarangay}
           pending={pendingSubs}
           history={historySubs}
-          loading={loadingHistory}
+          loading={loadingPending}
           refreshHistory={fetchHistory}
         />
       ) : activeSection === 'history' ? (

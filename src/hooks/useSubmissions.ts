@@ -60,13 +60,14 @@ export function useSubmissions(
 
   // Lazy on-demand trigger to start listening to history
   const fetchHistory = useCallback(() => {
-    setLoadingHistory(true);
     setShouldListenToHistory(true);
   }, []);
 
   // Real-time listener for historical submissions (only active after fetchHistory is triggered)
   useEffect(() => {
     if (!shouldListenToHistory) return;
+
+    setLoadingHistory(true);
 
     const q = buildHistoryQuery(barangay, userId);
 

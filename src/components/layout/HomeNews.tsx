@@ -6,8 +6,12 @@ export const HomeNews: React.FC = () => {
   const { bulletins, loading } = useCMSData();
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nudge, setNudge] = useState<'left' | 'right' | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
   const [prevBulletins, setPrevBulletins] = useState(bulletins);
 
@@ -16,6 +20,47 @@ export const HomeNews: React.FC = () => {
     setCurrentIndex(0);
   }
 
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  let currentItemsToShow = 3;
+  let ratio = 3;
+
+  if (windowWidth < 768) {
+    currentItemsToShow = 1;
+    ratio = bulletins.length > 1 ? 1.15 : 1;
+  } else if (windowWidth < 992) {
+    currentItemsToShow = 2;
+    ratio = bulletins.length > 2 ? 2.15 : Math.max(1, bulletins.length);
+  } else {
+    currentItemsToShow = 3;
+    ratio = bulletins.length > 3 ? 3.15 : Math.max(1, bulletins.length);
+  }
+
+  const maxIndex = Math.max(0, bulletins.length - currentItemsToShow);
+  const hasOverflow = maxIndex > 0;
+
+  // Auto-correct out-of-bounds index on resize
+  useEffect(() => {
+    if (currentIndex > maxIndex) {
+      setCurrentIndex(maxIndex);
+    }
+  }, [maxIndex, currentIndex]);
+
+  // Autoscroll
+  useEffect(() => {
+    if (maxIndex === 0 || isHovered) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [maxIndex, isHovered]);
+
+  // Intersection observer for entrance animation
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -27,28 +72,46 @@ export const HomeNews: React.FC = () => {
   }, []);
 
   const handlePrev = () => {
-    if (bulletins.length <= 1) {
+    if (maxIndex === 0) {
       setNudge('left');
       setTimeout(() => setNudge(null), 250);
       return;
     }
-    setCurrentIndex((prev) => (prev === 0 ? bulletins.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
   };
 
   const handleNext = () => {
-    if (bulletins.length <= 1) {
+    if (maxIndex === 0) {
       setNudge('right');
       setTimeout(() => setNudge(null), 250);
       return;
     }
-    setCurrentIndex((prev) => (prev === bulletins.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
 
-  let transformValue = `translateX(-${currentIndex * 100}%)`;
+  let transformValue = `translateX(-${currentIndex * (100 / ratio)}%)`;
   if (nudge === 'left') {
     transformValue += ' translateX(30px)';
   } else if (nudge === 'right') {
     transformValue += ' translateX(-30px)';
+  }
+
+  // Masking effect if there are more items than we can show
+  const isAtStart = currentIndex === 0;
+  const isAtEnd = currentIndex === maxIndex;
+  
+  let maskImageStyle = 'none';
+  if (hasOverflow) {
+    if (!isAtStart && !isAtEnd) {
+      // Fade both sides
+      maskImageStyle = 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)';
+    } else if (isAtStart) {
+      // Fade right side only
+      maskImageStyle = 'linear-gradient(to right, black, black 96%, transparent)';
+    } else if (isAtEnd) {
+      // Fade left side only
+      maskImageStyle = 'linear-gradient(to right, transparent, black 4%, black)';
+    }
   }
 
   return (
@@ -83,24 +146,34 @@ export const HomeNews: React.FC = () => {
             {/* Slider Wrapper Centered */}
             <div 
               className={`slider-wrapper position-relative mx-auto mt-4 sr-item${visible ? ' visible' : ''}`} 
-              style={{ maxWidth: '680px' }}
+              style={{ maxWidth: '1000px' }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
               {/* Left Arrow Button */}
               <button 
-                className={`btn-slider btn-slider-left${bulletins.length <= 1 ? ' btn-slider-disabled' : ''}`}
+                className={`btn-slider btn-slider-left${maxIndex === 0 ? ' btn-slider-disabled' : ''}`}
                 onClick={handlePrev}
                 aria-label="Previous bulletin"
+                style={{ zIndex: 10, left: '-20px' }}
               >
                 <span className="material-symbols-outlined fs-5">chevron_left</span>
               </button>
 
               {/* Slider Viewport Container */}
-              <div className="overflow-hidden px-5 py-2">
+              <div 
+                className="overflow-hidden px-1 py-3 mx-auto" 
+                style={{ 
+                  WebkitMaskImage: maskImageStyle,
+                  maskImage: maskImageStyle,
+                  transition: 'mask-image 0.4s ease, -webkit-mask-image 0.4s ease'
+                }}
+              >
                 <div 
                   className="d-flex"
                   style={{
                     transform: transformValue,
-                    transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
                   }}
                 >
                   {bulletins.map((item) => {
@@ -109,7 +182,7 @@ export const HomeNews: React.FC = () => {
                       : new Date((item.date as unknown as { toMillis?: () => number }).toMillis?.() || (item.date as unknown as string | number)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
                     return (
-                      <div key={item.id} className="w-100 flex-shrink-0 px-2">
+                      <div key={item.id} className="flex-shrink-0 px-2" style={{ width: `${100 / ratio}%` }}>
                         <div className="premium-announcement-card d-flex flex-column justify-content-between h-100" style={{ minHeight: '260px' }}>
                           <div>
                             {/* Meta info header */}
@@ -168,23 +241,24 @@ export const HomeNews: React.FC = () => {
 
               {/* Right Arrow Button */}
               <button 
-                className={`btn-slider btn-slider-right${bulletins.length <= 1 ? ' btn-slider-disabled' : ''}`}
+                className={`btn-slider btn-slider-right${maxIndex === 0 ? ' btn-slider-disabled' : ''}`}
                 onClick={handleNext}
                 aria-label="Next bulletin"
+                style={{ zIndex: 10, right: '-20px' }}
               >
                 <span className="material-symbols-outlined fs-5">chevron_right</span>
               </button>
             </div>
 
             {/* Carousel Pagination Indicator Dots */}
-            {bulletins.length > 1 && (
+            {maxIndex > 0 && (
               <div className="d-flex justify-content-center gap-2 mt-4">
-                {bulletins.map((_, idx) => (
+                {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
                   <button
                     key={idx}
                     className={`bulletin-dot${currentIndex === idx ? ' active' : ''}`}
                     onClick={() => setCurrentIndex(idx)}
-                    aria-label={`Go to slide ${idx + 1}`}
+                    aria-label={`Go to slide group ${idx + 1}`}
                   />
                 ))}
               </div>
@@ -197,4 +271,3 @@ export const HomeNews: React.FC = () => {
 };
 
 export default HomeNews;
-
