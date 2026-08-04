@@ -314,29 +314,17 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           ))}
         </Form.Select>
         {selectedBarangay && (
-          <>
-            <span
-              style={{
-                background: '#EEF2FF', color: '#4F46E5',
-                border: '1px solid #C7D2FE', borderRadius: '9999px',
-                fontSize: '12px', fontWeight: 600, padding: '3px 14px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {selectedBarangay}
-            </span>
-            <button
-              style={{
-                fontSize: '12px', color: '#71717A',
-                border: '1px solid #E4E4E7', borderRadius: '9999px',
-                padding: '3px 12px', background: '#fff', cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-              onClick={() => setSelectedBarangay('')}
-            >
-              ✕ Clear filter
-            </button>
-          </>
+          <button
+            style={{
+              fontSize: '12px', color: '#71717A',
+              border: '1px solid #E4E4E7', borderRadius: '9999px',
+              padding: '3px 12px', background: '#fff', cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+            onClick={() => setSelectedBarangay('')}
+          >
+            ✕ Clear filter
+          </button>
         )}
         <div className="ms-auto">
           <button

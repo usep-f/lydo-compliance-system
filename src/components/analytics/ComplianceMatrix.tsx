@@ -103,29 +103,17 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
           ))}
         </Form.Select>
         {selectedBarangay && (
-          <>
-            <span
-              style={{
-                background: '#EEF2FF', color: '#4F46E5',
-                border: '1px solid #C7D2FE', borderRadius: '9999px',
-                fontSize: '12px', fontWeight: 600, padding: '3px 14px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {selectedBarangay}
-            </span>
-            <button
-              style={{
-                fontSize: '12px', color: '#71717A',
-                border: '1px solid #E4E4E7', borderRadius: '9999px',
-                padding: '3px 12px', background: '#fff', cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-              onClick={() => setSelectedBarangay('')}
-            >
-              ✕ Clear filter
-            </button>
-          </>
+          <button
+            style={{
+              fontSize: '12px', color: '#71717A',
+              border: '1px solid #E4E4E7', borderRadius: '9999px',
+              padding: '3px 12px', background: '#fff', cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+            onClick={() => setSelectedBarangay('')}
+          >
+            ✕ Clear filter
+          </button>
         )}
         <div className="ms-auto">
           <button
@@ -188,22 +176,24 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
         <div className="p-4">
           {/* Summary pills */}
           <div className="d-flex gap-3 mb-3 flex-wrap" style={{ fontSize: '12px' }}>
-            {(Object.entries(matrixChipConfig) as [string, { cls: string; label: string }][]).map(([key, cfg]) => (
-              <span key={key} className={`matrix-chip ${cfg.cls}`}>
-                {cfg.label}
-                <span
-                  style={{
-                    marginLeft: '6px',
-                    background: 'rgba(0,0,0,0.08)',
-                    borderRadius: '9999px',
-                    padding: '0 6px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {summaryCounts[key as keyof typeof summaryCounts]}
+            {(Object.entries(matrixChipConfig) as [string, { cls: string; label: string }][])
+              .filter(([key]) => key !== 'not_due')
+              .map(([key, cfg]) => (
+                <span key={key} className={`matrix-chip ${cfg.cls}`}>
+                  {cfg.label}
+                  <span
+                    style={{
+                      marginLeft: '6px',
+                      background: 'rgba(0,0,0,0.08)',
+                      borderRadius: '9999px',
+                      padding: '0 6px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {summaryCounts[key as keyof typeof summaryCounts]}
+                  </span>
                 </span>
-              </span>
-            ))}
+              ))}
           </div>
 
           {/* Table */}
@@ -247,27 +237,21 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
               </tbody>
             </table>
           </div>
-
-          {/* Legend strip */}
-          <div className="d-flex gap-3 mt-3 flex-wrap" style={{ fontSize: '12px' }}>
-            {(Object.entries(matrixChipConfig) as [string, { cls: string; label: string }][]).map(([, cfg]) => (
-              <span key={cfg.label} className={`matrix-chip ${cfg.cls}`}>{cfg.label}</span>
-            ))}
-          </div>
         </div>
       </div>
 
       {/* ── Year-End Reports ── */}
-      <div
-        style={{
-          borderTop: '2px solid #E4E4E7',
-          marginTop: '28px',
-          paddingTop: '28px',
-        }}
-      >
-
-        <YearEndReports pending={pending} history={history} selectedBarangay={selectedBarangay} />
-      </div>
+      {selectedBarangay && (
+        <div
+          style={{
+            borderTop: '2px solid #E4E4E7',
+            marginTop: '28px',
+            paddingTop: '28px',
+          }}
+        >
+          <YearEndReports pending={pending} history={history} selectedBarangay={selectedBarangay} />
+        </div>
+      )}
     </>
   );
 };
