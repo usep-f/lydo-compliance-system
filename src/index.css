@@ -74,6 +74,12 @@
   --bs-body-font-family: var(--font-body);
 }
 
+/* Prevent horizontal layout shifts when vertical scrollbars appear/disappear */
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}
+
 /* ==========================================
    Typography Overrides
    ========================================== */
@@ -1084,7 +1090,7 @@ textarea.form-control {
   background: linear-gradient(135deg, #475569 0%, #1E293B 100%) !important;
   border: none !important;
   border-radius: 16px !important;
-  padding: 24px 32px !important;
+  padding: 22px 28px !important;
   margin: 0 0 24px 0 !important;
   position: relative !important;
   overflow: visible !important;
@@ -1093,9 +1099,16 @@ textarea.form-control {
   align-items: center !important;
   justify-content: space-between !important;
   gap: 16px !important;
+  min-height: 104px !important;
+  box-sizing: border-box !important;
   z-index: 1;
   animation: header-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.section-page-header-purple {
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important;
+  box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.25), 0 4px 12px -4px rgba(124, 58, 237, 0.15) !important;
 }
 
 .section-page-header-bg {
@@ -1147,7 +1160,8 @@ textarea.form-control {
 @media (min-width: 768px) {
   .section-page-header {
     margin: 0 0 28px 0 !important;
-    padding: 26px 36px !important;
+    padding: 24px 36px !important;
+    min-height: 110px !important;
   }
 }
 
@@ -1170,7 +1184,7 @@ textarea.form-control {
   font-family: var(--font-body) !important;
   font-size: 13px !important;
   color: rgba(255, 255, 255, 0.7) !important;
-  margin: 6px 0 0 !important;
+  margin: 4px 0 0 !important;
   position: relative;
   z-index: 1;
 }

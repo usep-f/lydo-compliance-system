@@ -20,21 +20,11 @@ import ComplianceMatrix from '../components/analytics/ComplianceMatrix';
 import ComplianceCalendar from '../components/analytics/ComplianceCalendar';
 import UserSettings from '../components/settings/UserSettings';
 import AdminCMSSection from '../components/settings/AdminCMSSection';
-import NotificationBell from '../components/common/NotificationBell';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip as ChartTooltip,
-  Legend as ChartLegend,
-} from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
+import UnifiedGaugeChart from '../components/analytics/UnifiedGaugeChart';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useComplianceData } from '../hooks/useComplianceData';
 import { formatPeriodLabel } from '../utils/periodUtils';
 import { validatePassword } from '../utils/passwordValidation';
-
-// Register Chart.js modules needed for the doughnut
-ChartJS.register(ArcElement, ChartTooltip, ChartLegend);
 
 interface PendingUser {
   id: string;
@@ -63,6 +53,7 @@ export default function AdminDashboard() {
   const [adminName, setAdminName] = useState<string>('Admin');
   const [submissionsSearch, setSubmissionsSearch] = useState('');
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const { pending: pendingSubs = [], history: historySubs = [], loadingPending, loadingHistory, fetchHistory } = useSubmissions(undefined, true);
@@ -114,6 +105,21 @@ export default function AdminDashboard() {
       return timeB - timeA;
     });
   }, [pendingSubs, historySubs]);
+
+  const adminGaugeSlices = useMemo(() => {
+    const totalExpected = compliance.barangayRanking.reduce((s, b) => s + b.expected, 0);
+    const pendingPct = Math.round((pendingSubs.length / Math.max(1, totalExpected)) * 100);
+    return [
+      { label: 'Approved',       value: compliance.overallRate, color: '#16A34A' },
+      { label: 'Pending Review', value: pendingPct,              color: '#F59E0B' },
+      {
+        label: 'Missing/Overdue',
+        value: Math.max(0, 100 - compliance.overallRate - pendingPct),
+        color: '#EF4444',
+        isStriped: true,
+      },
+    ];
+  }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length]);
 
   // ── Welcome Banner Dynamic Description ─────────────────────────────────────
   const bannerDescription = useMemo(() => {
@@ -479,11 +485,12 @@ export default function AdminDashboard() {
   ];
 
   // ── Section page header config ──
-  const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string }> = {
+  const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string; variant?: 'slate' | 'purple' }> = useMemo(() => ({
     home: {
-      title: 'Compliance Control Center',
-      subtitle: 'System-wide compliance rates, pending actions, and recent activity overview',
+      title: `Hello, ${adminName}`,
+      subtitle: bannerDescription,
       icon: 'home',
+      variant: 'purple',
     },
     applicants: {
       title: 'Pending Applications',
@@ -525,116 +532,71 @@ export default function AdminDashboard() {
       subtitle: 'Control announcements, advisories, and system social links',
       icon: 'campaign',
     },
-  };
+  }), [adminName, bannerDescription]);
 
   return (
     <DashboardShell
       title="Admin Dashboard"
       activeSection={activeSection}
       onSectionSelect={setActiveSection}
-      pageHeader={activeSection === 'home' ? undefined : sectionHeaders[activeSection]}
+      pageHeader={sectionHeaders[activeSection]}
     >
       {activeSection === 'home' ? (
         <div className="py-2">
-          {/* Welcome Banner */}
-          <div className="welcome-card mb-4">
-            <div className="welcome-card-banner" style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}>
-              <div className="welcome-card-bg" />
-              {/* Notification Bell in top right */}
-              <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
-                <NotificationBell uid={auth.currentUser?.uid || null} />
+          {/* Compliance Calendar Banner & Modal Trigger */}
+
+          {/* Compliance Calendar Banner & Modal Trigger */}
+          <div 
+            className="mb-4 p-4 rounded-3 text-white d-flex align-items-center justify-content-between flex-wrap gap-3"
+            style={{
+              background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+              boxShadow: '0 4px 20px rgba(15, 23, 42, 0.12)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <div className="d-flex align-items-center gap-3">
+              <div 
+                className="d-flex align-items-center justify-content-center rounded-3 p-3"
+                style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.15)' }}
+              >
+                <span className="material-symbols-outlined text-info" style={{ fontSize: '28px', fontVariationSettings: "'FILL' 1" }}>
+                  calendar_month
+                </span>
               </div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <h2
-                  className="text-white"
-                  style={{
-                    fontFamily: 'var(--font-headline)',
-                    fontSize: '28px',
-                    fontWeight: 800,
-                    color: '#FFFFFF',
-                    margin: '0',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Hello, {adminName}
-                </h2>
-                <p
-                  className="text-white"
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '14px',
-                    color: '#FFFFFF',
-                    margin: '8px 0 0',
-                    opacity: 0.9,
-                  }}
-                >
-                  {bannerDescription}
+              <div>
+                <div className="d-flex align-items-center gap-2 flex-wrap">
+                  <h3 className="mb-0 fw-bold fs-5 text-white font-headline">Compliance Schedules &amp; Deadlines</h3>
+                  <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style={{ fontSize: '11px' }}>
+                    Schedule Manager
+                  </span>
+                </div>
+                <p className="mb-0 fs-7 mt-1" style={{ color: '#94A3B8', fontSize: '13px' }}>
+                  Track official filing windows, statutory submission cutoffs, and 7-day grace period deadlines.
                 </p>
               </div>
             </div>
 
-            {/* Quick Action Footer */}
-            <div
+            <button
+              onClick={() => setShowCalendarModal(true)}
+              className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold"
               style={{
-                background: '#FFFFFF',
-                padding: '16px 28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: '12px',
-                borderTop: '1px solid #F4F4F5',
-                borderBottomLeftRadius: '16px',
-                borderBottomRightRadius: '16px',
+                background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+                transition: 'all 0.2s ease',
               }}
             >
-              <button
-                type="button"
-                onClick={() => {
-                  setSubmissionsSearch('');
-                  setSubmissionsBarangay('');
-                  setActiveSection('submissions');
-                }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '8px',
-                  background: 'transparent', color: '#4F46E5',
-                  fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
-                  border: '1px solid #C7D2FE', cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#EEF2FF')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>description</span>
-                Review Submissions ({pendingSubs.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm('');
-                  setActiveSection('applicants');
-                }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 18px', borderRadius: '8px',
-                  background: '#4F46E5', color: '#FFFFFF',
-                  fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
-                  border: 'none', cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#4338CA')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#4F46E5')}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>badge</span>
-                Review Applications ({pendingUsers.length})
-              </button>
-            </div>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>event_available</span>
+              Open Full Calendar
+            </button>
           </div>
 
-          {/* Compliance Calendar */}
-          <div className="mb-4">
-            <ComplianceCalendar currentYear={currentYear} />
-          </div>
+          <ComplianceCalendar
+            currentYear={currentYear}
+            show={showCalendarModal}
+            onHide={() => setShowCalendarModal(false)}
+          />
 
           {/* KPI Row */}
           <Row className="mb-4 g-3">
@@ -657,71 +619,17 @@ export default function AdminDashboard() {
 
           {/* Middle Analytics Row */}
           <Row className="mb-4 g-3">
-            {/* Doughnut Chart */}
+            {/* Gauge Chart */}
             <Col md={4}>
               <div className="analytics-card h-100" style={{ background: '#fff' }}>
-                <div className="chart-card-header chart-header-primary">
-                  <p className="chart-card-title">
-                    <span className="material-symbols-outlined icon-primary" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}>
-                      donut_large
-                    </span>
-                    Compliance Status
-                  </p>
-                  <p className="chart-card-subtitle">Distribution of all required documents</p>
-                </div>
-                <div className="p-4 d-flex align-items-center justify-content-center">
-                  <div style={{ height: '220px', width: '100%', position: 'relative' }}>
-                    <Doughnut
-                      data={{
-                        labels: ['Approved', 'Pending Review', 'Missing/Overdue'],
-                        datasets: [{
-                          data: [
-                            compliance.overallRate,
-                            Math.round((pendingSubs.length / Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100),
-                            Math.max(0, 100 - compliance.overallRate - Math.round((pendingSubs.length / Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100)),
-                          ],
-                          backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
-                          borderWidth: 0,
-                        }],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '72%',
-                        plugins: {
-                          legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: { boxWidth: 10, padding: 12, font: { size: 11, family: 'Inter' } },
-                          },
-                          tooltip: {
-                            callbacks: {
-                              label: (ctx) => `${ctx.label}: ${ctx.raw}%`,
-                            },
-                          },
-                        },
-                      }}
-                    />
-                    {/* Centered label */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '40%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        textAlign: 'center',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      <div style={{ fontFamily: 'var(--font-headline)', fontSize: '28px', fontWeight: 800, color: '#18181B', lineHeight: 1 }}>
-                        {compliance.overallRate}%
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#71717A', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginTop: '3px' }}>
-                        Compliant
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <UnifiedGaugeChart
+                  title="Compliance Status"
+                  subtitle="Distribution of all required documents"
+                  slices={adminGaugeSlices}
+                  centerValue={`${compliance.overallRate}%`}
+                  centerLabel="Compliant"
+                  emptyMessage="No compliance data available."
+                />
               </div>
             </Col>
 

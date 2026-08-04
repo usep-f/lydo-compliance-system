@@ -1,17 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Row, Col } from 'react-bootstrap';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
+import UnifiedGaugeChart from '../components/analytics/UnifiedGaugeChart';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import DashboardShell from '../components/layout/DashboardShell';
-import NotificationBell from '../components/common/NotificationBell';
 import UnifiedSubmissionForm from '../components/submissions/UnifiedSubmissionForm';
 import UserPendingSubmissions from '../components/submissions/UserPendingSubmissions';
 import ConfirmSubmissionModal from '../components/submissions/ConfirmSubmissionModal';
@@ -24,9 +17,6 @@ import { formatPeriodLabel } from '../utils/periodUtils';
 import UserSettings from '../components/settings/UserSettings';
 import type { SubmissionTypeDefinition } from '../constants/submissionTypes';
 import type { PdfScreeningResult } from '../utils/pdfScreening';
-
-// Register Chart.js modules needed for the doughnut
-ChartJS.register(ArcElement, Tooltip, Legend);
 
 // ---------------------------------------------------------------------------
 // Section nav config
@@ -219,7 +209,55 @@ export default function UserDashboard() {
   };
 
   // ── Section page header config ────────────────────────────────────────────
-  const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string }> = {
+  const sectionHeaders: Record<string, { title: React.ReactNode; subtitle?: React.ReactNode; icon?: string; variant?: 'slate' | 'purple' }> = useMemo(() => ({
+    home: {
+      title: `Welcome back, ${userInfo?.fullName || ''}`,
+      subtitle: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.75)' }}>
+            Barangay
+          </span>
+          <span
+            style={{
+              padding: '3px 12px',
+              borderRadius: '9999px',
+              background: 'rgba(255,255,255,0.18)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#FFFFFF',
+            }}
+          >
+            {userInfo?.barangay}
+          </span>
+          {analytics.complianceRate === 100 ? (
+            <span className="sph-badge sph-badge-live" style={{ marginLeft: '4px' }}>
+              <span className="sph-live-dot" />
+              Fully Compliant
+            </span>
+          ) : (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '3px 10px',
+                borderRadius: '9999px',
+                background: 'rgba(245, 158, 11, 0.25)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#FDE68A',
+              }}
+            >
+              {analytics.complianceRate}% Compliant
+            </span>
+          )}
+        </div>
+      ),
+      icon: 'home',
+      variant: 'purple',
+    },
     submissions: {
       title: 'Submit Documents',
       subtitle: `Upload required compliance documents for ${userInfo?.barangay || 'your barangay'}`,
@@ -235,35 +273,20 @@ export default function UserDashboard() {
       subtitle: 'Manage your account preferences and notifications',
       icon: 'settings',
     },
-  };
+  }), [userInfo?.fullName, userInfo?.barangay, analytics.complianceRate]);
 
-  // ── Doughnut chart data ──────────────────────────────────────────────────
-  const doughnutData = {
-    labels: ['Approved', 'Pending Review', 'Denied'],
-    datasets: [{
-      data: [analytics.approvedCount, analytics.pendingCount, analytics.deniedCount],
-      backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
-      borderWidth: 0,
-      cutout: '72%',
-    }],
-  };
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom' as const,
-        labels: { boxWidth: 10, padding: 16, font: { size: 12, family: 'Inter' } },
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx: { label: string; raw: unknown }) =>
-            `${ctx.label}: ${ctx.raw}`,
-        },
-      },
+  // ── Gauge chart slices ──────────────────────────────────────────────────
+  const gaugeSlices = useMemo(() => [
+    { label: 'Approved',       value: analytics.approvedCount,      color: '#16A34A' },
+    { label: 'Pending Review', value: analytics.pendingCount,       color: '#F59E0B' },
+    {
+      label: 'Missing',
+      value: analytics.missingDocs.length,
+      color: '#EF4444',
+      isStriped: true,
     },
-  };
+    { label: 'Denied',         value: analytics.deniedCount,        color: '#18181B' },
+  ], [analytics.approvedCount, analytics.pendingCount, analytics.missingDocs.length, analytics.deniedCount]);
 
   // ── Loading state ────────────────────────────────────────────────────────
   if (!userInfo) {
@@ -310,126 +333,6 @@ export default function UserDashboard() {
       {activeSection === 'home' && (
         <div className="py-2">
 
-          {/* Welcome Banner */}
-          <div className="welcome-card mb-4">
-            <div className="welcome-card-banner">
-              <div className="welcome-card-bg" />
-              {/* Notification Bell in top right */}
-              <div style={{ position: 'absolute', top: '24px', right: '32px', zIndex: 10 }}>
-                <NotificationBell uid={userInfo.uid} />
-              </div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <p
-                  style={{
-                    fontFamily: 'var(--font-headline)',
-                    fontSize: '26px',
-                    fontWeight: 800,
-                    color: '#FFFFFF',
-                    margin: '0 0 8px',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Welcome back,<br />{userInfo.fullName}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>
-                    Barangay
-                  </span>
-                  <span
-                    style={{
-                      padding: '3px 12px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,255,255,0.18)',
-                      border: '1px solid rgba(255,255,255,0.25)',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    {userInfo.barangay}
-                  </span>
-                  {analytics.complianceRate === 100 ? (
-                    <span className="sph-badge sph-badge-live" style={{ marginLeft: '4px' }}>
-                      <span className="sph-live-dot" />
-                      Fully Compliant
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '3px 10px',
-                        borderRadius: '9999px',
-                        background: 'rgba(245, 158, 11, 0.25)',
-                        border: '1px solid rgba(245, 158, 11, 0.4)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: '#FDE68A',
-                      }}
-                    >
-                      {analytics.complianceRate}% Compliant
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Action Footer */}
-            <div
-              style={{
-                background: '#FFFFFF',
-                padding: '16px 28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: '12px',
-                borderTop: '1px solid #F4F4F5',
-                borderBottomLeftRadius: '16px',
-                borderBottomRightRadius: '16px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setActiveSection('history')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '8px',
-                  background: 'transparent', color: '#4F46E5',
-                  fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
-                  border: '1px solid #C7D2FE', cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#EEF2FF')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>history</span>
-                View History
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPrefilledDocType('');
-                  setPrefilledPeriod('');
-                  setActiveSection('submissions');
-                }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 18px', borderRadius: '8px',
-                  background: '#4F46E5', color: '#FFFFFF',
-                  fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
-                  border: 'none', cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#4338CA')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#4F46E5')}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>upload_file</span>
-                Submit a Document
-              </button>
-            </div>
-          </div>
-
           {/* ── KPI Stat Cards ─────────────────────────────────────────── */}
           <Row className="mb-4 g-3">
             {[
@@ -449,87 +352,19 @@ export default function UserDashboard() {
             ))}
           </Row>
 
-          {/* ── Doughnut + Missing Documents ───────────────────────────── */}
+          {/* ── Gauge + Missing Documents ───────────────────────────── */}
           <Row className="mb-4 g-3">
-            {/* Doughnut — Submission Status Distribution */}
+            {/* Gauge — Submission Status Distribution */}
             <Col md={4}>
               <div className="analytics-card h-100" style={{ background: '#fff' }}>
-                <div className="chart-card-header chart-header-primary">
-                  <p className="chart-card-title">
-                    <span
-                      className="material-symbols-outlined icon-primary"
-                      style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}
-                    >
-                      donut_large
-                    </span>
-                    Submission Status
-                  </p>
-                  <p className="chart-card-subtitle">Distribution of all submissions</p>
-                </div>
-                <div className="p-4">
-                  {analytics.totalSubmitted === 0 ? (
-                    <div
-                      style={{
-                        height: '220px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        color: '#A1A1AA',
-                      }}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: '40px', color: '#D4D4D8' }}
-                      >
-                        insert_chart
-                      </span>
-                      <p style={{ fontSize: '13px', margin: 0, textAlign: 'center', fontFamily: 'var(--font-body)' }}>
-                        No submissions yet.<br />Start by submitting a document.
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ height: '220px', position: 'relative' }}>
-                      <Doughnut data={doughnutData} options={doughnutOptions} />
-                      {/* Centre label */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '40%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          textAlign: 'center',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontFamily: 'var(--font-headline)',
-                            fontSize: '28px',
-                            fontWeight: 800,
-                            color: '#18181B',
-                            lineHeight: 1,
-                          }}
-                        >
-                          {analytics.complianceRate}%
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '10px',
-                            color: '#71717A',
-                            fontWeight: 700,
-                            letterSpacing: '0.07em',
-                            textTransform: 'uppercase',
-                            marginTop: '3px',
-                          }}
-                        >
-                          Compliant
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <UnifiedGaugeChart
+                  title="Submission Status"
+                  subtitle="Distribution of all submissions"
+                  slices={gaugeSlices}
+                  centerValue={`${analytics.complianceRate}%`}
+                  centerLabel="Compliant"
+                  emptyMessage={"No submissions yet.\nStart by submitting a document."}
+                />
               </div>
             </Col>
 

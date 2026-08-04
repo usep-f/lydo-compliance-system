@@ -4,16 +4,15 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
   PointElement,
   LineElement,
-  ArcElement,
   Tooltip,
   Legend,
   Filler,
-  type TooltipItem,
 } from 'chart.js';
-import { Bar, Line, Doughnut } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
+import UnifiedGaugeChart from './UnifiedGaugeChart';
+import UnifiedBarChart from './UnifiedBarChart';
 import { BARANGAYS } from '../../constants/barangays';
 import {
   type PendingSubmission,
@@ -25,8 +24,8 @@ import { exportBarangayProfileToCsv } from '../../utils/csvUtils';
 
 // Register Chart.js
 ChartJS.register(
-  CategoryScale, LinearScale, BarElement,
-  PointElement, LineElement, ArcElement,
+  CategoryScale, LinearScale,
+  PointElement, LineElement,
   Tooltip, Legend, Filler,
 );
 
@@ -179,38 +178,21 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
 
   // ── Chart Data ──────────────────────────────────────────────────
 
-  const doughnutData = {
-    labels: ['Approved', 'Pending', 'Missing'],
-    datasets: [{
-      data: [
-        compliance.overallRate,
-        Math.round(
-          (compliance.pendingReviewCount /
-            Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100,
-        ),
-        Math.max(
-          0,
-          100 - compliance.overallRate -
-          Math.round(
-            (compliance.pendingReviewCount /
-              Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100,
-          ),
-        ),
-      ],
-      backgroundColor: ['#22C55E', '#F59E0B', '#EF4444'],
-      borderWidth: 0,
-      cutout: '72%',
-    }],
-  };
+  const pendingPct = useMemo(() => Math.round(
+    (compliance.pendingReviewCount /
+      Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100,
+  ), [compliance.pendingReviewCount, compliance.barangayRanking]);
 
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, position: 'bottom' as const, labels: { boxWidth: 10, padding: 16, font: { size: 12 } } },
-      tooltip: { callbacks: { label: (ctx: TooltipItem<'doughnut'>) => `${ctx.label}: ${ctx.raw}%` } },
+  const gaugeSlices = useMemo(() => [
+    { label: 'Approved',       value: compliance.overallRate, color: '#16A34A' },
+    { label: 'Pending Review', value: pendingPct,             color: '#F59E0B' },
+    {
+      label: 'Missing',
+      value: Math.max(0, 100 - compliance.overallRate - pendingPct),
+      color: '#EF4444',
+      isStriped: true,
     },
-  };
+  ], [compliance.overallRate, pendingPct]);
 
   // Sorted ranking list controlled by the sort direction toggle
   const sortedRanking = useMemo(() => {
@@ -220,104 +202,49 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
       : list.sort((a, b) => a.rate - b.rate);
   }, [compliance.barangayRanking, rankingSortDir]);
 
-  const top5 = sortedRanking.slice(0, 5);
-  const barangayBarData = {
-    labels: top5.map((b) => b.barangay.length > 20 ? b.barangay.slice(0, 18) + '…' : b.barangay),
-    datasets: [{
-      label: 'Compliance %',
-      data: top5.map((b) => b.rate),
-      backgroundColor: top5.map((b) => b.rate >= 80 ? '#22C55E' : b.rate >= 50 ? '#F59E0B' : '#EF4444'),
-      borderRadius: 6,
-      barThickness: 16,
-    }],
-  };
+  const top5 = useMemo(() => sortedRanking.slice(0, 5), [sortedRanking]);
 
-  const barangayBarOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (ctx: TooltipItem<'bar'>) => {
-            const b = top5[ctx.dataIndex];
-            return `${b.approved}/${b.expected} (${b.rate}%)`;
-          },
-        },
-      },
+  // Barangay Compliance Ranking Bar Chart
+  const rankingCategories = useMemo(() => top5.map((b) => ({
+    label: b.barangay,
+    values: { rate: b.rate },
+    color: b.rate >= 80 ? '#16A34A' : b.rate >= 50 ? '#F59E0B' : '#EF4444',
+    tooltipSubtext: `${b.approved}/${b.expected} approved`,
+  })), [top5]);
+
+  const rankingSeries = useMemo(() => [
+    { key: 'rate', label: 'Compliance Rate', color: '#16A34A' },
+  ], []);
+
+  // Single-barangay: Document Type Breakdown
+  const docBreakdownCategories = useMemo(() => compliance.docTypeCompliance.map((d) => ({
+    label: d.label,
+    values: {
+      approved: d.approved,
+      remaining: Math.max(0, d.expected - d.approved),
     },
-    scales: {
-      x: { max: 100, grid: { color: '#F4F4F5' }, ticks: { callback: (v: number | string) => `${v}%` } },
-      y: { grid: { display: false }, ticks: { font: { size: 11 } } },
+    tooltipSubtext: `${d.approved}/${d.expected} approved`,
+  })), [compliance.docTypeCompliance]);
+
+  const docBreakdownSeries = useMemo(() => [
+    { key: 'approved',  label: 'Approved Submissions', color: '#16A34A' },
+    { key: 'remaining', label: 'Remaining Target',     color: '#BBF7D0' },
+  ], []);
+
+  // Document Type Compliance (vertical single-column stacked pill bar chart)
+  const docTypeBarCategories = useMemo(() => compliance.docTypeCompliance.map((d) => ({
+    label: d.label,
+    values: {
+      approved: d.approved,
+      remaining: Math.max(0, d.expected - d.approved),
     },
-  };
+    tooltipSubtext: `${d.approved}/${d.expected} approved`,
+  })), [compliance.docTypeCompliance]);
 
-  // Single-barangay: Document Type Breakdown chart
-  const docBreakdownData = {
-    labels: compliance.docTypeCompliance.map((d) =>
-      d.label.length > 22 ? d.label.slice(0, 20) + '\u2026' : d.label,
-    ),
-    datasets: [
-      {
-        label: 'Expected',
-        data: compliance.docTypeCompliance.map((d) => d.expected),
-        backgroundColor: '#E0E7FF',
-        borderRadius: 5,
-        barThickness: 14,
-      },
-      {
-        label: 'Approved',
-        data: compliance.docTypeCompliance.map((d) => d.approved),
-        backgroundColor: '#22C55E',
-        borderRadius: 5,
-        barThickness: 14,
-      },
-    ],
-  };
-
-  const docBreakdownOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'top' as const, labels: { boxWidth: 10, font: { size: 12 } } } },
-    scales: {
-      x: { grid: { color: '#F4F4F5' }, beginAtZero: true },
-      y: { grid: { display: false }, ticks: { font: { size: 11 } } },
-    },
-  };
-
-  const docTypeBarData = {
-    labels: compliance.docTypeCompliance.map((d) =>
-      d.label.length > 25 ? d.label.slice(0, 22) + '…' : d.label,
-    ),
-    datasets: [
-      {
-        label: 'Expected',
-        data: compliance.docTypeCompliance.map((d) => d.expected),
-        backgroundColor: '#E0E7FF',
-        borderRadius: 5,
-        barThickness: 22,
-      },
-      {
-        label: 'Approved',
-        data: compliance.docTypeCompliance.map((d) => d.approved),
-        backgroundColor: '#4F46E5',
-        borderRadius: 5,
-        barThickness: 22,
-      },
-    ],
-  };
-
-  const docTypeBarOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'top' as const, labels: { boxWidth: 10, font: { size: 12 } } } },
-    scales: {
-      x: { grid: { display: false } },
-      y: { grid: { color: '#F4F4F5' }, beginAtZero: true },
-    },
-  };
+  const docTypeBarSeries = useMemo(() => [
+    { key: 'approved',  label: 'Approved Submissions', color: '#006EB7' },
+    { key: 'remaining', label: 'Remaining Target',     color: '#C7D2FE' },
+  ], []);
 
   const trendLineData = {
     labels: compliance.monthlyTrend.map((m) => m.month),
@@ -449,90 +376,28 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
         ))}
       </Row>
 
-      {/* 2 ── Row 2: Doughnut + Compliance Ranking (or Doc Type Breakdown) */}
+      {/* 2 ── Row 2: Overall Compliance (Gauge) + Submission Trend (Line) */}
       <Row className="mb-4 g-3">
         <Col md={4}>
-          <AnalyticsCard
-            headerClass="chart-header-primary"
-            icon="donut_large"
-            iconClass="icon-primary"
-            title="Overall Compliance"
-            subtitle="Share of approved vs. pending vs. missing"
-          >
-            <div style={{ height: '260px', position: 'relative' }}>
-              <Doughnut data={doughnutData} options={doughnutOptions} />
-              <div
-                className="position-absolute top-50 start-50 translate-middle text-center"
-                style={{ pointerEvents: 'none', marginTop: '-18px' }}
-              >
-                <div style={{ fontFamily: 'var(--font-headline)', fontSize: '30px', fontWeight: 800, color: '#18181B', lineHeight: 1 }}>
-                  {compliance.overallRate}%
-                </div>
-                <div style={{ fontSize: '11px', color: '#71717A', marginTop: '4px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Compliant
-                </div>
-              </div>
-            </div>
-          </AnalyticsCard>
+          <div className="analytics-card h-100" style={{ background: '#fff' }}>
+            <UnifiedGaugeChart
+              title="Overall Compliance"
+              subtitle={selectedBarangay ? `Share of approved vs. pending vs. missing — ${selectedBarangay}` : "Share of approved vs. pending vs. missing"}
+              slices={gaugeSlices}
+              centerValue={`${compliance.overallRate}%`}
+              centerLabel="Compliant"
+              emptyMessage="No compliance data available."
+            />
+          </div>
         </Col>
 
         <Col md={8}>
-          {selectedBarangay ? (
-            <AnalyticsCard
-              headerClass="chart-header-success"
-              icon="list_alt"
-              iconClass="icon-success"
-              title="Document Type Breakdown"
-              subtitle={`Expected vs. approved — ${selectedBarangay}`}
-            >
-              <div style={{ height: '300px' }}>
-                <Bar data={docBreakdownData} options={docBreakdownOptions} />
-              </div>
-            </AnalyticsCard>
-          ) : (
-            <AnalyticsCard
-              headerClass="chart-header-success"
-              icon="bar_chart"
-              iconClass="icon-success"
-              title="Barangay Compliance Ranking"
-              subtitle={rankingSortDir === 'desc' ? 'Top 5 — green ≥ 80%, amber ≥ 50%, red < 50%' : 'Bottom 5 — green ≥ 80%, amber ≥ 50%, red < 50%'}
-              headerRight={
-                <SortToggle
-                  direction={rankingSortDir}
-                  onToggle={() => setRankingSortDir((d) => d === 'desc' ? 'asc' : 'desc')}
-                />
-              }
-            >
-              <div style={{ height: '300px' }}>
-                <Bar data={barangayBarData} options={barangayBarOptions} />
-              </div>
-            </AnalyticsCard>
-          )}
-        </Col>
-      </Row>
-
-      {/* 3 ── Row 3: Document Type Compliance + Submission Trend */}
-      <Row className="mb-4 g-3">
-        <Col md={6}>
-          <AnalyticsCard
-            headerClass="chart-header-warning"
-            icon="description"
-            iconClass="icon-warning"
-            title="Document Type Compliance"
-            subtitle="Expected vs. approved per document type"
-          >
-            <div style={{ height: '280px' }}>
-              <Bar data={docTypeBarData} options={docTypeBarOptions} />
-            </div>
-          </AnalyticsCard>
-        </Col>
-        <Col md={6}>
           <AnalyticsCard
             headerClass="chart-header-info"
             icon="trending_up"
             iconClass="icon-info"
             title="Submission Trend"
-            subtitle="Monthly submission vs. approval volume"
+            subtitle={selectedBarangay ? `Monthly submission vs. approval volume — ${selectedBarangay}` : "Monthly submission vs. approval volume"}
           >
             <div style={{ height: '280px' }}>
               <Line data={trendLineData} options={trendLineOptions} />
@@ -540,6 +405,48 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           </AnalyticsCard>
         </Col>
       </Row>
+
+      {/* 3 ── Row 3: Document Type Compliance (Full Width) */}
+      <Row className="mb-4 g-3">
+        <Col md={12}>
+          <div className="analytics-card h-100" style={{ background: '#fff' }}>
+            <UnifiedBarChart
+              title="Document Type Compliance"
+              subtitle={selectedBarangay ? `Expected vs. approved — ${selectedBarangay}` : "Expected vs. approved per document type"}
+              categories={selectedBarangay ? docBreakdownCategories : docTypeBarCategories}
+              series={selectedBarangay ? docBreakdownSeries : docTypeBarSeries}
+              orientation="vertical"
+              stacked={true}
+              chartHeight={250}
+            />
+          </div>
+        </Col>
+      </Row>
+
+      {/* 4 ── Row 4: Barangay Compliance Ranking (Full Width, hidden when filtered) */}
+      {!selectedBarangay && (
+        <Row className="mb-4 g-3">
+          <Col md={12}>
+            <div className="analytics-card h-100" style={{ background: '#fff' }}>
+              <UnifiedBarChart
+                title="Barangay Compliance Ranking"
+                subtitle={rankingSortDir === 'desc' ? 'Top 5 — green ≥ 80%, amber ≥ 50%, red < 50%' : 'Bottom 5 — green ≥ 80%, amber ≥ 50%, red < 50%'}
+                headerRight={
+                  <SortToggle
+                    direction={rankingSortDir}
+                    onToggle={() => setRankingSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+                  />
+                }
+                categories={rankingCategories}
+                series={rankingSeries}
+                orientation="horizontal"
+                valueSuffix="%"
+                maxValue={100}
+              />
+            </div>
+          </Col>
+        </Row>
+      )}
     </>
   );
 };

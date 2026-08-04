@@ -8,9 +8,10 @@ import DashboardSidebar from './DashboardSidebar';
 import NotificationBell from '../common/NotificationBell';
 
 interface SectionPageHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   icon?: string;
+  variant?: 'slate' | 'purple';
 }
 
 interface DashboardShellProps {
@@ -68,23 +69,27 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
           <Container fluid={fluid} className="h-100 p-0">
             {/* Section Page Header — rendered only when pageHeader is provided */}
             {pageHeader && (
-              <div className="section-page-header">
+              <div className={`section-page-header ${pageHeader.variant === 'purple' ? 'section-page-header-purple' : ''}`}>
                 <div className="section-page-header-bg" />
                 {/* Left: title + subtitle */}
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <p className="sph-title d-flex align-items-center gap-2">
+                  <div className="sph-title d-flex align-items-center gap-2">
                     {pageHeader.icon && (
                       <span
-                        className="material-symbols-outlined text-primary"
+                        className="material-symbols-outlined"
                         style={{ fontSize: '0.85em', fontVariationSettings: "'FILL' 0, 'wght' 600" }}
                       >
                         {pageHeader.icon}
                       </span>
                     )}
                     <span>{pageHeader.title}</span>
-                  </p>
+                  </div>
                   {pageHeader.subtitle && (
-                    <p className="sph-subtitle">{pageHeader.subtitle}</p>
+                    typeof pageHeader.subtitle === 'string' ? (
+                      <p className="sph-subtitle">{pageHeader.subtitle}</p>
+                    ) : (
+                      <div className="sph-subtitle">{pageHeader.subtitle}</div>
+                    )
                   )}
                 </div>
 
