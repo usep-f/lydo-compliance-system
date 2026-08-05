@@ -464,14 +464,48 @@
   }
 
   .nav-mobile-toggle {
-    display: block !important;
+    display: flex !important;
   }
 
   .navbar-custom {
     display: block !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1040 !important;
     background-color: #FFFFFF !important;
     border-bottom: 1px solid #E4E4E7 !important;
+    margin-bottom: 1rem !important;
   }
+}
+
+/* Offcanvas Mobile Sidebar Drawer Layering */
+.offcanvas-backdrop {
+  z-index: 1055 !important;
+}
+
+.mobile-sidebar-offcanvas {
+  width: 280px !important;
+  background-color: var(--sidebar-bg) !important;
+  border: none !important;
+  color: #FFFFFF !important;
+  z-index: 1060 !important;
+}
+
+.mobile-sidebar-offcanvas .offcanvas-body {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.mobile-sidebar-offcanvas .sidebar-container {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  box-shadow: none !important;
+}
+
+.mobile-sidebar-offcanvas .sidebar-collapse-toggle {
+  display: none !important;
 }
 
 @media (min-width: 1001px) {
