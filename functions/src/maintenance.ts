@@ -15,6 +15,7 @@ import { getStorage } from 'firebase-admin/storage';
  */
 export const purgeSystemData = functions.https.onCall(
   {
+    cors: true,
     maxInstances: 10,
     timeoutSeconds: 120,
     memory: '512MiB',
