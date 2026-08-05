@@ -93,9 +93,31 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 }) => {
   const [adminName, setAdminName] = useState<string>('Loading...');
   const [adminRole, setAdminRole] = useState<string>('user');
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('lydo_sidebar_collapsed') === 'true';
+  });
+  // Controls text visibility to prevent text wrapping/jittering during expansion animation
+  const [showText, setShowText] = useState<boolean>(!isCollapsed);
+
   const navigate = useNavigate();
 
   const handleLogout = () => signOut(auth);
+
+  const toggleCollapse = () => {
+    if (isCollapsed) {
+      // Expanding: Expand width first, then show text after width transition completes (240ms)
+      setIsCollapsed(false);
+      localStorage.setItem('lydo_sidebar_collapsed', 'false');
+      setTimeout(() => {
+        setShowText(true);
+      }, 240);
+    } else {
+      // Collapsing: Hide text instantly, then shrink width
+      setShowText(false);
+      setIsCollapsed(true);
+      localStorage.setItem('lydo_sidebar_collapsed', 'true');
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -136,7 +158,19 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   );
 
   return (
-    <aside className="sidebar-container d-flex flex-column">
+    <aside className={`sidebar-container d-flex flex-column${isCollapsed ? ' collapsed' : ''}`}>
+      {/* ── Floating Collapse Toggle Button ── */}
+      <button
+        type="button"
+        className="sidebar-collapse-toggle"
+        onClick={toggleCollapse}
+        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        <span className="material-symbols-outlined">
+          {isCollapsed ? 'chevron_right' : 'chevron_left'}
+        </span>
+      </button>
+
       {/* ── Brand Header ── */}
       <div className="sidebar-brand-wrapper">
         <div className="sidebar-brand-logo">
@@ -147,27 +181,36 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
             />
           </div>
-          <div>
-            <h4 className="m-0">{title}</h4>
-            <span className="sidebar-brand-tagline">Compliance System</span>
-          </div>
+          {showText && (
+            <div className="sidebar-text-fade-in" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              <h4 className="m-0">{title}</h4>
+              <span className="sidebar-brand-tagline">Compliance System</span>
+            </div>
+          )}
         </div>
 
         {/* User chip */}
-        <div className="sidebar-user-chip">
+        <div className="sidebar-user-chip" title={isCollapsed ? `${adminName} (${isAdmin ? 'Admin' : 'SK'})` : undefined}>
           <div className="sidebar-user-avatar">{initials}</div>
-          <div className="sidebar-user-name">{adminName}</div>
-          <span className={`sidebar-user-role ${isAdmin ? 'sidebar-role-admin' : 'sidebar-role-user'}`}>
-            {isAdmin ? 'Admin' : 'SK'}
-          </span>
+          {showText && (
+            <div className="sidebar-text-fade-in d-flex align-items-center justify-content-between gap-2 flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              <div className="sidebar-user-name">{adminName}</div>
+              <span className={`sidebar-user-role ${isAdmin ? 'sidebar-role-admin' : 'sidebar-role-user'}`}>
+                {isAdmin ? 'Admin' : 'SK'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Nav Links ── */}
       <nav className="flex-grow-1 px-3 py-3 sidebar-nav-links" style={{ overflowY: 'auto' }}>
         {groupedCategories.map((cat, catIdx) => (
-          <div key={cat.title} className={catIdx > 0 ? 'mt-3' : ''}>
-            <div className="sidebar-section-label">{cat.title}</div>
+          <div
+            key={cat.title}
+            className={catIdx > 0 ? (isCollapsed ? 'mt-2 pt-2 border-top border-secondary border-opacity-25' : 'mt-3') : ''}
+          >
+            {showText && <div className="sidebar-section-label sidebar-text-fade-in">{cat.title}</div>}
             {cat.sections.map((sec) => {
               const isActive = sec.id === activeSection;
               const iconClass = isActive ? '' : (SECTION_ICON_CLASS[sec.id] || '');
@@ -180,13 +223,15 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                   className={`sidebar-link w-100 border-0 text-start${isActive ? ' bg-primary' : ''}`}
                   style={{ cursor: 'pointer', background: 'none' }}
                   aria-current={isActive ? 'page' : undefined}
+                  title={isCollapsed ? sec.label : undefined}
                 >
-                  <span className={`material-symbols-outlined ${iconClass}`}>
+                  <span className={`material-symbols-outlined ${iconClass}${showText ? ' sidebar-icon-fade-in' : ''}`}>
                     {sec.icon}
                   </span>
-                  <span>{sec.label}</span>
-                  {!sec.isImplemented && (
+                  {showText && <span className="sidebar-text-fade-in" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>{sec.label}</span>}
+                  {showText && !sec.isImplemented && (
                     <span
+                      className="sidebar-text-fade-in"
                       style={{
                         marginLeft: 'auto',
                         fontSize: '9px',
@@ -198,6 +243,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                         border: '1px solid rgba(255,255,255,0.12)',
                         borderRadius: '9999px',
                         padding: '1px 6px',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       Soon
@@ -210,23 +256,23 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         ))}
       </nav>
 
-      {/* ── Logout Footer ── */}
+      {/* ── Footer Actions Bar ── */}
       <div className="sidebar-footer">
         <button
           type="button"
-          className="sidebar-logout-btn"
-          onClick={handleLogout}
+          className="sidebar-footer-icon-btn sidebar-home-icon-btn"
+          onClick={() => navigate('/')}
+          title="Homepage"
         >
-          <span className="material-symbols-outlined">logout</span>
-          <span>Sign Out</span>
+          <span className="material-symbols-outlined">home</span>
         </button>
         <button
           type="button"
-          className="sidebar-home-btn"
-          onClick={() => navigate('/')}
+          className="sidebar-footer-icon-btn sidebar-logout-icon-btn"
+          onClick={handleLogout}
+          title="Sign Out"
         >
-          <span className="material-symbols-outlined">home</span>
-          <span>Homepage</span>
+          <span className="material-symbols-outlined">logout</span>
         </button>
       </div>
     </aside>
