@@ -158,7 +158,9 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   );
 
   return (
-    <aside className={`sidebar-container d-flex flex-column${isCollapsed ? ' collapsed' : ''}`}>
+    <>
+      <div className={`sidebar-placeholder flex-shrink-0${isCollapsed ? ' collapsed' : ''}`} aria-hidden="true" />
+      <aside className={`sidebar-container d-flex flex-column${isCollapsed ? ' collapsed' : ''}`}>
       {/* ── Floating Collapse Toggle Button ── */}
       <button
         type="button"
@@ -276,6 +278,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         </button>
       </div>
     </aside>
+    </>
   );
 };
 

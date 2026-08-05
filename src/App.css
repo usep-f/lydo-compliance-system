@@ -15,11 +15,11 @@
 .sidebar-container {
   width: 260px;
   height: 100vh;
-  position: sticky !important;
+  max-height: 100vh !important;
+  position: fixed !important;
   top: 0 !important;
-  align-self: flex-start !important;
-  flex-shrink: 0 !important;
-  z-index: 100;
+  left: 0 !important;
+  z-index: 1040;
   display: flex !important;
   flex-direction: column;
   background-color: var(--sidebar-bg) !important;
@@ -30,6 +30,15 @@
 
 .sidebar-container.collapsed {
   width: 72px !important;
+}
+
+.sidebar-placeholder {
+  width: 260px;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-placeholder.collapsed {
+  width: 72px;
 }
 
 /* Floating edge collapse toggle button */
@@ -186,6 +195,7 @@
 .sidebar-nav-links {
   overflow-y: auto;
   scrollbar-width: none;
+  min-height: 0 !important;
 }
 
 .sidebar-nav-links::-webkit-scrollbar {
@@ -310,12 +320,14 @@
 }
 
 .sidebar-container.collapsed .sidebar-footer {
-  padding: 10px 6px !important;
-  gap: 4px !important;
+  flex-direction: column !important;
+  padding: 12px 10px !important;
+  gap: 8px !important;
 }
 
 .sidebar-container.collapsed .sidebar-footer-icon-btn {
-  height: 36px !important;
+  width: 100% !important;
+  height: 38px !important;
 }
 
 /* Sidebar Fade-In Animations on Uncollapsing */
@@ -455,7 +467,8 @@
    ========================================== */
 
 @media (max-width: 1000px) {
-  .sidebar-container {
+  .sidebar-container,
+  .sidebar-placeholder {
     display: none !important;
   }
 
@@ -515,6 +528,10 @@
 
   .sidebar-container {
     display: flex !important;
+  }
+
+  .sidebar-placeholder {
+    display: block !important;
   }
 
   .nav-desktop-tabs {
