@@ -228,9 +228,9 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.25);
-  padding: 8px 14px 4px;
-  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 6px 14px 4px;
+  margin-bottom: 2px;
 }
 
 /* ==========================================

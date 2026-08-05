@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
@@ -10,6 +10,11 @@ export interface NavigationSection {
   label: string;
   isImplemented: boolean;
   icon: string;
+}
+
+export interface NavigationCategory {
+  title: string;
+  sections: NavigationSection[];
 }
 
 interface DashboardSidebarProps {
@@ -43,6 +48,42 @@ const SECTION_ICON_CLASS: Record<string, string> = {
   cms:         'sidebar-icon-cms',
   settings:    'sidebar-icon-settings',
 };
+
+const CATEGORY_ORDER: { title: string; ids: string[] }[] = [
+  { title: 'OVERVIEW', ids: ['home'] },
+  { title: 'USER MANAGEMENT', ids: ['applicants', 'users'] },
+  { title: 'COMPLIANCE & SUBMISSIONS', ids: ['submissions', 'history', 'analytics', 'matrix'] },
+  { title: 'SYSTEM & CONTENT', ids: ['cms', 'settings'] },
+];
+
+function groupSectionsIntoCategories(rawSections: NavigationSection[]): NavigationCategory[] {
+  const sectionMap = new Map<string, NavigationSection>();
+  rawSections.forEach((sec) => sectionMap.set(sec.id, sec));
+
+  const categories: NavigationCategory[] = [];
+  const handledIds = new Set<string>();
+
+  CATEGORY_ORDER.forEach(({ title, ids }) => {
+    const matchedSections: NavigationSection[] = [];
+    ids.forEach((id) => {
+      const sec = sectionMap.get(id);
+      if (sec) {
+        matchedSections.push(sec);
+        handledIds.add(id);
+      }
+    });
+    if (matchedSections.length > 0) {
+      categories.push({ title, sections: matchedSections });
+    }
+  });
+
+  const unhandledSections = rawSections.filter((sec) => !handledIds.has(sec.id));
+  if (unhandledSections.length > 0) {
+    categories.push({ title: 'NAVIGATION', sections: unhandledSections });
+  }
+
+  return categories;
+}
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   title,
@@ -89,6 +130,11 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
   const isAdmin = adminRole === 'admin';
 
+  const groupedCategories = useMemo(
+    () => groupSectionsIntoCategories(sections),
+    [sections],
+  );
+
   return (
     <aside className="sidebar-container d-flex flex-column">
       {/* ── Brand Header ── */}
@@ -119,45 +165,49 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
       {/* ── Nav Links ── */}
       <nav className="flex-grow-1 px-3 py-3 sidebar-nav-links" style={{ overflowY: 'auto' }}>
-        <div className="sidebar-section-label">Navigation</div>
-        {sections.map((sec) => {
-          const isActive = sec.id === activeSection;
-          const iconClass = isActive ? '' : (SECTION_ICON_CLASS[sec.id] || '');
+        {groupedCategories.map((cat, catIdx) => (
+          <div key={cat.title} className={catIdx > 0 ? 'mt-3' : ''}>
+            <div className="sidebar-section-label">{cat.title}</div>
+            {cat.sections.map((sec) => {
+              const isActive = sec.id === activeSection;
+              const iconClass = isActive ? '' : (SECTION_ICON_CLASS[sec.id] || '');
 
-          return (
-            <button
-              key={sec.id}
-              type="button"
-              onClick={() => onSectionSelect(sec.id)}
-              className={`sidebar-link w-100 border-0 text-start${isActive ? ' bg-primary' : ''}`}
-              style={{ cursor: 'pointer', background: 'none' }}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <span className={`material-symbols-outlined ${iconClass}`}>
-                {sec.icon}
-              </span>
-              <span>{sec.label}</span>
-              {!sec.isImplemented && (
-                <span
-                  style={{
-                    marginLeft: 'auto',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    background: 'rgba(255,255,255,0.1)',
-                    color: 'rgba(255,255,255,0.35)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '9999px',
-                    padding: '1px 6px',
-                  }}
+              return (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => onSectionSelect(sec.id)}
+                  className={`sidebar-link w-100 border-0 text-start${isActive ? ' bg-primary' : ''}`}
+                  style={{ cursor: 'pointer', background: 'none' }}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  Soon
-                </span>
-              )}
-            </button>
-          );
-        })}
+                  <span className={`material-symbols-outlined ${iconClass}`}>
+                    {sec.icon}
+                  </span>
+                  <span>{sec.label}</span>
+                  {!sec.isImplemented && (
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        background: 'rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.35)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '9999px',
+                        padding: '1px 6px',
+                      }}
+                    >
+                      Soon
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* ── Logout Footer ── */}

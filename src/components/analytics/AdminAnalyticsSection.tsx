@@ -18,7 +18,7 @@ import {
   type PendingSubmission,
   type HistoricalSubmission,
 } from '../../constants/submissionTypes';
-import { useComplianceData } from '../../hooks/useComplianceData';
+import { useComplianceData, type TrendTimeframe } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
 import { exportBarangayProfileToCsv } from '../../utils/csvUtils';
 
@@ -64,6 +64,58 @@ const AnalyticsCard: React.FC<{
     <div className="p-4">
       {children}
     </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+   Timeframe toggle button group
+───────────────────────────────────────────── */
+const TimeframeToggle: React.FC<{
+  value: TrendTimeframe;
+  onChange: (val: TrendTimeframe) => void;
+}> = ({ value, onChange }) => (
+  <div
+    style={{
+      display: 'inline-flex',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      border: '1px solid #E4E4E7',
+      flexShrink: 0,
+      background: '#F4F4F5',
+      padding: '2px',
+      gap: '2px',
+    }}
+  >
+    {(
+      [
+        { key: '7d', label: '7 Days' },
+        { key: '30d', label: '30 Days' },
+        { key: 'year', label: 'Year' },
+      ] as const
+    ).map((t) => {
+      const isActive = value === t.key;
+      return (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => onChange(t.key)}
+          style={{
+            padding: '3px 10px',
+            fontSize: '12px',
+            fontWeight: isActive ? 600 : 500,
+            borderRadius: '6px',
+            background: isActive ? '#fff' : 'transparent',
+            color: isActive ? '#18181B' : '#71717A',
+            border: 'none',
+            boxShadow: isActive ? '0 1px 2px rgba(0, 0, 0, 0.05)' : 'none',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {t.label}
+        </button>
+      );
+    })}
   </div>
 );
 
@@ -133,6 +185,9 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   // Sort direction for the compliance ranking bar chart
   const [rankingSortDir, setRankingSortDir] = useState<'desc' | 'asc'>('desc');
 
+  // Timeframe filter for Submission Trend chart
+  const [trendTimeframe, setTrendTimeframe] = useState<TrendTimeframe>('year');
+
   const approved = useMemo(
     () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [history],
@@ -148,7 +203,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     [pending, selectedBarangay],
   );
 
-  const compliance = useComplianceData(currentYear, filteredPending, approved, activeBarangays);
+  const compliance = useComplianceData(currentYear, filteredPending, approved, activeBarangays, trendTimeframe);
 
   // Compute total submitted documents (both pending and history) for current year and barangay filter
   const submittedCount = useMemo(() => {
@@ -245,6 +300,16 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     { key: 'approved',  label: 'Approved Submissions', color: '#006EB7' },
     { key: 'remaining', label: 'Remaining Target',     color: '#C7D2FE' },
   ], []);
+
+  const trendSubtitle = useMemo(() => {
+    const rangeText =
+      trendTimeframe === '7d'
+        ? 'Daily submission vs. approval volume (Past 7 days)'
+        : trendTimeframe === '30d'
+        ? 'Daily submission vs. approval volume (Past 30 days)'
+        : 'Monthly submission vs. approval volume';
+    return selectedBarangay ? `${rangeText} — ${selectedBarangay}` : rangeText;
+  }, [trendTimeframe, selectedBarangay]);
 
   const trendLineData = {
     labels: compliance.monthlyTrend.map((m) => m.month),
@@ -385,7 +450,8 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
             icon="trending_up"
             iconClass="icon-info"
             title="Submission Trend"
-            subtitle={selectedBarangay ? `Monthly submission vs. approval volume — ${selectedBarangay}` : "Monthly submission vs. approval volume"}
+            subtitle={trendSubtitle}
+            headerRight={<TimeframeToggle value={trendTimeframe} onChange={setTrendTimeframe} />}
           >
             <div style={{ height: '280px' }}>
               <Line data={trendLineData} options={trendLineOptions} />

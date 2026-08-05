@@ -71,6 +71,106 @@ export interface ComplianceData {
   barangayPerennialSummary: BarangayPerennialSummary[];
 }
 
+export type TrendTimeframe = '7d' | '30d' | 'year';
+
+function getTimestampMs(val: unknown): number | null {
+  if (!val) return null;
+  const anyVal = val as { toDate?: () => Date };
+  if (typeof anyVal.toDate === 'function') {
+    return anyVal.toDate().getTime();
+  }
+  if (val instanceof Date) return val.getTime();
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = Date.parse(val);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
+function computeDailyTrend(
+  daysCount: number,
+  pending: PendingSubmission[],
+  approved: HistoricalSubmission[],
+  barangays: string[],
+  now: Date,
+): MonthlyTrend[] {
+  const barangaySet = new Set(barangays);
+  const filteredApproved = approved.filter((s) => barangaySet.has(s.barangay));
+  const filteredSubmitted = [...pending, ...approved].filter((s) => barangaySet.has(s.barangay));
+
+  const result: MonthlyTrend[] = [];
+
+  for (let i = daysCount - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+    const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    const monthApproved = filteredApproved.filter((s) => {
+      const ms = getTimestampMs(s.approvedAt);
+      return ms !== null && ms >= dayStart && ms <= dayEnd;
+    }).length;
+
+    const monthSubmitted = filteredSubmitted.filter((s) => {
+      const ms = getTimestampMs(s.submittedAt);
+      return ms !== null && ms >= dayStart && ms <= dayEnd;
+    }).length;
+
+    result.push({
+      month: label,
+      submitted: monthSubmitted,
+      approved: monthApproved,
+      denied: 0,
+    });
+  }
+
+  return result;
+}
+
+function computeYearlyTrend(
+  year: number,
+  pending: PendingSubmission[],
+  approved: HistoricalSubmission[],
+  barangays: string[],
+): MonthlyTrend[] {
+  const barangaySet = new Set(barangays);
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const filteredApproved = approved.filter((s) => barangaySet.has(s.barangay));
+  const filteredSubmitted = [...pending, ...approved].filter((s) => barangaySet.has(s.barangay));
+
+  return monthNames.map((month, i) => {
+    const monthApproved = filteredApproved.filter((s) => {
+      if (s.year !== year) return false;
+      const ms = getTimestampMs(s.approvedAt);
+      if (ms) {
+        const d = new Date(ms);
+        return d.getFullYear() === year && d.getMonth() === i;
+      }
+      return false;
+    }).length;
+
+    const monthSubmitted = filteredSubmitted.filter((s) => {
+      if (s.year !== year) return false;
+      const ms = getTimestampMs(s.submittedAt);
+      if (ms) {
+        const d = new Date(ms);
+        return d.getFullYear() === year && d.getMonth() === i;
+      }
+      return false;
+    }).length;
+
+    return {
+      month,
+      submitted: monthSubmitted,
+      approved: monthApproved,
+      denied: 0,
+    };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -83,7 +183,8 @@ export function useComplianceData(
   year: number,
   pending: PendingSubmission[],
   approved: HistoricalSubmission[],
-  barangays: string[]
+  barangays: string[],
+  timeframe: TrendTimeframe = 'year',
 ): ComplianceData {
   return useMemo(() => {
     const now = new Date();
@@ -173,29 +274,14 @@ export function useComplianceData(
     ];
 
     // -----------------------------------------------------------------------
-    // Monthly Trend (submissions per month)
+    // Submission Trend (submissions per time range: 7d, 30d, year)
     // -----------------------------------------------------------------------
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyTrend: MonthlyTrend[] = monthNames.map((month, i) => {
-      const monthApproved = approved.filter((s) => {
-        if (s.year !== year) return false;
-        const date = s.approvedAt?.toDate ? s.approvedAt.toDate() : null;
-        return date && date.getMonth() === i;
-      }).length;
-
-      const monthSubmitted = [...pending, ...approved].filter((s) => {
-        if (s.year !== year) return false;
-        const date = s.submittedAt?.toDate ? s.submittedAt.toDate() : null;
-        return date && date.getMonth() === i;
-      }).length;
-
-      return {
-        month,
-        submitted: monthSubmitted,
-        approved: monthApproved,
-        denied: 0, // We don't persist denied records, so this stays 0
-      };
-    });
+    const monthlyTrend: MonthlyTrend[] =
+      timeframe === '7d'
+        ? computeDailyTrend(7, pending, approved, barangays, now)
+        : timeframe === '30d'
+        ? computeDailyTrend(30, pending, approved, barangays, now)
+        : computeYearlyTrend(year, pending, approved, barangays);
 
     // -----------------------------------------------------------------------
     // Compliance Matrix
@@ -313,5 +399,5 @@ export function useComplianceData(
       asapStatus,
       barangayPerennialSummary,
     };
-  }, [year, pending, approved, barangays]);
+  }, [year, pending, approved, barangays, timeframe]);
 }
