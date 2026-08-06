@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Badge } from 'react-bootstrap';
+import { Badge } from 'react-bootstrap';
 import type { PendingSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import { DataTable } from '../common/DataTable';
@@ -61,16 +61,12 @@ const UserPendingSubmissions: React.FC<UserPendingSubmissionsProps> = ({ pending
       <h5 className="fw-bold text-dark mb-3" style={{ fontFamily: 'var(--font-headline)' }}>
         Currently Pending Review
       </h5>
-      <Card className="border-0 shadow-sm">
-        <Card.Body className="p-0">
-          <DataTable
-            data={pending}
-            columns={columns}
-            pageSize={5}
-            emptyMessage="No pending submissions."
-          />
-        </Card.Body>
-      </Card>
+      <DataTable
+        data={pending}
+        columns={columns}
+        pageSize={5}
+        emptyMessage="No pending submissions."
+      />
     </div>
   );
 };

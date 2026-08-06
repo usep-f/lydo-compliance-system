@@ -177,16 +177,13 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
       </Card>
 
       {/* History Table */}
-      <Card className="border-0 shadow-sm mb-4">
-        <Card.Body className="p-0">
-          <DataTable
-            data={filteredHistory}
-            columns={columns}
-            pageSize={10}
-            emptyMessage={loading ? 'Loading history...' : 'No past submissions found.'}
-          />
-        </Card.Body>
-      </Card>
+      <DataTable
+        data={filteredHistory}
+        columns={columns}
+        pageSize={10}
+        emptyMessage={loading ? 'Loading history...' : 'No past submissions found.'}
+        className="mb-4"
+      />
 
       {/* Read-Only Document Modal */}
       <DocumentReviewModal

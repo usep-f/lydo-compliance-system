@@ -75,7 +75,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={`border rounded shadow-sm bg-white overflow-hidden ${className}`}>
+    <div className={`card border-0 overflow-hidden ${className}`}>
       {/* Desktop View: Tabular Layout */}
       <div className="d-none d-md-block table-responsive">
         <Table hover={hover} className="mb-0 align-middle">

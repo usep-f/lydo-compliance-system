@@ -140,17 +140,17 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
       </div>
 
       {/* ── Matrix Card ── */}
-      <div className="analytics-card" style={{ background: '#fff', maxWidth: '100%' }}>
-        <div className="chart-card-header chart-header-dark">
+      <div className="analytics-card" style={{ maxWidth: '100%' }}>
+        <div className="chart-card-header chart-header-primary">
           <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div>
-              <p className="chart-card-title" style={{ color: '#FFFFFF' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'rgba(255,255,255,0.8)', fontVariationSettings: "'FILL' 1", marginRight: '8px' }}>
+              <p className="chart-card-title">
+                <span className="material-symbols-outlined icon-matrix" style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1", marginRight: '8px' }}>
                   grid_on
                 </span>
                 Compliance Matrix
               </p>
-              <p className="chart-card-subtitle" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <p className="chart-card-subtitle">
                 Barangay × Period status for selected document type
               </p>
             </div>

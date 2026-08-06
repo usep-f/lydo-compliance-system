@@ -550,7 +550,7 @@ export default function AdminDashboard() {
             className="mb-4 p-4 rounded-3 text-white d-flex align-items-center justify-content-between flex-wrap gap-3"
             style={{
               background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-              boxShadow: '0 4px 20px rgba(15, 23, 42, 0.12)',
+              boxShadow: 'var(--shadow-card-token)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >

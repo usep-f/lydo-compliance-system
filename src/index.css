@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cal+Sans&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 
 /* ==========================================
    PipelinePro Design System Tokens & Overrides
@@ -12,7 +12,7 @@
   --secondary: #334155;
   --tertiary: #475569;
   --bg-color: #F8FAFC;
-  --bg-page: #F8FAFC;
+  --bg-page: #d3dbe2;
   --surface: #FFFFFF;
   --success: #7CB342;
   --warning: #FBA100;
@@ -52,10 +52,34 @@
   --kpi-info-from: #0284C7;
   --kpi-info-to: #06B6D4;
 
+  /* Unified Master Drop Shadow Tokens */
+  --dashboard-shadow-global: 0 8px 10px -2px rgba(48, 68, 66, 0.253), 0 2px 4px -2px rgba(46, 48, 59, 0.212);
+
+  /* Derived Shadow Tokens for Containers (All consume master token) */
+  --shadow-subtle-token: var(--dashboard-shadow-global);
+  --shadow-card-token: var(--dashboard-shadow-global);
+  --shadow-card-hover-token: var(--dashboard-shadow-global);
+  --shadow-kpi-token: var(--dashboard-shadow-global);
+  --shadow-table-token: var(--dashboard-shadow-global);
+  --shadow-modal-token: var(--dashboard-shadow-global);
+
+  /* Abstract Dashboard Background Image Tokens */
+  --dashboard-bg-image: url('/dashboard-bg.png');
+  --dashboard-bg-opacity: 0.45;
+
+  /* Master Card Opacity, Border & Glassmorphism Tokens */
+  --card-bg-opacity: 0.65;
+  --card-bg-color: rgba(255, 255, 255, var(--card-bg-opacity));
+  --card-border-width: 1px;
+  --card-border-style: solid;
+  --card-border-color: rgba(201, 201, 201, 0.65);
+  --card-border-radius: 16px;
+  --card-backdrop-blur: 12px;
+
   /* Font Families */
-  --font-headline: 'Fira Code', monospace;
+  --font-headline: 'Cal Sans', sans-serif;
   --font-body: 'Fira Sans', sans-serif;
-  --font-mono: 'Fira Code', monospace;
+  --font-mono: 'Cal Sans', monospace;
 
   /* Bootstrap Variable Overrides (custom properties) */
   --bs-primary: #006EB7;
@@ -90,7 +114,7 @@ h1,
   font-size: 38px !important;
   font-weight: 700 !important;
   line-height: 1.2 !important;
-  letter-spacing: 0.015em !important;
+  letter-spacing: 0.1em !important;
   color: #18181B !important;
 }
 
@@ -100,7 +124,7 @@ h2,
   font-size: 26px !important;
   font-weight: 600 !important;
   line-height: 1.3 !important;
-  letter-spacing: 0.01em !important;
+  letter-spacing: 0.1em !important;
   color: #18181B !important;
 }
 
@@ -110,6 +134,7 @@ h3,
   font-size: 22px !important;
   font-weight: 600 !important;
   line-height: 1.3 !important;
+  letter-spacing: 0.1em !important;
   color: #18181B !important;
 }
 
@@ -121,6 +146,7 @@ h6,
 .h6 {
   font-family: var(--font-headline);
   font-weight: 600 !important;
+  letter-spacing: 0.1em !important;
   color: #18181B !important;
 }
 
@@ -136,6 +162,29 @@ body {
   color: #3F3F46 !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}
+
+.dashboard-layout {
+  position: relative;
+}
+
+.dashboard-layout::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: var(--dashboard-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--dashboard-bg-opacity);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dashboard-layout > * {
+  position: relative;
+  z-index: 1;
 }
 
 #root {
@@ -148,7 +197,7 @@ body {
   font-size: 52px;
   font-weight: 700;
   line-height: 1.1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.1em;
 }
 
 .headline-text {
@@ -156,7 +205,7 @@ body {
   font-size: 38px;
   font-weight: 700;
   line-height: 1.2;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.1em;
 }
 
 .subhead-text {
@@ -164,7 +213,7 @@ body {
   font-size: 26px;
   font-weight: 600;
   line-height: 1.3;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.1em;
 }
 
 .body-large {
@@ -216,48 +265,36 @@ body {
    Elevation & Shadows
    ========================================== */
 
-.shadow-subtle,
-.shadow-sm {
-  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.05) !important;
+.shadow-subtle {
+  box-shadow: var(--shadow-subtle-token) !important;
 }
 
+.shadow-sm,
 .shadow-medium,
 .shadow {
-  box-shadow: 0 4px 6px -1px rgba(24, 24, 27, 0.07), 0 2px 4px -2px rgba(24, 24, 27, 0.05) !important;
+  box-shadow: var(--dashboard-shadow-global) !important;
 }
 
 .shadow-large,
 .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(24, 24, 27, 0.08), 0 4px 6px -4px rgba(24, 24, 27, 0.04) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .shadow-overlay {
-  box-shadow: 0 20px 25px -5px rgba(24, 24, 27, 0.12), 0 8px 10px -6px rgba(24, 24, 27, 0.06) !important;
+  box-shadow: var(--shadow-modal-token) !important;
 }
 
 .shadow-drag {
-  box-shadow: 0 12px 24px -4px rgba(79, 70, 229, 0.15) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 /* Colored KPI card shadows */
-.shadow-kpi-primary {
-  box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.38) !important;
-}
-
-.shadow-kpi-success {
-  box-shadow: 0 8px 20px -4px rgba(34, 197, 94, 0.35) !important;
-}
-
-.shadow-kpi-warning {
-  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.35) !important;
-}
-
-.shadow-kpi-danger {
-  box-shadow: 0 8px 20px -4px rgba(239, 68, 68, 0.35) !important;
-}
-
+.shadow-kpi-primary,
+.shadow-kpi-success,
+.shadow-kpi-warning,
+.shadow-kpi-danger,
 .shadow-kpi-info {
-  box-shadow: 0 8px 20px -4px rgba(6, 182, 212, 0.35) !important;
+  box-shadow: var(--shadow-kpi-token) !important;
 }
 
 /* ==========================================
@@ -434,22 +471,22 @@ body {
   border: 1px solid #E2E8F0 !important;
   border-radius: 8px !important;
   padding: 0 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+  box-shadow: var(--shadow-card-token) !important;
   transition: all 0.2s ease !important;
 }
 
 .card:hover {
   border-color: #CBD5E1 !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .card-elevated {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: var(--shadow-card-token) !important;
 }
 
 .card-elevated:hover {
   border-color: #CBD5E1 !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 /* Specific Card Headers and Footers */
@@ -620,6 +657,7 @@ textarea.form-control {
 
 .table-responsive {
   border-radius: 8px !important;
+  box-shadow: var(--shadow-table-token) !important;
   overflow: hidden;
 }
 
@@ -705,7 +743,7 @@ textarea.form-control {
 .modal-content {
   border-radius: 8px !important;
   border: 1px solid #E2E8F0 !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: var(--shadow-modal-token) !important;
   overflow: hidden;
 }
 
@@ -851,47 +889,47 @@ textarea.form-control {
 
 .kpi-gradient-primary {
   background: linear-gradient(135deg, var(--kpi-primary-from) 0%, var(--kpi-primary-to) 100%) !important;
-  box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.4) !important;
+  box-shadow: var(--shadow-kpi-token) !important;
 }
 
 .kpi-gradient-primary:hover {
-  box-shadow: 0 20px 35px -8px rgba(79, 70, 229, 0.45), 0 8px 16px -8px rgba(79, 70, 229, 0.3) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .kpi-gradient-success {
   background: linear-gradient(135deg, var(--kpi-success-from) 0%, var(--kpi-success-to) 100%) !important;
-  box-shadow: 0 8px 20px -4px rgba(34, 197, 94, 0.35) !important;
+  box-shadow: var(--shadow-kpi-token) !important;
 }
 
 .kpi-gradient-success:hover {
-  box-shadow: 0 20px 35px -8px rgba(34, 197, 94, 0.4), 0 8px 16px -8px rgba(34, 197, 94, 0.25) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .kpi-gradient-warning {
   background: linear-gradient(135deg, var(--kpi-warning-from) 0%, var(--kpi-warning-to) 100%) !important;
-  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.35) !important;
+  box-shadow: var(--shadow-kpi-token) !important;
 }
 
 .kpi-gradient-warning:hover {
-  box-shadow: 0 20px 35px -8px rgba(245, 158, 11, 0.4), 0 8px 16px -8px rgba(245, 158, 11, 0.25) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .kpi-gradient-danger {
   background: linear-gradient(135deg, var(--kpi-danger-from) 0%, var(--kpi-danger-to) 100%) !important;
-  box-shadow: 0 8px 20px -4px rgba(239, 68, 68, 0.35) !important;
+  box-shadow: var(--shadow-kpi-token) !important;
 }
 
 .kpi-gradient-danger:hover {
-  box-shadow: 0 20px 35px -8px rgba(239, 68, 68, 0.4), 0 8px 16px -8px rgba(239, 68, 68, 0.25) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .kpi-gradient-info {
   background: linear-gradient(135deg, var(--kpi-info-from) 0%, var(--kpi-info-to) 100%) !important;
-  box-shadow: 0 8px 20px -4px rgba(6, 182, 212, 0.35) !important;
+  box-shadow: var(--shadow-kpi-token) !important;
 }
 
 .kpi-gradient-info:hover {
-  box-shadow: 0 20px 35px -8px rgba(6, 182, 212, 0.4), 0 8px 16px -8px rgba(6, 182, 212, 0.25) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 /* KPI card content */
@@ -937,18 +975,42 @@ textarea.form-control {
    Analytics Chart Cards
    ========================================== */
 
+.card,
 .analytics-card {
-  border: none !important;
-  border-radius: 16px !important;
-  /* Matches KPI card rounding */
-  overflow: hidden;
-  box-shadow: 0 6px 16px rgba(24, 24, 27, 0.05), 0 0 0 1px rgba(24, 24, 27, 0.03) !important;
+  background-color: var(--card-bg-color) !important;
+  border: var(--card-border-width) var(--card-border-style) var(--card-border-color) !important;
+  border-radius: var(--card-border-radius) !important;
+  backdrop-filter: blur(var(--card-backdrop-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--card-backdrop-blur)) !important;
+  box-shadow: var(--shadow-card-token) !important;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  overflow: hidden;
 }
 
 .analytics-card:hover {
-  box-shadow: 0 20px 38px -10px rgba(24, 24, 27, 0.12), 0 10px 20px -10px rgba(24, 24, 27, 0.06), 0 0 0 1px rgba(24, 24, 27, 0.02) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
   transform: translateY(-6px) scale(1.01) !important;
+}
+
+/* Encapsulated / Nested Elements inside cards, analytics-cards, and modals should NOT have drop shadows */
+.card .card,
+.card .analytics-card,
+.card .table-responsive,
+.card .inner-card,
+.card form,
+.analytics-card .card,
+.analytics-card .analytics-card,
+.analytics-card .table-responsive,
+.analytics-card .inner-card,
+.analytics-card form,
+.modal-content .card,
+.modal-content .analytics-card,
+.modal-content .table-responsive,
+.modal-content form,
+.welcome-card .card,
+.welcome-card .table-responsive,
+.kpi-card .card {
+  box-shadow: none !important;
 }
 
 .analytics-card .chart-card-header {
@@ -996,7 +1058,7 @@ textarea.form-control {
 }
 
 .chart-header-dark {
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
 }
 
 .chart-header-danger {
@@ -1087,14 +1149,14 @@ textarea.form-control {
 }
 
 .section-page-header {
-  background: linear-gradient(135deg, #475569 0%, #1E293B 100%) !important;
+  background: linear-gradient(135deg, #005691 0%, #002642 100%) !important;
   border: none !important;
   border-radius: 16px !important;
   padding: 22px 28px !important;
   margin: 0 0 24px 0 !important;
   position: relative !important;
   overflow: visible !important;
-  box-shadow: 0 10px 30px -5px rgba(30, 41, 59, 0.15), 0 4px 12px -4px rgba(30, 41, 59, 0.08) !important;
+  box-shadow: var(--shadow-card-token) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -1108,7 +1170,7 @@ textarea.form-control {
 
 .section-page-header-purple {
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important;
-  box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.25), 0 4px 12px -4px rgba(124, 58, 237, 0.15) !important;
+  box-shadow: var(--shadow-card-token) !important;
 }
 
 .section-page-header-bg {
@@ -1303,13 +1365,13 @@ textarea.form-control {
   border: none !important;
   border-radius: 16px !important;
   overflow: visible;
-  box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.15), 0 4px 12px -4px rgba(79, 70, 229, 0.08) !important;
+  box-shadow: var(--shadow-card-token) !important;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
 .welcome-card:hover {
   transform: none !important;
-  box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.15), 0 4px 12px -4px rgba(79, 70, 229, 0.08) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
 }
 
 .welcome-card-banner {
@@ -2070,7 +2132,7 @@ textarea.form-control {
   background: #FFFFFF;
   border-radius: 20px;
   border: 1px solid #E2E8F0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 0 0 0 rgba(0,110,183,0);
+  box-shadow: var(--shadow-card-token) !important;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
@@ -2097,17 +2159,17 @@ textarea.form-control {
 
 .premium-card:hover {
   transform: translateY(-10px) scale(1.015) !important;
-  box-shadow: 0 32px 64px -12px rgba(0,0,0,0.12), 0 8px 24px -8px rgba(0,110,183,0.12) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
   border-color: rgba(0,110,183,0.2) !important;
 }
 
 .premium-card-amber:hover {
-  box-shadow: 0 32px 64px -12px rgba(0,0,0,0.12), 0 8px 24px -8px rgba(251,161,0,0.15) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
   border-color: rgba(251,161,0,0.25) !important;
 }
 
 .premium-card-green:hover {
-  box-shadow: 0 32px 64px -12px rgba(0,0,0,0.12), 0 8px 24px -8px rgba(124,179,66,0.12) !important;
+  box-shadow: var(--shadow-card-hover-token) !important;
   border-color: rgba(124,179,66,0.2) !important;
 }
 
@@ -2398,4 +2460,4 @@ textarea.form-control {
   .hero-animate, .hero-logo-container { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 
-
+
