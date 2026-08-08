@@ -76,66 +76,95 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
   return (
     <>
       {/* ── Filter Bar ── */}
-      <div
-        className="mb-4 d-flex align-items-center gap-3 flex-wrap p-3"
-        style={{ background: '#FAFAFA', border: '1px solid #E4E4E7', borderRadius: '12px', maxWidth: '100%' }}
-      >
-        {/* Barangay filter */}
-        <div className="d-flex align-items-center gap-2" style={{ flexShrink: 0 }}>
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '18px', color: '#4F46E5', fontVariationSettings: "'FILL' 1" }}
+      <div className="barangay-filter-card mb-4">
+        {/* Desktop View (≥768px): Single line bar */}
+        <div className="bfc-desktop-row">
+          <div className="d-flex align-items-center gap-2" style={{ flexShrink: 0 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: '18px', color: '#4F46E5', fontVariationSettings: "'FILL' 1" }}
+            >
+              filter_alt
+            </span>
+            <span className="bfc-header-title" style={{ whiteSpace: 'nowrap' }}>
+              Filter by Barangay
+            </span>
+          </div>
+          <Form.Select
+            value={selectedBarangay}
+            onChange={(e) => setSelectedBarangay(e.target.value)}
+            className="bfc-select"
+            style={{ maxWidth: '280px' }}
           >
-            filter_alt
-          </span>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#3F3F46', fontFamily: 'var(--font-headline)', whiteSpace: 'nowrap' }}>
-            Filter by Barangay
-          </span>
+            <option value="">All Barangays</option>
+            {BARANGAYS.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </Form.Select>
+          {selectedBarangay && (
+            <button type="button" className="bfc-btn-clear" onClick={() => setSelectedBarangay('')}>
+              ✕ Clear filter
+            </button>
+          )}
+          <div className="ms-auto">
+            <button
+              type="button"
+              className="bfc-btn-export"
+              onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
+              disabled={!selectedBarangay}
+              title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+              Export Barangay Profile CSV
+            </button>
+          </div>
         </div>
-        <Form.Select
-          value={selectedBarangay}
-          onChange={(e) => setSelectedBarangay(e.target.value)}
-          style={{ maxWidth: '280px', fontSize: '13px' }}
-        >
-          <option value="">All Barangays</option>
-          {BARANGAYS.map((b) => (
-            <option key={b} value={b}>{b}</option>
-          ))}
-        </Form.Select>
-        {selectedBarangay && (
-          <button
-            style={{
-              fontSize: '12px', color: '#71717A',
-              border: '1px solid #E4E4E7', borderRadius: '9999px',
-              padding: '3px 12px', background: '#fff', cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-            onClick={() => setSelectedBarangay('')}
+
+        {/* Mobile View (<768px): Consistent fixed 3-row layout */}
+        <div className="bfc-mobile-container">
+          {/* Row 1: Header */}
+          <div className="bfc-header">
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: '18px', color: '#4F46E5', fontVariationSettings: "'FILL' 1" }}
+            >
+              filter_alt
+            </span>
+            <span className="bfc-header-title">Filter by Barangay</span>
+          </div>
+
+          {/* Row 2: Select Dropdown (100% full width) */}
+          <Form.Select
+            value={selectedBarangay}
+            onChange={(e) => setSelectedBarangay(e.target.value)}
+            className="bfc-select w-100"
           >
-            ✕ Clear filter
-          </button>
-        )}
-        <div className="ms-auto">
-          <button
-            onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
-            disabled={!selectedBarangay}
-            title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '6px 14px', borderRadius: '8px',
-              background: !selectedBarangay ? '#F4F4F5' : '#FFFFFF', 
-              color: !selectedBarangay ? '#A1A1AA' : '#4F46E5',
-              fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 600,
-              border: !selectedBarangay ? '1px solid #E4E4E7' : '1px solid #C7D2FE', 
-              cursor: !selectedBarangay ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={e => { if (selectedBarangay) { e.currentTarget.style.background = '#4F46E5'; e.currentTarget.style.color = '#FFFFFF'; } }}
-            onMouseLeave={e => { if (selectedBarangay) { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#4F46E5'; } }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-            Export Barangay Profile CSV
-          </button>
+            <option value="">All Barangays</option>
+            {BARANGAYS.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </Form.Select>
+
+          {/* Row 3: Action Buttons */}
+          <div className="bfc-actions">
+            <div>
+              {selectedBarangay ? (
+                <button type="button" className="bfc-btn-clear" onClick={() => setSelectedBarangay('')}>
+                  ✕ Clear filter
+                </button>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="bfc-btn-export"
+              onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
+              disabled={!selectedBarangay}
+              title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+            >
+              <span className="material-symbols-outlined">download</span>
+              Export Barangay Profile CSV
+            </button>
+          </div>
         </div>
       </div>
 

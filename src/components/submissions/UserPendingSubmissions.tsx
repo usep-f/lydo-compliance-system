@@ -1,9 +1,9 @@
 import React from 'react';
-import { Badge } from 'react-bootstrap';
 import type { PendingSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
+import StatusBadge from '../common/StatusBadge';
 
 interface UserPendingSubmissionsProps {
   pending: PendingSubmission[];
@@ -16,11 +16,19 @@ const UserPendingSubmissions: React.FC<UserPendingSubmissionsProps> = ({ pending
   const columns: Column<PendingSubmission>[] = [
     {
       header: 'Document Type',
-      render: (sub) => <span className="fw-semibold text-dark">{sub.documentLabel}</span>,
+      render: (sub) => (
+        <div className="w-100">
+          <div className="cell-doc-title" title={sub.documentLabel}>{sub.documentLabel}</div>
+        </div>
+      ),
     },
     {
       header: 'Submitted By',
-      render: (sub) => <span className="text-muted">{sub.fullName}</span>,
+      render: (sub) => (
+        <div className="w-100">
+          <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>{sub.fullName}</div>
+        </div>
+      ),
     },
     {
       header: 'Period',
@@ -44,11 +52,7 @@ const UserPendingSubmissions: React.FC<UserPendingSubmissionsProps> = ({ pending
     },
     {
       header: 'Status',
-      render: () => (
-        <Badge bg="warning" text="dark" className="px-2 py-1">
-          PENDING REVIEW
-        </Badge>
-      ),
+      render: () => <StatusBadge status="pending" />,
     },
   ];
 

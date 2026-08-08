@@ -72,7 +72,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
               <div className={`section-page-header ${pageHeader.variant === 'purple' ? 'section-page-header-purple' : ''}`}>
                 <div className="section-page-header-bg" />
                 {/* Left: title + subtitle */}
-                <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0 }}>
                   <div className="sph-title d-flex align-items-center gap-2">
                     {pageHeader.icon && (
                       <span
@@ -94,7 +94,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
                 </div>
 
                 {/* Notification Bell — always top-right */}
-                <div style={{ position: 'relative', zIndex: 2 }}>
+                <div style={{ position: 'relative', zIndex: 2, flexShrink: 0 }}>
                   <NotificationBell uid={currentUid} />
                 </div>
               </div>

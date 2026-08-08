@@ -75,14 +75,14 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={`card border-0 overflow-hidden ${className}`}>
-      {/* Desktop View: Tabular Layout */}
+    <div className={`card border-0 overflow-hidden app-data-table-card ${className}`}>
+      {/* Desktop & Tablet View: Tabular Layout */}
       <div className="d-none d-md-block table-responsive">
-        <Table hover={hover} className="mb-0 align-middle">
-          <thead className="bg-light text-secondary">
+        <Table hover={hover} className="mb-0 align-middle app-data-table">
+          <thead>
             <tr>
               {columns.map((col, index) => (
-                <th key={index} className={`px-4 py-3 border-0 fw-bold ${col.className || ''}`}>
+                <th key={index} className={col.className || ''}>
                   {col.header}
                 </th>
               ))}

@@ -119,16 +119,17 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
                 </span>
               ))}
 
-              <div className="ms-3">
+              <div className="ms-2 ms-xl-3" style={{ flexShrink: 0 }}>
                 {user ? (
-                  <div className="d-flex align-items-center gap-3">
+                  <div className="d-flex align-items-center gap-2 gap-xl-3">
                     <div
                       style={{
-                        width: '40px', height: '40px',
+                        width: '38px', height: '38px',
+                        flexShrink: 0,
                         background: 'linear-gradient(135deg, #006EB7, #0087E0)',
                         borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#FFF', fontWeight: 800, fontSize: '14px',
+                        color: '#FFF', fontWeight: 800, fontSize: '13px',
                         cursor: 'pointer',
                         transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         boxShadow: '0 4px 16px rgba(0,110,183,0.35)',
@@ -149,7 +150,9 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
                         border: '1.5px solid rgba(255,255,255,0.25)',
                         color: 'rgba(255,255,255,0.85)',
                         fontWeight: 600, fontSize: '13px',
-                        padding: '7px 18px', borderRadius: '9999px',
+                        padding: '6px 14px', borderRadius: '9999px',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
                         transition: 'all 0.2s ease',
                         backdropFilter: 'blur(8px)'
                       }}
@@ -189,22 +192,14 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
         show={showDrawer}
         onHide={() => setShowDrawer(false)}
         placement="end"
-        className="d-lg-none"
+        className="d-lg-none home-mobile-offcanvas"
         style={{
           maxWidth: '300px',
           background: 'linear-gradient(180deg, #001B2E 0%, #00264A 100%)',
           borderLeft: '1px solid rgba(255,255,255,0.08)'
         }}
       >
-        <Offcanvas.Header closeButton style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <Offcanvas.Title
-            className="d-flex align-items-center gap-2"
-            style={{ fontFamily: 'var(--font-headline)', fontWeight: 800, color: '#FFFFFF', fontSize: '17px' }}
-          >
-            <img src={lydoLogo} alt="LYDO Logo" height="28" style={{ objectFit: 'contain' }} />
-            LYDO Compliance
-          </Offcanvas.Title>
-        </Offcanvas.Header>
+        <Offcanvas.Header closeButton closeVariant="white" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }} />
         <Offcanvas.Body className="d-flex flex-column justify-content-between py-4">
           <Nav className="flex-column gap-1">
             {navLinks.map(link => (

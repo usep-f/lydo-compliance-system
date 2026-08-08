@@ -90,9 +90,9 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
     {
       header: 'Document',
       render: (sub) => (
-        <div>
-          <div className="fw-bold">{sub.documentLabel}</div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>
+        <div className="w-100">
+          <div className="cell-doc-title" title={sub.documentLabel}>{sub.documentLabel}</div>
+          <div className="cell-subtitle">
             {sub.category === 'asap' ? 'ASAP' : formatPeriodLabel(sub.period)}
           </div>
         </div>
@@ -101,9 +101,9 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
     {
       header: 'Submitted By',
       render: (sub) => (
-        <div>
-          <div className="fw-semibold">{sub.fullName}</div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>{sub.barangay}</div>
+        <div className="w-100">
+          <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>{sub.fullName}</div>
+          <div className="cell-subtitle">{sub.barangay}</div>
         </div>
       ),
     },
@@ -132,13 +132,15 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
     },
     {
       header: 'Action',
-      className: 'text-end',
+      className: 'text-end text-nowrap',
       render: (sub) => {
         const computedStatus = sub.status || (sub.approvedAt ? 'approved' : 'denied');
         return (
           <Button 
             variant={computedStatus === 'approved' ? 'outline-primary' : 'outline-danger'} 
             size="sm" 
+            className="text-nowrap"
+            style={{ whiteSpace: 'nowrap' }}
             onClick={() => openDetails(sub)}
           >
             {computedStatus === 'approved' ? 'View / Download' : 'View Feedback'}
@@ -154,43 +156,54 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
 
       {/* Filters */}
       <Card className="border-0 shadow-sm mb-4">
-        <Card.Body className="d-flex flex-wrap gap-3">
-          <Form.Control
-            type="text"
-            placeholder="Search by name or document..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ maxWidth: '250px' }}
-          />
-          <Form.Select
-            value={filterBarangay}
-            onChange={(e) => setFilterBarangay(e.target.value)}
-            style={{ maxWidth: '220px' }}
-          >
-            <option value="">All Barangays</option>
-            {BARANGAYS.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </Form.Select>
-          <Form.Select
-            value={filterDocType}
-            onChange={(e) => setFilterDocType(e.target.value)}
-            style={{ maxWidth: '250px' }}
-          >
-            <option value="">All Document Types</option>
-            {ALL_UPLOAD_TYPES.map((dt) => (
-              <option key={dt.id} value={dt.id}>{dt.label}</option>
-            ))}
-          </Form.Select>
-          <div className="ms-auto d-flex align-items-center">
-            <Button
-              variant="outline-success"
-              className="d-flex align-items-center gap-2 fw-semibold"
-              onClick={() => exportSubmissionHistoryToCsv(filteredHistory)}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-              Export History CSV
-            </Button>
+        <Card.Body className="p-3 p-md-4">
+          {/* Row 1: Search input goes all the way across */}
+          <div className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Search by name or document..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="sfc-input w-100"
+            />
+          </div>
+
+          {/* Row 2: Barangays & Document Types dropdowns side-by-side + Export button */}
+          <div className="row g-2 g-md-3 align-items-center">
+            <div className="col-6 col-md-4">
+              <Form.Select
+                value={filterBarangay}
+                onChange={(e) => setFilterBarangay(e.target.value)}
+                className="sfc-select w-100"
+              >
+                <option value="">All Barangays</option>
+                {BARANGAYS.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-6 col-md-4">
+              <Form.Select
+                value={filterDocType}
+                onChange={(e) => setFilterDocType(e.target.value)}
+                className="sfc-select w-100"
+              >
+                <option value="">All Document Types</option>
+                {ALL_UPLOAD_TYPES.map((dt) => (
+                  <option key={dt.id} value={dt.id}>{dt.label}</option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-12 col-md-4 mt-2 mt-md-0 d-flex justify-content-md-end">
+              <Button
+                variant="outline-success"
+                className="d-flex align-items-center justify-content-center gap-2 fw-semibold w-100 w-md-auto bfc-btn-export"
+                onClick={() => exportSubmissionHistoryToCsv(filteredHistory)}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+                Export History CSV
+              </Button>
+            </div>
           </div>
         </Card.Body>
       </Card>

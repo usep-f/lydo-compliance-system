@@ -213,43 +213,20 @@ export default function UserDashboard() {
     home: {
       title: `Welcome back, ${userInfo?.fullName || ''}`,
       subtitle: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'rgba(255,255,255,0.75)' }}>
+        <div className="sph-header-pills">
+          <span className="sph-label">
             Barangay
           </span>
-          <span
-            style={{
-              padding: '3px 12px',
-              borderRadius: '9999px',
-              background: 'rgba(255,255,255,0.18)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              fontSize: '13px',
-              fontWeight: 600,
-              color: '#FFFFFF',
-            }}
-          >
+          <span className="sph-pill sph-pill-barangay">
             {userInfo?.barangay}
           </span>
           {analytics.complianceRate === 100 ? (
-            <span className="sph-badge sph-badge-live" style={{ marginLeft: '4px' }}>
+            <span className="sph-pill sph-pill-compliant-full">
               <span className="sph-live-dot" />
               Fully Compliant
             </span>
           ) : (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '3px 10px',
-                borderRadius: '9999px',
-                background: 'rgba(245, 158, 11, 0.25)',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#FDE68A',
-              }}
-            >
+            <span className="sph-pill sph-pill-compliant-partial">
               {analytics.complianceRate}% Compliant
             </span>
           )}
@@ -334,14 +311,14 @@ export default function UserDashboard() {
         <div className="py-2">
 
           {/* ── KPI Stat Cards ─────────────────────────────────────────── */}
-          <Row className="mb-4 g-3">
+          <Row className="mb-4 g-2 g-sm-3">
             {[
               { title: 'Total Submitted', value: analytics.totalSubmitted, variant: 'primary' as const, icon: 'upload_file' },
               { title: 'Pending Review', value: analytics.pendingCount, variant: 'warning' as const, icon: 'pending_actions' },
               { title: 'Approved', value: analytics.approvedCount, variant: 'success' as const, icon: 'task_alt' },
               { title: 'Denied', value: analytics.deniedCount, variant: 'danger' as const, icon: 'cancel' },
             ].map((card, i) => (
-              <Col md={3} sm={6} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
+              <Col xs={6} sm={6} md={3} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
                 <StatCard
                   title={card.title}
                   value={card.value}

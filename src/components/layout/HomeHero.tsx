@@ -60,7 +60,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
       <Container className="hero-content">
         <Row className="align-items-center gy-5" style={{ paddingTop: '100px', paddingBottom: '80px' }}>
           {/* Left: Text */}
-          <Col lg={7} className="text-center text-lg-start">
+          <Col lg={7} className="text-center text-lg-start order-2 order-lg-1">
             {/* Headline */}
             <h1 className="hero-headline hero-animate hero-anim-1">
               Empowering Youth.
@@ -132,7 +132,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
           </Col>
 
           {/* Right: Glowing LYDO Logo */}
-          <Col lg={5} className="d-flex justify-content-center justify-content-lg-end align-items-center">
+          <Col lg={5} className="d-flex justify-content-center justify-content-lg-end align-items-center order-1 order-lg-2">
             <div className="hero-logo-container">
               <div className="hero-logo-glow" />
               <div className="hero-logo-circle">

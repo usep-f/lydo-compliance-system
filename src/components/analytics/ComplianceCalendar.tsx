@@ -343,14 +343,6 @@ const ComplianceCalendar: React.FC<ComplianceCalendarProps> = ({
                         >
                           {day}
                         </span>
-                        {isToday && (
-                          <span
-                            className="badge bg-primary text-white rounded-circle p-1 d-none d-md-inline-block"
-                            style={{ fontSize: '8px', lineHeight: 1 }}
-                          >
-                            Today
-                          </span>
-                        )}
                       </div>
 
                       {/* Mobile Dot Indicators */}
@@ -421,12 +413,12 @@ const ComplianceCalendar: React.FC<ComplianceCalendarProps> = ({
               <div style={{ height: '100px', marginTop: '10px' }}>
                 {selectedDay !== null ? (
                   <div
-                    className="p-2.5 rounded-3 border shadow-sm h-100 overflow-y-auto"
+                    className="p-3 rounded-3 border shadow-sm h-100 overflow-y-auto"
                     style={{ background: '#F8FAFC', borderColor: '#CBD5E1' }}
                   >
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <h6 className="m-0 fw-bold text-dark font-headline d-flex align-items-center gap-1.5" style={{ fontSize: '13px' }}>
-                        <span className="material-symbols-outlined text-primary" style={{ fontSize: '16px' }}>event</span>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <h6 className="m-0 fw-bold text-dark font-headline d-flex align-items-center gap-2" style={{ fontSize: '13px' }}>
+                        <span className="material-symbols-outlined text-primary me-1" style={{ fontSize: '16px' }}>event</span>
                         Events on {activeDate.toLocaleDateString('en-US', { month: 'short' })} {selectedDay}, {year}
                       </h6>
                       <button
@@ -438,17 +430,17 @@ const ComplianceCalendar: React.FC<ComplianceCalendarProps> = ({
                       </button>
                     </div>
                     {selectedDayEvents.length === 0 ? (
-                      <p className="m-0 text-muted" style={{ fontSize: '12px' }}>No deadlines scheduled on this date.</p>
+                      <p className="m-0 mt-2 text-muted" style={{ fontSize: '12px' }}>No deadlines scheduled on this date.</p>
                     ) : (
-                      <div className="d-flex flex-column gap-1">
+                      <div className="d-flex flex-column gap-2">
                         {selectedDayEvents.map((ev, i) => (
                           <div
                             key={`sel-${i}`}
-                            className="d-flex align-items-center justify-content-between p-1.5 rounded-2 bg-white border"
+                            className="d-flex align-items-center justify-content-between p-2 rounded-2 bg-white border"
                           >
-                            <div className="text-truncate me-2">
-                              <div className="fw-semibold text-dark text-truncate" style={{ fontSize: '12px' }}>{ev.docTypeLabel}</div>
-                              <div className="text-secondary" style={{ fontSize: '10px' }}>
+                            <div className="text-truncate me-2" style={{ minWidth: 0 }}>
+                              <div className="fw-semibold text-dark text-truncate" style={{ fontSize: '12px' }} title={ev.docTypeLabel}>{ev.docTypeLabel}</div>
+                              <div className="text-secondary text-truncate" style={{ fontSize: '10px' }}>
                                 {ev.periodLabel} • {ev.frequency}
                               </div>
                             </div>
@@ -465,25 +457,13 @@ const ComplianceCalendar: React.FC<ComplianceCalendarProps> = ({
                   </div>
                 ) : (
                   <div
-                    className="p-2 rounded-3 border text-center text-muted h-100 d-flex align-items-center justify-content-center"
+                    className="p-3 rounded-3 border text-center text-muted h-100 d-flex align-items-center justify-content-center"
                     style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
                   >
-                    <span className="material-symbols-outlined me-1" style={{ fontSize: '18px', color: '#94A3B8' }}>ads_click</span>
+                    <span className="material-symbols-outlined me-2" style={{ fontSize: '18px', color: '#94A3B8' }}>ads_click</span>
                     <span style={{ fontSize: '12px' }}>Click any date on the grid to inspect details</span>
                   </div>
                 )}
-              </div>
-
-              {/* Grid Legend */}
-              <div className="d-flex align-items-center gap-3 mt-2 pt-2 border-top">
-                <div className="d-flex align-items-center gap-1.5 text-secondary" style={{ fontSize: '12px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#0284C7', display: 'inline-block' }} />
-                  Original Deadline
-                </div>
-                <div className="d-flex align-items-center gap-1.5 text-secondary" style={{ fontSize: '12px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#D97706', display: 'inline-block' }} />
-                  7-Day Grace Deadline
-                </div>
               </div>
             </div>
           </Col>
@@ -538,9 +518,9 @@ const ComplianceCalendar: React.FC<ComplianceCalendarProps> = ({
                             {evDate.getDate()}
                           </div>
                         </div>
-                        <div className="flex-grow-1 min-w-0">
-                          <div className="fw-bold text-dark text-truncate" style={{ fontSize: '13px' }}>{ev.docTypeLabel}</div>
-                          <div className="text-secondary my-1" style={{ fontSize: '12px' }}>
+                        <div className="flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
+                          <div className="fw-bold text-dark text-truncate" style={{ fontSize: '13px' }} title={ev.docTypeLabel}>{ev.docTypeLabel}</div>
+                          <div className="text-secondary my-1 text-truncate" style={{ fontSize: '12px' }}>
                             {ev.periodLabel} • <span className="text-lowercase">{ev.frequency}</span>
                           </div>
                           <span

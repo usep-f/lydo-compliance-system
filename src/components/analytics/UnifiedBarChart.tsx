@@ -139,12 +139,12 @@ const VerticalBarChart: React.FC<{
   uid: string;
   chartHeight?: number;
 }> = ({ categories, series, stacked, maxVal, valueSuffix, hoveredIndex, setHoveredIndex, uid, chartHeight = 190 }) => {
-  const width = 500;
+  const width = 1000;
   const height = chartHeight;
-  const padLeft = 32;
-  const padRight = 15;
+  const padLeft = 45;
+  const padRight = 20;
   const padTop = 18;
-  const padBottom = 46;
+  const padBottom = 45;
 
   const chartW = width - padLeft - padRight;
   const chartH = height - padTop - padBottom;
@@ -154,13 +154,13 @@ const VerticalBarChart: React.FC<{
 
   const n = categories.length;
   const colStep = n > 0 ? chartW / n : chartW;
-  const barWidth = Math.min(28, Math.max(12, colStep * 0.55));
+  const barWidth = Math.min(52, Math.max(18, colStep * 0.38));
 
   // Determine non-background series
   const mainSeries = series.filter((s) => !s.isBackgroundCap);
   const bgSeries = series.find((s) => s.isBackgroundCap);
 
-  const minWidth = Math.max(500, categories.length * 75);
+  const minWidth = Math.max(650, categories.length * 110);
 
   return (
     <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -191,10 +191,10 @@ const VerticalBarChart: React.FC<{
                   strokeDasharray="4 4"
                 />
                 <text
-                  x={padLeft - 6}
-                  y={y + 3}
+                  x={padLeft - 8}
+                  y={y + 4}
                   textAnchor="end"
-                  fontSize="9.5"
+                  fontSize="11"
                   fill="#94A3B8"
                   fontFamily="var(--font-body)"
                 >
@@ -302,15 +302,15 @@ const VerticalBarChart: React.FC<{
                 {/* X-axis multi-line label */}
                 <text
                   x={centerX}
-                  y={height - padBottom + 14}
+                  y={height - padBottom + 16}
                   textAnchor="middle"
-                  fontSize="5.6"
+                  fontSize="11"
                   fill={isHovered ? '#1E293B' : '#64748B'}
                   fontWeight={isHovered ? 700 : 500}
                   fontFamily="var(--font-body)"
                 >
                   {labelLines.map((line, lIdx) => (
-                    <tspan key={lIdx} x={centerX} dy={lIdx === 0 ? 0 : 11}>
+                    <tspan key={lIdx} x={centerX} dy={lIdx === 0 ? 0 : 13}>
                       {line}
                     </tspan>
                   ))}
@@ -371,14 +371,14 @@ const HorizontalBarChart: React.FC<{
   setHoveredIndex: (idx: number | null) => void;
   uid: string;
 }> = ({ categories, series, maxVal, valueSuffix, hoveredIndex, setHoveredIndex, uid }) => {
-  const rowHeight = 28;
-  const padLeft = 135;
-  const padRight = 35;
-  const padTop = 10;
-  const padBottom = 22;
+  const rowHeight = 32;
+  const padLeft = 240;
+  const padRight = 50;
+  const padTop = 14;
+  const padBottom = 26;
 
   const height = padTop + categories.length * rowHeight + padBottom;
-  const width = 500;
+  const width = 1000;
   const chartW = width - padLeft - padRight;
 
   const steps = 4;
@@ -389,7 +389,7 @@ const HorizontalBarChart: React.FC<{
 
   return (
     <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <div style={{ position: 'relative', minWidth: '480px' }}>
+      <div style={{ position: 'relative', minWidth: '650px' }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
           width="100%"
@@ -417,9 +417,9 @@ const HorizontalBarChart: React.FC<{
                 />
                 <text
                   x={x}
-                  y={height - padBottom + 14}
+                  y={height - padBottom + 16}
                   textAnchor="middle"
-                  fontSize="9"
+                  fontSize="11"
                   fill="#94A3B8"
                   fontFamily="var(--font-body)"
                 >
@@ -432,7 +432,7 @@ const HorizontalBarChart: React.FC<{
           {/* Rows */}
           {categories.map((cat, i) => {
             const y = padTop + i * rowHeight + 4;
-            const barH = 14;
+            const barH = 16;
             const isHovered = hoveredIndex === i;
 
             // Background Cap length
@@ -448,15 +448,15 @@ const HorizontalBarChart: React.FC<{
               >
                 {/* Row label */}
                 <text
-                  x={padLeft - 8}
-                  y={y + barH / 2 + 3.5}
+                  x={padLeft - 10}
+                  y={y + barH / 2 + 4}
                   textAnchor="end"
-                  fontSize="9.5"
+                  fontSize="11.5"
                   fill={isHovered ? '#1E293B' : '#475569'}
                   fontWeight={isHovered ? 700 : 500}
                   fontFamily="var(--font-body)"
                 >
-                  {cat.shortLabel || (cat.label.length > 22 ? cat.label.slice(0, 20) + '…' : cat.label)}
+                  {cat.shortLabel || cat.label}
                 </text>
 
                 {/* Background Cap */}
@@ -498,9 +498,9 @@ const HorizontalBarChart: React.FC<{
                       />
                       {/* Value label next to bar */}
                       <text
-                        x={padLeft + w + 6}
-                        y={barY + actualH / 2 + 3.5}
-                        fontSize="10"
+                        x={padLeft + w + 8}
+                        y={barY + actualH / 2 + 4}
+                        fontSize="11.5"
                         fontWeight="700"
                         fill={fillColor}
                         fontFamily="var(--font-body)"

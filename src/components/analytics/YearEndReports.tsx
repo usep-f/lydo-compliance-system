@@ -67,8 +67,8 @@ const YearEndReports: React.FC<YearEndReportsProps> = ({
 
       <div className="p-4">
         {/* Per-barangay KPI mini-cards */}
-        <Row className="mb-4 g-3">
-          <Col md={6}>
+        <Row className="mb-4 g-2 g-sm-3">
+          <Col xs={6} sm={6} md={6}>
             <StatCard
               title={`Resolutions — ${selectedBarangay}`}
               value={selectedPerennial.resolutions}
@@ -76,7 +76,7 @@ const YearEndReports: React.FC<YearEndReportsProps> = ({
               icon="gavel"
             />
           </Col>
-          <Col md={6}>
+          <Col xs={6} sm={6} md={6}>
             <StatCard
               title={`Total Accomplishment Reports — ${selectedBarangay}`}
               value={selectedPerennial.accomplishmentsTotal}

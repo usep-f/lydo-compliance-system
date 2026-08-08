@@ -21,13 +21,15 @@ interface DashboardNavbarProps {
 }
 
 const DEFAULT_SECTIONS: NavigationSection[] = [
-  { id: 'home', label: 'Home', isImplemented: false, icon: 'home' },
-  { id: 'applicants', label: 'Applicants', isImplemented: true, icon: 'badge' },
-  { id: 'users', label: 'Users', isImplemented: true, icon: 'group' },
-  { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'description' },
-  { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
-  { id: 'analytics', label: 'Analytics', isImplemented: true, icon: 'bar_chart' },
-  { id: 'settings', label: 'User Settings', isImplemented: true, icon: 'settings' },
+  { id: 'home',        label: 'Home',               isImplemented: true,  icon: 'home' },
+  { id: 'applicants',  label: 'Applicants',         isImplemented: true,  icon: 'badge' },
+  { id: 'users',       label: 'Users',              isImplemented: true,  icon: 'group' },
+  { id: 'submissions', label: 'Submissions',        isImplemented: true,  icon: 'description' },
+  { id: 'history',     label: 'History',            isImplemented: true,  icon: 'history' },
+  { id: 'analytics',   label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
+  { id: 'matrix',      label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
+  { id: 'cms',         label: 'CMS Portal',         isImplemented: true,  icon: 'campaign' },
+  { id: 'settings',    label: 'User Settings',      isImplemented: true,  icon: 'settings' },
 ];
 
 const DashboardNavbar: React.FC<DashboardNavbarProps> = ({

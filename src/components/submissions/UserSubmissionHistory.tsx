@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Form, Button, Badge } from 'react-bootstrap';
+import { Card, Form, Button } from 'react-bootstrap';
 import { ALL_UPLOAD_TYPES } from '../../constants/submissionTypes';
 import type { HistoricalSubmission } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
@@ -7,6 +7,7 @@ import { formatFileSize } from '../../utils/pdfScreening';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
+import StatusBadge from '../common/StatusBadge';
 
 interface UserSubmissionHistoryProps {
   history: HistoricalSubmission[];
@@ -80,9 +81,9 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
     {
       header: 'Document',
       render: (sub) => (
-        <div>
-          <div className="fw-bold">{sub.documentLabel}</div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>
+        <div className="w-100">
+          <div className="cell-doc-title" title={sub.documentLabel}>{sub.documentLabel}</div>
+          <div className="cell-subtitle">
             {sub.category === 'asap' ? 'ASAP' : formatPeriodLabel(sub.period)}
           </div>
         </div>
@@ -91,7 +92,7 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
     {
       header: 'Submitted By',
       render: (sub) => (
-        <div className="fw-semibold text-truncate" style={{ maxWidth: '150px' }} title={sub.fullName}>
+        <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>
           {sub.fullName}
         </div>
       ),
@@ -99,11 +100,11 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
     {
       header: 'File Name',
       render: (sub) => (
-        <div>
-          <div className="fw-semibold text-truncate" style={{ maxWidth: '200px' }} title={sub.fileName}>
+        <div className="w-100">
+          <div className="fw-semibold cell-text-clamp-2" title={sub.fileName}>
             {sub.fileName}
           </div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>
+          <div className="cell-subtitle">
             {formatFileSize(sub.fileSize)} • {sub.pageCount} page{sub.pageCount !== 1 ? 's' : ''}
           </div>
         </div>
@@ -113,11 +114,7 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
       header: 'Status',
       render: (sub) => {
         const computedStatus = sub.status || (sub.approvedAt ? 'approved' : 'denied');
-        return (
-          <Badge bg={computedStatus === 'approved' ? 'success' : 'danger'} text="white" className="px-2 py-1">
-            {computedStatus.toUpperCase()}
-          </Badge>
-        );
+        return <StatusBadge status={computedStatus} />;
       },
     },
     {
@@ -134,13 +131,15 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
     },
     {
       header: 'Action',
-      className: 'text-end',
+      className: 'text-end text-nowrap',
       render: (sub) => {
         const computedStatus = sub.status || (sub.approvedAt ? 'approved' : 'denied');
         return (
           <Button 
             variant={computedStatus === 'approved' ? 'outline-primary' : 'outline-danger'} 
             size="sm" 
+            className="text-nowrap"
+            style={{ whiteSpace: 'nowrap' }}
             onClick={() => openDetails(sub)}
           >
             {computedStatus === 'approved' ? 'View / Download' : 'View Feedback'}

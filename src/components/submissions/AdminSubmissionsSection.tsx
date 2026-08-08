@@ -169,9 +169,9 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
     {
       header: 'Document',
       render: (sub) => (
-        <div>
-          <div className="fw-bold">{sub.documentLabel}</div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>
+        <div className="w-100">
+          <div className="cell-doc-title" title={sub.documentLabel}>{sub.documentLabel}</div>
+          <div className="cell-subtitle">
             {sub.category === 'asap' ? 'ASAP' : formatPeriodLabel(sub.period)}
           </div>
         </div>
@@ -180,18 +180,18 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
     {
       header: 'Submitted By',
       render: (sub) => (
-        <div>
-          <div className="fw-semibold">{sub.fullName}</div>
-          <div className="text-muted" style={{ fontSize: '12px' }}>{sub.barangay}</div>
+        <div className="w-100">
+          <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>{sub.fullName}</div>
+          <div className="cell-subtitle">{sub.barangay}</div>
         </div>
       ),
     },
     {
       header: 'File',
       render: (sub) => (
-        <div style={{ fontSize: '12px' }}>
-          <div className="text-truncate" style={{ maxWidth: '150px' }}>{sub.fileName}</div>
-          <div className="text-muted">
+        <div className="w-100">
+          <div className="fw-semibold cell-text-clamp-2" title={sub.fileName}>{sub.fileName}</div>
+          <div className="cell-subtitle">
             {sub.pageCount} page{sub.pageCount !== 1 ? 's' : ''} • {formatFileSize(sub.fileSize)}
           </div>
         </div>
@@ -203,9 +203,9 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
     },
     {
       header: 'Action',
-      className: 'text-end',
+      className: 'text-end text-nowrap',
       render: (sub) => (
-        <Button variant="primary" size="sm" onClick={() => openReview(sub)}>
+        <Button variant="primary" size="sm" className="text-nowrap" style={{ whiteSpace: 'nowrap' }} onClick={() => openReview(sub)}>
           Review
         </Button>
       ),
@@ -215,45 +215,56 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
   return (
     <>
       {/* Stat Cards */}
-      <Row className="mb-4 g-3">
-        <Col md={6} className="kpi-animate">
+      <Row className="mb-4 g-2 g-sm-3">
+        <Col xs={6} sm={6} md={6} className="kpi-animate">
           <StatCard title="Pending Review" value={pending.length} variant="warning" icon="pending_actions" />
         </Col>
-        <Col md={6} className="kpi-animate" style={{ animationDelay: '75ms' }}>
+        <Col xs={6} sm={6} md={6} className="kpi-animate" style={{ animationDelay: '75ms' }}>
           <StatCard title="Total Approved" value={history.filter(s => s.status === 'approved').length} variant="success" icon="task_alt" />
         </Col>
       </Row>
 
       {/* Filters */}
       <Card className="border-0 shadow-sm mb-4">
-        <Card.Body className="d-flex flex-wrap gap-3">
-          <Form.Control
-            type="text"
-            placeholder="Search by name or document..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ maxWidth: '250px' }}
-          />
-          <Form.Select
-            value={filterBarangay}
-            onChange={(e) => setFilterBarangay(e.target.value)}
-            style={{ maxWidth: '220px' }}
-          >
-            <option value="">All Barangays</option>
-            {BARANGAYS.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </Form.Select>
-          <Form.Select
-            value={filterDocType}
-            onChange={(e) => setFilterDocType(e.target.value)}
-            style={{ maxWidth: '250px' }}
-          >
-            <option value="">All Document Types</option>
-            {ALL_UPLOAD_TYPES.map((dt) => (
-              <option key={dt.id} value={dt.id}>{dt.label}</option>
-            ))}
-          </Form.Select>
+        <Card.Body className="p-3 p-md-4">
+          {/* Row 1: Search input goes all the way across */}
+          <div className="mb-3">
+            <Form.Control
+              type="text"
+              placeholder="Search by name or document..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="sfc-input w-100"
+            />
+          </div>
+
+          {/* Row 2: Barangays & Document Types dropdowns side-by-side */}
+          <div className="row g-2 g-md-3">
+            <div className="col-6">
+              <Form.Select
+                value={filterBarangay}
+                onChange={(e) => setFilterBarangay(e.target.value)}
+                className="sfc-select w-100"
+              >
+                <option value="">All Barangays</option>
+                {BARANGAYS.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-6">
+              <Form.Select
+                value={filterDocType}
+                onChange={(e) => setFilterDocType(e.target.value)}
+                className="sfc-select w-100"
+              >
+                <option value="">All Document Types</option>
+                {ALL_UPLOAD_TYPES.map((dt) => (
+                  <option key={dt.id} value={dt.id}>{dt.label}</option>
+                ))}
+              </Form.Select>
+            </div>
+          </div>
         </Card.Body>
       </Card>
 

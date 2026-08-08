@@ -496,12 +496,17 @@
   z-index: 1055 !important;
 }
 
+.offcanvas,
+.mobile-sidebar-offcanvas,
+.home-mobile-offcanvas {
+  z-index: 1060 !important;
+}
+
 .mobile-sidebar-offcanvas {
   width: 280px !important;
   background-color: var(--sidebar-bg) !important;
   border: none !important;
   color: #FFFFFF !important;
-  z-index: 1060 !important;
 }
 
 .mobile-sidebar-offcanvas .offcanvas-body {

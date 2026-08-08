@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { BARANGAYS } from '../constants/barangays';
 import DashboardShell from '../components/layout/DashboardShell';
+import type { NavigationSection } from '../components/layout/DashboardNavbar';
 import StatCard from '../components/common/StatCard';
 import FormField from '../components/common/FormField';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -44,6 +45,18 @@ interface ApprovedUser {
   role: string;
   approvedAt: Timestamp;
 }
+
+const ADMIN_SECTIONS: NavigationSection[] = [
+  { id: 'home',        label: 'Home',               isImplemented: true,  icon: 'home' },
+  { id: 'applicants',  label: 'Applicants',         isImplemented: true,  icon: 'badge' },
+  { id: 'users',       label: 'Users',              isImplemented: true,  icon: 'group' },
+  { id: 'submissions', label: 'Submissions',        isImplemented: true,  icon: 'description' },
+  { id: 'history',     label: 'History',            isImplemented: true,  icon: 'history' },
+  { id: 'analytics',   label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
+  { id: 'matrix',      label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
+  { id: 'cms',         label: 'CMS Portal',         isImplemented: true,  icon: 'campaign' },
+  { id: 'settings',    label: 'User Settings',      isImplemented: true,  icon: 'settings' },
+];
 
 export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -539,6 +552,7 @@ export default function AdminDashboard() {
       title="Admin Dashboard"
       activeSection={activeSection}
       onSectionSelect={setActiveSection}
+      sections={ADMIN_SECTIONS}
       pageHeader={sectionHeaders[activeSection]}
     >
       {activeSection === 'home' ? (
@@ -599,14 +613,14 @@ export default function AdminDashboard() {
           />
 
           {/* KPI Row */}
-          <Row className="mb-4 g-3">
+          <Row className="mb-4 g-2 g-sm-3">
             {[
               { title: 'Overall Compliance', value: `${compliance.overallRate}%`, variant: 'primary' as const, icon: 'check_circle' },
               { title: 'Fully Compliant', value: `${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`, variant: 'success' as const, icon: 'verified' },
               { title: 'Pending Submissions', value: pendingSubs.length, variant: 'warning' as const, icon: 'pending_actions' },
               { title: 'Pending Applications', value: pendingUsers.length, variant: 'info' as const, icon: 'badge' },
             ].map((card, i) => (
-              <Col md={3} sm={6} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
+              <Col xs={6} sm={6} md={3} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
                 <StatCard
                   title={card.title}
                   value={card.value}
@@ -993,8 +1007,8 @@ export default function AdminDashboard() {
         </div>
       ) : activeSection === 'applicants' ? (
         <>
-          <Row className="mb-4 g-3">
-            <Col md={6} className="kpi-animate">
+          <Row className="mb-4 g-2 g-sm-3">
+            <Col xs={6} sm={6} md={6} className="kpi-animate">
               <StatCard
                 title="Pending Applications"
                 value={pendingUsers.length}
@@ -1002,7 +1016,7 @@ export default function AdminDashboard() {
                 icon="pending_actions"
               />
             </Col>
-            <Col md={6} className="kpi-animate" style={{ animationDelay: '75ms' }}>
+            <Col xs={6} sm={6} md={6} className="kpi-animate" style={{ animationDelay: '75ms' }}>
               <StatCard
                 title="Total Approved SK Officials"
                 value={approvedCount}
@@ -1013,24 +1027,30 @@ export default function AdminDashboard() {
           </Row>
 
           <Card className="border-0 shadow-sm mb-4">
-            <Card.Body className="d-flex flex-wrap gap-3">
-              <Form.Control
-                type="text"
-                placeholder="Search by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ maxWidth: '300px' }}
-              />
-              <Form.Select
-                value={filterBarangay}
-                onChange={(e) => setFilterBarangay(e.target.value)}
-                style={{ maxWidth: '250px' }}
-              >
-                <option value="">All Barangays</option>
-                {BARANGAYS.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </Form.Select>
+            <Card.Body className="p-3 p-md-4">
+              <div className="row g-2 g-md-3">
+                <div className="col-6">
+                  <Form.Control
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="sfc-input w-100"
+                  />
+                </div>
+                <div className="col-6">
+                  <Form.Select
+                    value={filterBarangay}
+                    onChange={(e) => setFilterBarangay(e.target.value)}
+                    className="sfc-select w-100"
+                  >
+                    <option value="">All Barangays</option>
+                    {BARANGAYS.map(b => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </Form.Select>
+                </div>
+              </div>
             </Card.Body>
           </Card>
 
@@ -1194,24 +1214,30 @@ export default function AdminDashboard() {
       ) : activeSection === 'users' ? (
         <>
           <Card className="border-0 shadow-sm mb-4">
-            <Card.Body className="d-flex flex-wrap gap-3">
-              <Form.Control
-                type="text"
-                placeholder="Search by name or email..."
-                value={userSearchTerm}
-                onChange={(e) => setUserSearchTerm(e.target.value)}
-                style={{ maxWidth: '300px' }}
-              />
-              <Form.Select
-                value={userFilterBarangay}
-                onChange={(e) => setUserFilterBarangay(e.target.value)}
-                style={{ maxWidth: '250px' }}
-              >
-                <option value="">All Barangays</option>
-                {BARANGAYS.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </Form.Select>
+            <Card.Body className="p-3 p-md-4">
+              <div className="row g-2 g-md-3">
+                <div className="col-6">
+                  <Form.Control
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="sfc-input w-100"
+                  />
+                </div>
+                <div className="col-6">
+                  <Form.Select
+                    value={userFilterBarangay}
+                    onChange={(e) => setUserFilterBarangay(e.target.value)}
+                    className="sfc-select w-100"
+                  >
+                    <option value="">All Barangays</option>
+                    {BARANGAYS.map(b => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </Form.Select>
+                </div>
+              </div>
             </Card.Body>
           </Card>
 

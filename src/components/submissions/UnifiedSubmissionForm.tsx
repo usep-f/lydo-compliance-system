@@ -195,9 +195,9 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
     <Card className="border-0 shadow-sm overflow-hidden">
       <Card.Body className="p-4 p-md-5">
         <Form onSubmit={handleSubmit}>
-          <div className="row g-4">
+          <div className="row g-3 g-md-4">
             {/* Document Type Selection */}
-            <div className="col-md-12">
+            <div className="col-12 col-md-6">
               <Form.Group>
                 <Form.Label className="fw-semibold text-muted small text-uppercase">Document Type</Form.Label>
                 <Form.Select
@@ -215,7 +215,7 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
 
             {/* Category Selection (Conditional) */}
             {isAccomplishment && (
-              <div className="col-md-12">
+              <div className="col-12 col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold text-muted small text-uppercase">Accomplishment Category</Form.Label>
                   <Form.Select
@@ -234,7 +234,7 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
 
             {/* Period Selection (Conditional for Scheduled) */}
             {baseType?.category === 'scheduled' && (
-              <div className="col-md-12">
+              <div className="col-12 col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold text-muted small text-uppercase">Submission Period</Form.Label>
                   <Form.Select
@@ -272,34 +272,39 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
           {/* File Upload Zone */}
           <div className="mb-4">
             <h5 className="fw-bold mb-3">Attach File</h5>
-            <FileDropZone
-              onFileSelect={handleFileSelect}
-              onError={setFileError}
-              accept=".pdf"
-              disabled={
-                !baseType || 
-                isFullySubmitted || 
-                (baseType.category === 'scheduled' && (!selectedPeriod || isPeriodSubmitted(selectedPeriod))) ||
-                !!file
-              }
-            />
+            {!file && (
+              <FileDropZone
+                onFileSelect={handleFileSelect}
+                onError={setFileError}
+                accept=".pdf"
+                disabled={
+                  !baseType || 
+                  isFullySubmitted || 
+                  (baseType.category === 'scheduled' && (!selectedPeriod || isPeriodSubmitted(selectedPeriod)))
+                }
+              />
+            )}
             {fileError && <Alert variant="danger" className="mt-3 py-2">{fileError}</Alert>}
 
             {/* Selected File Card */}
-            {file && screening?.isValid && (
-              <div className="mt-3 bg-light rounded p-3 d-flex align-items-center justify-content-between border">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="bg-primary bg-opacity-10 rounded p-2 text-primary d-flex">
+            {file && (
+              <div className="bg-light rounded p-3 d-flex align-items-center justify-content-between border">
+                <div className="d-flex align-items-center gap-3 min-w-0">
+                  <div className="bg-primary bg-opacity-10 rounded p-2 text-primary d-flex flex-shrink-0">
                     <span className="material-symbols-outlined">picture_as_pdf</span>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="fw-semibold text-truncate" style={{ maxWidth: '300px' }}>{file.name}</div>
                     <div className="text-muted small">
-                      {formatFileSize(file.size)} • {screening.pageCount} page{screening.pageCount !== 1 ? 's' : ''}
+                      {screening?.isValid ? (
+                        <>{formatFileSize(file.size)} • {screening.pageCount} page{screening.pageCount !== 1 ? 's' : ''}</>
+                      ) : (
+                        <>Analyzing document…</>
+                      )}
                     </div>
                   </div>
                 </div>
-                <Button variant="link" className="text-danger p-0" onClick={handleClearFile}>
+                <Button variant="link" className="text-danger p-0 ms-2 flex-shrink-0" onClick={handleClearFile}>
                   Remove
                 </Button>
               </div>
