@@ -35,6 +35,8 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
   const [regFile, setRegFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [honeypotValue, setHoneypotValue] = useState('');
+  const lastSubmitTimeRef = useRef<number>(0);
 
   // Forgot Password State
   const [forgotEmail, setForgotEmail] = useState('');
@@ -74,6 +76,19 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (honeypotValue.trim() !== '') {
+      console.warn('Automated submission filtered.');
+      setLoading(false);
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastSubmitTimeRef.current < 5000) {
+      setError('Please wait a few seconds before trying again.');
+      return;
+    }
+    lastSubmitTimeRef.current = now;
 
     if (!regFile) {
       setError('Please upload your SK validation document.');
@@ -443,6 +458,16 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
             {/* MODE 2: REGISTRATION (SK APPLICATION) */}
             {authMode === 'register' && (
               <Form onSubmit={handleRegistration} className="auth-view-container">
+                <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+                  <input
+                    type="text"
+                    name="company_role"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypotValue}
+                    onChange={(e) => setHoneypotValue(e.target.value)}
+                  />
+                </div>
                 <div className="row g-2 mb-2">
                   <div className="col-md-6">
                     <div className="auth-input-container mb-2">
