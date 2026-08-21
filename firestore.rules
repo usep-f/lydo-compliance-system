@@ -31,9 +31,9 @@ service cloud.firestore {
       allow update: if false; // Applications cannot be tampered with after submission
     }
 
-    // Approved Users: Users can read their own data; Admins have full access
+    // Approved Users: All authenticated users can read profile data for directory modal
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
 

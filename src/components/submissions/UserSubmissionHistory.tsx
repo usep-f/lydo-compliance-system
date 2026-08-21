@@ -8,6 +8,7 @@ import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
 import StatusBadge from '../common/StatusBadge';
+import UserProfileTrigger from '../common/UserProfileTrigger';
 
 interface UserSubmissionHistoryProps {
   history: HistoricalSubmission[];
@@ -92,9 +93,11 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
     {
       header: 'Submitted By',
       render: (sub) => (
-        <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>
-          {sub.fullName}
-        </div>
+        <UserProfileTrigger
+          userId={sub.userId}
+          fullName={sub.fullName}
+          className="fw-semibold cell-text-clamp-2"
+        />
       ),
     },
     {
@@ -202,7 +205,11 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">Submitted By</div>
-              <div className="body-text text-dark fw-semibold">{selectedSub?.fullName}</div>
+              <UserProfileTrigger
+                userId={selectedSub?.userId || ''}
+                fullName={selectedSub?.fullName || ''}
+                className="body-text text-dark fw-semibold"
+              />
             </div>
 
             <div className="mb-3">

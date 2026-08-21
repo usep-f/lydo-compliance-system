@@ -4,6 +4,7 @@ import { formatPeriodLabel } from '../../utils/periodUtils';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import StatusBadge from '../common/StatusBadge';
+import UserProfileTrigger from '../common/UserProfileTrigger';
 
 interface UserPendingSubmissionsProps {
   pending: PendingSubmission[];
@@ -26,7 +27,11 @@ const UserPendingSubmissions: React.FC<UserPendingSubmissionsProps> = ({ pending
       header: 'Submitted By',
       render: (sub) => (
         <div className="w-100">
-          <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>{sub.fullName}</div>
+          <UserProfileTrigger
+            userId={sub.userId}
+            fullName={sub.fullName}
+            className="fw-semibold cell-text-clamp-2"
+          />
         </div>
       ),
     },

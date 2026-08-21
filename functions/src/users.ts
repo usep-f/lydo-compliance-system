@@ -501,7 +501,10 @@ export const updateOwnProfile = functions.https.onCall(
       throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
     }
     const uid = request.auth.uid;
-    const { email, fullName, passwordChanged, syncEmail } = request.data;
+    const { 
+      email, fullName, passwordChanged, syncEmail, 
+      designation, contactNumber, address, socialLinks, avatarUrl 
+    } = request.data;
 
     // Validate email
     if (email !== undefined && email !== null) {
@@ -527,6 +530,21 @@ export const updateOwnProfile = functions.https.onCall(
       let emailVerificationSent = false;
       const updateData: any = {};
       if (fullName) updateData.fullName = fullName.trim();
+      if (designation !== undefined) updateData.designation = typeof designation === 'string' ? designation.trim() : null;
+      if (contactNumber !== undefined) updateData.contactNumber = typeof contactNumber === 'string' ? contactNumber.trim() : null;
+      if (address !== undefined) updateData.address = typeof address === 'string' ? address.trim() : null;
+      if (avatarUrl !== undefined) updateData.avatarUrl = typeof avatarUrl === 'string' ? avatarUrl.trim() : null;
+      
+      if (socialLinks !== undefined) {
+        if (Array.isArray(socialLinks) && socialLinks.length <= 4) {
+          updateData.socialLinks = socialLinks.map((link: any) => ({
+            platform: String(link.platform).trim(),
+            url: String(link.url).trim()
+          }));
+        } else {
+          throw new functions.https.HttpsError('invalid-argument', 'Invalid social links provided.');
+        }
+      }
 
       if (email) {
         const cleanEmail = email.trim().toLowerCase();

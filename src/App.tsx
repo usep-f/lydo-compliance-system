@@ -14,6 +14,7 @@ import SetupPasswordPage from './pages/SetupPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import RegistrationSuccessPage from './pages/RegistrationSuccessPage';
 import { ToastProvider, useToast } from './context/ToastContext';
+import { UserProfileModalProvider } from './context/UserProfileModalContext';
 import './App.css';
 
 function AppInner() {
@@ -134,9 +135,11 @@ function AppInner() {
 function App() {
   return (
     <ToastProvider>
-      <Router>
-        <AppInner />
-      </Router>
+      <UserProfileModalProvider>
+        <Router>
+          <AppInner />
+        </Router>
+      </UserProfileModalProvider>
     </ToastProvider>
   );
 }
