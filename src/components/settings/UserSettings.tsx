@@ -24,6 +24,16 @@ export default function UserSettings() {
   const [origFullName, setOrigFullName] = useState('');
   const [origEmail, setOrigEmail] = useState('');
   const [role, setRole] = useState('user');
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+
+  // 2FA State
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [twoFactorAction, setTwoFactorAction] = useState<'enable' | 'disable' | null>(null);
+  const [challengeId, setChallengeId] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorError, setTwoFactorError] = useState('');
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [disablePassword, setDisablePassword] = useState('');
 
   // Re-auth Modal State
   const [showReauthModal, setShowReauthModal] = useState(false);
@@ -55,6 +65,7 @@ export default function UserSettings() {
             setFullName(data.fullName || '');
             setOrigFullName(data.fullName || '');
             setRole(data.role || 'user');
+            setTwoFactorEnabled(data.twoFactorEnabled || false);
           }
           setEmail(user.email || '');
           setOrigEmail(user.email || '');
@@ -125,6 +136,64 @@ export default function UserSettings() {
 
     // Only name changed
     await applyChanges();
+  };
+
+  const handleRequest2FA = async (action: 'enable' | 'disable') => {
+    setTwoFactorAction(action);
+    setTwoFactorError('');
+    setTwoFactorLoading(true);
+    try {
+      const req2FA = httpsCallable(functions, 'requestTwoFactorEnrollment');
+      const res = await req2FA();
+      const data = res.data as { challengeId: string };
+      setChallengeId(data.challengeId);
+      setShow2FAModal(true);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleConfirm2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTwoFactorError('');
+    setTwoFactorLoading(true);
+    try {
+      if (twoFactorAction === 'enable') {
+        const confirm = httpsCallable(functions, 'confirmTwoFactorEnrollment');
+        await confirm({ challengeId, code: twoFactorCode });
+        setTwoFactorEnabled(true);
+        setSuccess('Two-Factor Authentication enabled successfully.');
+      } else {
+        const disable = httpsCallable(functions, 'disableTwoFactor');
+        const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+        await disable({ challengeId, code: twoFactorCode, apiKey, password: disablePassword });
+        setTwoFactorEnabled(false);
+        setSuccess('Two-Factor Authentication disabled successfully.');
+      }
+      setShow2FAModal(false);
+      setTwoFactorCode('');
+      setDisablePassword('');
+    } catch (err: unknown) {
+      if (err instanceof Error) setTwoFactorError(err.message);
+      else setTwoFactorError(String(err));
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleRevokeDevices = async () => {
+    if (!window.confirm("Are you sure you want to revoke all trusted devices? You will be asked for an OTP on your next login from any device.")) return;
+    try {
+      const revoke = httpsCallable(functions, 'revokeTrustedDevices');
+      await revoke();
+      setSuccess('All trusted devices have been revoked.');
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    }
   };
 
   const handleReauthAndApply = async (e: React.FormEvent) => {
@@ -412,6 +481,42 @@ export default function UserSettings() {
         </div>
       </div>
 
+      {/* Security & 2FA */}
+      <div className="analytics-card mt-4" style={{ background: '#fff', width: '100%' }}>
+        <div className="px-4 py-4">
+          <h6 className="mb-4 fw-bold d-flex align-items-center" style={{ fontSize: '14px', letterSpacing: '0.02em', color: '#18181B' }}>
+            <span className="material-symbols-outlined me-2" style={{ fontSize: '18px', color: '#4F46E5', fontVariationSettings: "'FILL' 1" }}>shield</span>
+            Two-Factor Authentication (2FA)
+          </h6>
+          
+          <div className="d-flex align-items-center justify-content-between border p-3 rounded-3" style={{ background: '#FAFAFA', borderColor: '#F4F4F5' }}>
+            <div>
+              <p className="mb-1 fw-semibold text-dark">Email 2FA is currently <span className={twoFactorEnabled ? 'text-success' : 'text-danger'}>{twoFactorEnabled ? 'Enabled' : 'Disabled'}</span></p>
+              <p className="text-muted small mb-0">Protect your account with an extra layer of security. We'll send a 6-digit code to your email upon login.</p>
+            </div>
+            <div>
+              {twoFactorEnabled ? (
+                <LoadingButton variant="outline-danger" loading={twoFactorLoading} onClick={() => handleRequest2FA('disable')} style={{ fontWeight: 600, fontSize: '14px', borderRadius: '8px' }}>
+                  Disable 2FA
+                </LoadingButton>
+              ) : (
+                <LoadingButton variant="primary" loading={twoFactorLoading} onClick={() => handleRequest2FA('enable')} style={{ fontWeight: 600, fontSize: '14px', borderRadius: '8px' }}>
+                  Enable 2FA
+                </LoadingButton>
+              )}
+            </div>
+          </div>
+          
+          {twoFactorEnabled && (
+            <div className="mt-3">
+              <Button variant="link" className="p-0 text-decoration-none small text-danger fw-semibold" onClick={handleRevokeDevices}>
+                Revoke all trusted devices
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Danger Zone */}
       {role !== 'admin' && (
         <div className="analytics-card mt-4" style={{ background: '#fff', width: '100%', border: '1px solid #FEE2E2' }}>
@@ -600,6 +705,65 @@ export default function UserSettings() {
                 loading={purgeLoading}
               >
                 Purge Data
+              </LoadingButton>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* 2FA Action Modal */}
+      <Modal show={show2FAModal} onHide={() => !twoFactorLoading && setShow2FAModal(false)} centered backdrop="static">
+        <Modal.Header closeButton={!twoFactorLoading} className="border-0 pb-0" />
+        <Modal.Body className="px-4 pb-4 pt-0">
+          <div className="text-center mb-4">
+            <span className="material-symbols-outlined text-primary mb-2" style={{ fontSize: '40px' }}>
+              security
+            </span>
+            <h5 className="fw-bold mb-1">{twoFactorAction === 'enable' ? 'Enable Two-Factor Auth' : 'Disable Two-Factor Auth'}</h5>
+            <p className="text-muted small mb-0">
+              We've sent a 6-digit verification code to your email. Enter it below to confirm.
+            </p>
+          </div>
+          
+          {twoFactorError && <Alert variant="danger" className="py-2 small">{twoFactorError}</Alert>}
+          
+          <Form onSubmit={handleConfirm2FA}>
+            {twoFactorAction === 'disable' && (
+              <FormField
+                label="Account Password"
+                type="password"
+                required
+                value={disablePassword}
+                onChange={(e) => setDisablePassword(e.target.value)}
+                disabled={twoFactorLoading}
+                className="mb-3"
+              />
+            )}
+            <FormField
+              label="6-Digit OTP"
+              type="text"
+              required
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              disabled={twoFactorLoading}
+              className="mb-4"
+            />
+            
+            <div className="d-flex justify-content-end gap-2">
+              <Button 
+                variant="light" 
+                onClick={() => setShow2FAModal(false)}
+                disabled={twoFactorLoading}
+              >
+                Cancel
+              </Button>
+              <LoadingButton 
+                variant={twoFactorAction === 'enable' ? 'primary' : 'danger'} 
+                type="submit" 
+                loading={twoFactorLoading}
+                disabled={twoFactorCode.length !== 6 || (twoFactorAction === 'disable' && !disablePassword)}
+              >
+                Confirm
               </LoadingButton>
             </div>
           </Form>

@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Modal, Form, Alert } from 'react-bootstrap';
 import { auth, db, storage, functions } from '../../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithCustomToken } from 'firebase/auth';
 import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
 import { BARANGAYS } from '../../constants/barangays';
 import LoadingButton from '../common/LoadingButton';
 import lydoLogo from '../../assets/lydo-logo.webp';
+import { getDeviceToken, saveDeviceToken } from '../../utils/deviceTrust';
 
 interface AuthModalProps {
   show: boolean;
@@ -15,7 +16,7 @@ interface AuthModalProps {
   initialMode?: 'login' | 'register' | 'forgot-password';
 }
 
-type AuthMode = 'login' | 'register' | 'forgot-password';
+type AuthMode = 'login' | 'register' | 'forgot-password' | '2fa';
 
 export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthModalProps) {
   const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
@@ -41,6 +42,23 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
   // Forgot Password State
   const [forgotEmail, setForgotEmail] = useState('');
 
+  // 2FA State
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [challengeId, setChallengeId] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const [trustDevice, setTrustDevice] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  React.useEffect(() => {
+    let timer: number;
+    if (resendCountdown > 0) {
+      timer = window.setInterval(() => {
+        setResendCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => window.clearInterval(timer);
+  }, [resendCountdown]);
+
   const switchMode = (mode: AuthMode) => {
     setAuthMode(mode);
     setError('');
@@ -53,11 +71,27 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
     setSuccess('');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      onHide();
+      const initiateLogin = httpsCallable(functions, 'initiateLogin');
+      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+      const deviceToken = getDeviceToken();
+      
+      const res = await initiateLogin({ email: loginEmail, password: loginPassword, apiKey, deviceToken });
+      const data = res.data as { status: string; customToken?: string; challengeId?: string; maskedEmail?: string };
+      
+      if (data.status === 'SUCCESS' && data.customToken) {
+        await signInWithCustomToken(auth, data.customToken);
+        onHide();
+      } else if (data.status === 'MFA_REQUIRED' && data.challengeId) {
+        setChallengeId(data.challengeId);
+        setMaskedEmail(data.maskedEmail || loginEmail);
+        setTwoFactorCode('');
+        setTrustDevice(false);
+        setResendCountdown(60);
+        setAuthMode('2fa');
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
-        if (err.message.includes('auth/invalid-credential') || err.message.includes('auth/user-not-found') || err.message.includes('auth/wrong-password')) {
+        if (err.message.includes('INVALID_LOGIN_CREDENTIALS') || err.message.includes('auth/invalid-credential') || err.message.includes('Invalid password') || err.message.includes('unauthenticated')) {
           setError('Invalid email or password. Please verify your credentials.');
         } else if (err.message.includes('auth/too-many-requests')) {
           setError('Access temporarily disabled due to multiple failed attempts. Try again later or reset your password.');
@@ -67,6 +101,35 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
       } else {
         setError(String(err));
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const verifyTwoFactorLogin = httpsCallable(functions, 'verifyTwoFactorLogin');
+      const res = await verifyTwoFactorLogin({ 
+        challengeId, 
+        code: twoFactorCode, 
+        trustDevice, 
+        userAgent: navigator.userAgent 
+      });
+      const data = res.data as { status: string; customToken: string; deviceToken?: string };
+      
+      if (data.status === 'SUCCESS') {
+        if (data.deviceToken) {
+          saveDeviceToken(data.deviceToken);
+        }
+        await signInWithCustomToken(auth, data.customToken);
+        onHide();
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -450,6 +513,77 @@ export default function AuthModal({ show, onHide, initialMode = 'login' }: AuthM
                     disabled={loading}
                   >
                     Apply here
+                  </button>
+                </div>
+              </Form>
+            )}
+
+            {/* MODE 4: 2FA */}
+            {authMode === '2fa' && (
+              <Form onSubmit={handleVerify2FA} className="auth-view-container">
+                <Alert variant="info" className="py-2 px-3 small d-flex align-items-center gap-2 rounded-3 border-0 shadow-sm mb-4" style={{ background: '#EFF6FF', color: '#1E40AF' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <div>
+                    <span className="fw-semibold">Two-Factor Authentication</span><br />
+                    Code sent to: {maskedEmail}
+                  </div>
+                </Alert>
+
+                <div className="auth-input-container">
+                  <Form.Label className="form-label">Enter 6-Digit Code</Form.Label>
+                  <div className="auth-input-wrapper">
+                    <Form.Control
+                      type="text"
+                      required
+                      placeholder="e.g. 123456"
+                      value={twoFactorCode}
+                      onChange={e => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                      disabled={loading}
+                      className="auth-form-input text-center fw-bold fs-4 ls-2"
+                      maxLength={6}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4 d-flex align-items-center">
+                  <Form.Check 
+                    type="checkbox"
+                    id="trust-device-check"
+                    label="Trust this device for 30 days"
+                    checked={trustDevice}
+                    onChange={(e) => setTrustDevice(e.target.checked)}
+                    disabled={loading}
+                    className="small text-muted"
+                  />
+                </div>
+
+                <LoadingButton
+                  variant="primary"
+                  type="submit"
+                  className="w-100 auth-submit-btn text-white mb-3"
+                  loading={loading}
+                  loadingText="Verifying..."
+                  disabled={twoFactorCode.length !== 6}
+                >
+                  Verify & Log In
+                </LoadingButton>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-decoration-none small text-secondary fw-semibold"
+                    onClick={() => {
+                      if (resendCountdown === 0) {
+                        handleLogin(new Event('submit') as unknown as React.FormEvent);
+                      }
+                    }}
+                    disabled={loading || resendCountdown > 0}
+                  >
+                    {resendCountdown > 0 ? `Resend code (${resendCountdown}s)` : 'Resend code'}
                   </button>
                 </div>
               </Form>

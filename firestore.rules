@@ -141,6 +141,12 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // ── Two-Factor Authentication ──
+    // Challenges are strictly backend-only. Clients cannot read or write them directly.
+    match /twoFactorChallenges/{challengeId} {
+      allow read, write: if false; 
+    }
+
     // ── CMS Bulletins ──
     // Guests can read bulletins; only admins can write
     match /cms_bulletins/{bulletinId} {

@@ -20,8 +20,9 @@ const app = initializeApp(firebaseConfig);
 let appCheck: AppCheck | undefined;
 if (typeof window !== "undefined") {
   if (import.meta.env.DEV) {
+    const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
     // @ts-expect-error - self.FIREBASE_APPCHECK_DEBUG_TOKEN is recognized by Firebase SDK
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken && debugToken.trim().length > 0 ? debugToken : true;
   }
 
   if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {

@@ -44,3 +44,14 @@ export {
 export {
   publishDeadlineBulletins
 } from './bulletinScheduler';
+
+export {
+  initiateLogin,
+  verifyTwoFactorLogin,
+  requestTwoFactorEnrollment,
+  confirmTwoFactorEnrollment,
+  disableTwoFactor,
+  revokeTrustedDevices,
+  adminResetUserTwoFactor
+} from './twoFactorAuth';
+
