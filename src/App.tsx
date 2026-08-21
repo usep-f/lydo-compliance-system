@@ -11,6 +11,7 @@ import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SetupPasswordPage from './pages/SetupPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import RegistrationSuccessPage from './pages/RegistrationSuccessPage';
 import { ToastProvider, useToast } from './context/ToastContext';
 import './App.css';
@@ -99,6 +100,11 @@ function AppInner() {
         <Route 
           path="/setup-password" 
           element={<SetupPasswordPage />} 
+        />
+
+        <Route 
+          path="/reset-password" 
+          element={<ResetPasswordPage />} 
         />
 
         <Route 

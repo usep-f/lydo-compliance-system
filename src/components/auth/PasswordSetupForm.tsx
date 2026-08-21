@@ -9,9 +9,10 @@ import { validatePassword } from '../../utils/passwordValidation';
 interface PasswordSetupFormProps {
   oobCode: string;
   onSuccess: () => void;
+  mode?: 'setup' | 'reset';
 }
 
-export default function PasswordSetupForm({ oobCode, onSuccess }: PasswordSetupFormProps) {
+export default function PasswordSetupForm({ oobCode, onSuccess, mode = 'setup' }: PasswordSetupFormProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -85,7 +86,9 @@ export default function PasswordSetupForm({ oobCode, onSuccess }: PasswordSetupF
       {error && <Alert variant="danger" className="py-2.5 small">{error}</Alert>}
       
       <div className="mb-4 text-center">
-        <div className="text-muted small mb-1">Setting password for:</div>
+        <div className="text-muted small mb-1">
+          {mode === 'reset' ? 'Resetting password for:' : 'Setting password for:'}
+        </div>
         <div className="fw-semibold text-primary">{verifiedEmail}</div>
       </div>
       
@@ -116,7 +119,7 @@ export default function PasswordSetupForm({ oobCode, onSuccess }: PasswordSetupF
         className="w-100 py-2 fw-semibold shadow-sm" 
         loading={loading}
       >
-        Save Password & Sign In
+        {mode === 'reset' ? 'Update Password & Sign In' : 'Save Password & Sign In'}
       </LoadingButton>
     </Form>
   );

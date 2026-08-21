@@ -23,7 +23,8 @@ export {
   deleteUser,
   updateOwnProfile,
   deleteOwnAccount,
-  onApplicationCreated 
+  onApplicationCreated,
+  requestPasswordReset
 } from './users';
 
 export { 

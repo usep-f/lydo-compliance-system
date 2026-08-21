@@ -15,8 +15,10 @@ interface AuthModalProps {
   onHide: () => void;
 }
 
+type AuthMode = 'login' | 'register' | 'forgot-password';
+
 export default function AuthModal({ show, onHide }: AuthModalProps) {
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -30,6 +32,9 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
   const [regEmail, setRegEmail] = useState('');
   const [regBarangay, setRegBarangay] = useState('');
   const [regFile, setRegFile] = useState<File | null>(null);
+
+  // Forgot Password State
+  const [forgotEmail, setForgotEmail] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +109,32 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
       setRegEmail('');
       setRegBarangay('');
       setRegFile(null);
-      setIsLoginMode(true);
+      setAuthMode('login');
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    
+    if (!forgotEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const requestPasswordReset = httpsCallable(functions, 'requestPasswordReset');
+      await requestPasswordReset({ email: forgotEmail });
+      
+      setSuccess("If an account exists, a password reset link has been sent to your email.");
+      setForgotEmail('');
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else setError(String(err));
@@ -120,7 +150,7 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
       centered 
       backdrop="static"
       keyboard={!loading}
-      size={isLoginMode ? 'sm' : 'lg'}
+      size={authMode === 'register' ? 'lg' : 'sm'}
       dialogClassName="auth-modal-dialog"
       contentClassName="border-0 shadow-lg"
     >
@@ -135,16 +165,18 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
             className="transition-all"
           />
           <h3 className="mb-1 text-primary fw-bold headline-text" style={{ letterSpacing: '-0.02em' }}>
-            Lydo Compliance
+            {authMode === 'forgot-password' ? 'Reset Password' : 'Lydo Compliance'}
           </h3>
           <p className="text-muted small mb-0 mt-2">
-            {isLoginMode ? 'Sign in to your account' : 'Apply for an SK Official Account'}
+            {authMode === 'login' && 'Sign in to your account'}
+            {authMode === 'register' && 'Apply for an SK Official Account'}
+            {authMode === 'forgot-password' && 'Enter your email to receive a recovery link'}
           </p>
         </div>
         {error && <Alert variant="danger" className="py-2.5 small">{error}</Alert>}
         {success && <Alert variant="success" className="py-2.5 small">{success}</Alert>}
 
-        {isLoginMode ? (
+        {authMode === 'login' && (
           <Form onSubmit={handleLogin}>
             <FormField
               label="Email Address"
@@ -162,19 +194,31 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
               placeholder="Enter your password"
               value={loginPassword}
               onChange={e => setLoginPassword(e.target.value)}
-              className="mb-4"
+              className="mb-2"
               disabled={loading}
             />
+            <div className="d-flex justify-content-end mb-4">
+              <Button 
+                variant="link" 
+                className="p-0 text-decoration-none small text-secondary" 
+                onClick={() => { setAuthMode('forgot-password'); setError(''); setSuccess(''); }}
+                disabled={loading}
+              >
+                Forgot password?
+              </Button>
+            </div>
             <LoadingButton variant="primary" type="submit" className="w-100 py-2 fw-semibold shadow-sm" loading={loading}>
               Sign In
             </LoadingButton>
             <div className="text-center mt-4">
-              <Button variant="link" onClick={() => { setIsLoginMode(false); setError(''); setSuccess(''); }} className="text-decoration-none small text-secondary" disabled={loading}>
+              <Button variant="link" onClick={() => { setAuthMode('register'); setError(''); setSuccess(''); }} className="text-decoration-none small text-secondary" disabled={loading}>
                 Don't have an account? Apply here
               </Button>
             </div>
           </Form>
-        ) : (
+        )}
+        
+        {authMode === 'register' && (
           <Form onSubmit={handleRegistration}>
             <div className="row">
               <div className="col-md-6">
@@ -225,8 +269,31 @@ export default function AuthModal({ show, onHide }: AuthModalProps) {
               Submit Application
             </LoadingButton>
             <div className="text-center mt-4">
-              <Button variant="link" onClick={() => { setIsLoginMode(true); setError(''); setSuccess(''); }} className="text-decoration-none small text-secondary" disabled={loading}>
+              <Button variant="link" onClick={() => { setAuthMode('login'); setError(''); setSuccess(''); }} className="text-decoration-none small text-secondary" disabled={loading}>
                 Already approved? Sign in
+              </Button>
+            </div>
+          </Form>
+        )}
+        
+        {authMode === 'forgot-password' && (
+          <Form onSubmit={handleForgotPassword}>
+            <FormField
+              label="Email Address"
+              type="email"
+              required
+              placeholder="Enter your registered email"
+              value={forgotEmail}
+              onChange={e => setForgotEmail(e.target.value)}
+              className="mb-4"
+              disabled={loading}
+            />
+            <LoadingButton variant="primary" type="submit" className="w-100 py-2 fw-semibold shadow-sm" loading={loading}>
+              Send Reset Link
+            </LoadingButton>
+            <div className="text-center mt-4">
+              <Button variant="link" onClick={() => { setAuthMode('login'); setError(''); setSuccess(''); }} className="text-decoration-none small text-secondary" disabled={loading}>
+                Back to Sign In
               </Button>
             </div>
           </Form>

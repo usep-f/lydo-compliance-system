@@ -776,7 +776,84 @@ export const deleteOwnAccount = functions.https.onCall(
   }
 );
 
+// ---------------------------------------------------------------------------
+// requestPasswordReset
+// ---------------------------------------------------------------------------
+export const requestPasswordReset = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (request) => {
+    const db = admin.firestore();
+    const { email } = request.data;
+    
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      throw new functions.https.HttpsError('invalid-argument', 'A valid email address is required.');
+    }
+    const cleanEmail = email.trim().toLowerCase();
 
+    try {
+      // 1. Check if user exists and is approved
+      const userQuery = await db.collection('users').where('email', '==', cleanEmail).limit(1).get();
+      if (!userQuery.empty) {
+        const userData = userQuery.docs[0].data();
+        if (userData.status !== 'approved') {
+          throw new functions.https.HttpsError(
+            'failed-precondition', 
+            'Your account is not fully approved yet.'
+          );
+        }
+
+        // 2. Generate the Firebase Auth password reset link
+        const defaultResetLink = await admin.auth().generatePasswordResetLink(cleanEmail);
+        const urlParts = new URL(defaultResetLink);
+        // Map the default auth handler to our custom route
+        const customResetLink = `https://lydo-compliance-system-ce8c3.firebaseapp.com/reset-password${urlParts.search}`;
+
+        // 3. Send email via Brevo
+        await sendEmailViaBrevo(
+          cleanEmail,
+          escapeHtml(userData.fullName ?? 'User'),
+          'Password Reset Request',
+          `<h1>Password Reset Request</h1>
+           <p>Dear ${escapeHtml(userData.fullName ?? 'User')},</p>
+           <p>We received a request to reset your password for the LYDO Compliance System.</p>
+           <p>Please <a href="${customResetLink}">click here to set a new password</a>.</p>
+           <p>If you did not request this, you can safely ignore this email.</p>`
+        );
+
+        return { success: true, message: 'Password reset link sent to your email.' };
+      }
+
+      // 4. Check if pending
+      const pendingQuery = await db.collection('pending_users').where('email', '==', cleanEmail).limit(1).get();
+      if (!pendingQuery.empty) {
+        throw new functions.https.HttpsError(
+          'failed-precondition', 
+          'Your account registration is still pending administrator approval.'
+        );
+      }
+
+      // 5. Not found anywhere
+      throw new functions.https.HttpsError(
+        'not-found', 
+        'No account found with this email address.'
+      );
+
+    } catch (error: any) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error('requestPasswordReset error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An error occurred while requesting a password reset.'
+      );
+    }
+  }
+);
 
 // -------------------------------------------------------------------------------------------
 // onApplicationCreated (Document trigger)
