@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
-import type { ComplianceData } from '../../hooks/useComplianceData';
+import type { PublicAnalytics } from '../../hooks/usePublicAnalytics';
 
 interface HomeStatsProps {
-  liveData: ComplianceData | null;
-  totalSubmissionsCount: number;
+  analytics: PublicAnalytics | null;
+  loading: boolean;
 }
 
 function useCountUp(target: number, isVisible: boolean, duration = 1400) {
@@ -32,12 +32,12 @@ function useCountUp(target: number, isVisible: boolean, duration = 1400) {
   return value;
 }
 
-export const HomeStats: React.FC<HomeStatsProps> = ({ liveData, totalSubmissionsCount }) => {
-  const overallRate       = liveData ? liveData.overallRate          : 88;
-  const compliantCount    = liveData ? liveData.fullyCompliantCount  : 29;
-  const totalBarangays    = liveData ? liveData.totalBarangays       : 33;
-  const submissionsCount  = liveData ? totalSubmissionsCount         : 512;
-  const pendingCount      = liveData ? liveData.pendingReviewCount   : 14;
+export const HomeStats: React.FC<HomeStatsProps> = ({ analytics, loading }) => {
+  const overallRate       = analytics ? analytics.overallRate          : 0;
+  const compliantCount    = analytics ? analytics.fullyCompliantCount  : 0;
+  const totalBarangays    = 33; // Fixed 33 barangays
+  const submissionsCount  = analytics ? analytics.totalSubmissionsCount: 0;
+  const pendingCount      = 0; // Public analytics only tracks approved
 
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
@@ -168,7 +168,7 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ liveData, totalSubmissions
         </Row>
 
         {/* Public disclaimer */}
-        {!liveData && (
+        {!analytics && loading && (
           <div className={`text-center mt-5 sr-heading${visible ? ' visible' : ''}`}>
             <div
               style={{

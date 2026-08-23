@@ -4,7 +4,7 @@ import { auth, db, functions, storage } from '../../firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import FormField from '../common/FormField';
 import LoadingButton from '../common/LoadingButton';
 import { validatePassword } from '../../utils/passwordValidation';

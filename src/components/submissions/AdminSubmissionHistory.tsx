@@ -106,7 +106,6 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
           <UserProfileTrigger
             userId={sub.userId}
             fullName={sub.fullName}
-            className="fw-semibold cell-text-clamp-2"
           />
           <div className="cell-subtitle">{sub.barangay}</div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -18,9 +18,7 @@ import HomeFAQ from '../components/layout/HomeFAQ';
 import HomeContact from '../components/layout/HomeContact';
 import HomeFooter from '../components/layout/HomeFooter';
 
-import { useSubmissions } from '../hooks/useSubmissions';
-import { useComplianceData } from '../hooks/useComplianceData';
-import { BARANGAYS } from '../constants/barangays';
+import { usePublicAnalytics } from '../hooks/usePublicAnalytics';
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -83,53 +81,13 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [navigate]);
 
-  // 3. Submissions data query
-  const queryBarangay = role === 'admin' ? null : (role === 'user' ? barangay : undefined);
-  const isAdminQuery = role === 'admin';
-  
-  const submissionsHook = useSubmissions(
-    queryBarangay,
-    isAdminQuery
-  );
+  // 3. Load live public analytics from the new backend aggregator
+  const { analytics, loading } = usePublicAnalytics();
 
-  // Trigger historical listener on mount to load live public compliance data
-  useEffect(() => {
-    submissionsHook.fetchHistory();
-  }, [submissionsHook]);
-
-  // Calculate live statistics from data stream
-  const computedData = useComplianceData(
-    2026,
-    submissionsHook.pending,
-    submissionsHook.history,
-    BARANGAYS
-  );
-
-  // Total submissions tracked helper
-  const totalSubmissionsCount = submissionsHook.history.length + submissionsHook.pending.length;
-
-  // Calculate active registered branches count
-  const activeBarangaysCount = useMemo(() => {
-    const uniqueBrgys = new Set([
-      ...submissionsHook.history.map(s => s.barangay),
-      ...submissionsHook.pending.map(s => s.barangay)
-    ]);
-    return uniqueBrgys.size;
-  }, [submissionsHook.history, submissionsHook.pending]);
-
-  // Calculate active registered users count
-  const activeUsersCount = useMemo(() => {
-    const uniqueUsers = new Set([
-      ...submissionsHook.history.map(s => s.userId),
-      ...submissionsHook.pending.map(s => s.userId)
-    ]);
-    return uniqueUsers.size;
-  }, [submissionsHook.history, submissionsHook.pending]);
-
-  // Calculate total submissions count for the hero chip
-  const totalSubmissions = useMemo(() => {
-    return totalSubmissionsCount;
-  }, [totalSubmissionsCount]);
+  const totalSubmissionsCount = analytics?.totalSubmissionsCount ?? 0;
+  const activeBarangaysCount = analytics?.activeBarangaysCount ?? 0;
+  const activeUsersCount = analytics?.activeUsersCount ?? 0;
+  const totalSubmissions = totalSubmissionsCount;
 
 
 
@@ -187,8 +145,8 @@ export default function HomePage() {
       {/* 3. System Compliance stats */}
       <div className="kinetic-section">
         <HomeStats 
-          liveData={computedData} 
-          totalSubmissionsCount={totalSubmissionsCount}
+          analytics={analytics} 
+          loading={loading}
         />
       </div>
 
@@ -200,7 +158,8 @@ export default function HomePage() {
       {/* 4. Searchable Barangay Compliance Ledger Directory */}
       <div className="kinetic-section">
         <HomeLeaderboard 
-          liveData={computedData} 
+          analytics={analytics} 
+          loading={loading}
           userBarangay={barangay}
         />
       </div>

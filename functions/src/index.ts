@@ -55,3 +55,7 @@ export {
   adminResetUserTwoFactor
 } from './twoFactorAuth';
 
+export {
+  refreshPublicAnalyticsCron,
+  triggerAnalyticsSync
+} from './analytics';

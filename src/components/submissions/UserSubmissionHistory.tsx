@@ -93,11 +93,13 @@ const UserSubmissionHistory: React.FC<UserSubmissionHistoryProps> = ({ history =
     {
       header: 'Submitted By',
       render: (sub) => (
-        <UserProfileTrigger
-          userId={sub.userId}
-          fullName={sub.fullName}
-          className="fw-semibold cell-text-clamp-2"
-        />
+        <div className="w-100">
+          <UserProfileTrigger
+            userId={sub.userId}
+            fullName={sub.fullName}
+          />
+          <div className="cell-subtitle">{sub.barangay}</div>
+        </div>
       ),
     },
     {

@@ -43,7 +43,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   error
 }) => {
   
-  const handleCopy = (text: string, label: string) => {
+  const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     // Ideally use a toast here, but for simplicity we rely on native copy feedback or small alert
   };
@@ -140,7 +140,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   <div className="small text-muted mb-1">Email Address</div>
                   <div className="fw-semibold text-truncate">{profile.email}</div>
                 </div>
-                <Button variant="link" size="sm" className="p-0 text-decoration-none" onClick={() => handleCopy(profile.email, 'Email')} title="Copy Email">
+                <Button variant="link" size="sm" className="p-0 text-decoration-none" onClick={() => handleCopy(profile.email)} title="Copy Email">
                   <span className="material-symbols-outlined fs-5 text-secondary">content_copy</span>
                 </Button>
               </div>
@@ -154,7 +154,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     <div className="small text-muted mb-1">Contact Number</div>
                     <div className="fw-semibold">{profile.contactNumber}</div>
                   </div>
-                  <Button variant="link" size="sm" className="p-0 text-decoration-none" onClick={() => handleCopy(profile.contactNumber!, 'Phone')} title="Copy Phone">
+                  <Button variant="link" size="sm" className="p-0 text-decoration-none" onClick={() => handleCopy(profile.contactNumber!)} title="Copy Phone">
                     <span className="material-symbols-outlined fs-5 text-secondary">content_copy</span>
                   </Button>
                 </div>

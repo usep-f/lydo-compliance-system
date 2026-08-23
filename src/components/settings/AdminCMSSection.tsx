@@ -6,6 +6,9 @@ import type { Bulletin } from '../../hooks/useCMSData';
 import { useToast } from '../../context/ToastContext';
 import FormField from '../common/FormField';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { usePublicAnalytics } from '../../hooks/usePublicAnalytics';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../firebase';
 
 const TAG_OPTIONS = [
   'Deadlines',
@@ -60,6 +63,24 @@ export default function AdminCMSSection() {
   // Delete Confirmation State
   const [bulletinToDelete, setBulletinToDelete] = useState<Bulletin | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Public Analytics Sync State
+  const { analytics, loading: analyticsLoading } = usePublicAnalytics();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncPublicAnalytics = async () => {
+    setIsSyncing(true);
+    try {
+      const syncFn = httpsCallable(functions, 'triggerAnalyticsSync');
+      await syncFn();
+      addToast('Public analytics dashboard synchronized successfully.', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Failed to synchronize public analytics.', 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const openAddModal = () => {
     setSelectedBulletin(null);
@@ -148,6 +169,50 @@ export default function AdminCMSSection() {
 
   return (
     <div className="py-3">
+      {/* ── Public Dashboard Data Sync ── */}
+      <Card className="border-0 shadow-sm mb-4">
+        <Card.Body className="p-4">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+              <h5 className="fw-bold text-dark mb-1 d-flex align-items-center gap-2 font-headline" style={{ fontSize: '16px' }}>
+                <span className="material-symbols-outlined text-success" style={{ fontVariationSettings: "'FILL' 1" }}>sync_saved_locally</span>
+                Public Dashboard Synchronization
+              </h5>
+              <p className="text-secondary small mb-2">
+                The public compliance dashboard aggregates and caches live data to optimize performance and prevent rate limits.
+                It is scheduled to update automatically every 30 minutes.
+              </p>
+              <div className="d-flex align-items-center gap-2 text-muted small">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>schedule</span>
+                Last Auto-Sync:{' '}
+                {analyticsLoading ? (
+                  <Spinner size="sm" animation="border" />
+                ) : analytics?.updatedAt ? (
+                  <span className="fw-semibold text-dark">
+                    {analytics.updatedAt.toDate().toLocaleString()}
+                  </span>
+                ) : (
+                  'Never'
+                )}
+              </div>
+            </div>
+            <Button 
+              variant="outline-success" 
+              onClick={handleSyncPublicAnalytics} 
+              disabled={isSyncing || analyticsLoading}
+              className="d-flex align-items-center gap-1.5 rounded-pill px-4"
+            >
+              {isSyncing ? (
+                <Spinner size="sm" animation="border" />
+              ) : (
+                <span className="material-symbols-outlined fs-5">sync</span>
+              )}
+              <span>Force Sync Now</span>
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
+
       {/* ── Bulletins & Advisories Management ── */}
       <Card className="border-0 shadow-sm">
         <Card.Body className="p-4">

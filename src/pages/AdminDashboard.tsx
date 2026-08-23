@@ -26,6 +26,7 @@ import { useSubmissions } from '../hooks/useSubmissions';
 import { useComplianceData } from '../hooks/useComplianceData';
 import { formatPeriodLabel } from '../utils/periodUtils';
 import { validatePassword } from '../utils/passwordValidation';
+import UserProfileTrigger from '../components/common/UserProfileTrigger';
 
 interface PendingUser {
   id: string;
@@ -434,8 +435,14 @@ export default function AdminDashboard() {
   const approvedColumns: Column<ApprovedUser>[] = [
     {
       header: 'Full Name',
-      accessor: 'fullName',
-      className: 'fw-bold'
+      render: (user) => (
+        <div className="w-100">
+          <UserProfileTrigger
+            userId={user.uid}
+            fullName={user.fullName}
+          />
+        </div>
+      ),
     },
     {
       header: 'Email Address',

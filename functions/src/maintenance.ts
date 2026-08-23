@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { getStorage } from 'firebase-admin/storage';
+import { recomputePublicAnalytics } from './analytics';
 
 /**
  * purgeSystemData
@@ -46,7 +47,12 @@ export const purgeSystemData = functions.https.onCall(
       await bucket.deleteFiles();
       console.log('Successfully wiped Cloud Storage bucket.');
 
+      // 4. Recompute Public Analytics
+      await recomputePublicAnalytics(db);
+      console.log('Successfully recomputed public analytics.');
+
       return { 
+
         success: true, 
         message: 'System data and files purged successfully.' 
       };

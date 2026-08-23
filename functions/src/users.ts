@@ -11,6 +11,7 @@ import {
   validatePasswordStrength
 } from './helpers';
 import { writeNotification, writeNotificationToAdmins, deleteUserNotifications } from './notifications';
+import { recomputePublicAnalytics } from './analytics';
 
 // ---------------------------------------------------------------------------
 // checkEmailAvailability
@@ -203,6 +204,8 @@ export const approveUser = functions.https.onCall(
         title: 'Account Approved 🎉',
         body: 'Your SK Official account has been approved. Welcome to the LYDO Compliance System!',
       });
+
+      await recomputePublicAnalytics(db);
 
       return { success: true, message: 'User approved and email sent.' };
     } catch (error: any) {
@@ -473,6 +476,8 @@ export const deleteUser = functions.https.onCall(
       await admin.auth().deleteUser(uid);
       await db.collection('users').doc(uid).delete();
       await deleteUserNotifications(uid);
+
+      await recomputePublicAnalytics(db);
 
       return { success: true, message: 'User deleted successfully.' };
     } catch (error: any) {
@@ -782,6 +787,8 @@ export const deleteOwnAccount = functions.https.onCall(
           )
         )
       );
+
+      await recomputePublicAnalytics(db);
 
       return { success: true, message: 'Account deleted successfully.' };
     } catch (error: any) {
