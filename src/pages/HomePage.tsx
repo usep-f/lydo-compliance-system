@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { Button } from 'react-bootstrap';
 
 import HomeNavbar from '../components/layout/HomeNavbar';
@@ -25,6 +25,7 @@ export default function HomePage() {
   const [role, setRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [barangay, setBarangay] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,37 +49,45 @@ export default function HomePage() {
 
   // 2. Auth State subscription
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeDoc: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        unsubscribeDoc = onSnapshot(userDocRef, (userDocSnap) => {
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
             setRole(userData.role || 'user');
             setUserName(userData.fullName || currentUser.displayName || 'User');
             setBarangay(userData.barangay || null);
+            setAvatarUrl(userData.avatarUrl || null);
           } else {
             setRole('user');
             setUserName(currentUser.displayName || 'User');
             setBarangay(null);
+            setAvatarUrl(null);
           }
-        } catch (error) {
+        }, (error) => {
           console.error("Error fetching user data on homepage:", error);
           setRole('user');
           setUserName(currentUser.displayName || 'User');
           setBarangay(null);
-        }
+          setAvatarUrl(null);
+        });
       } else {
+        if (unsubscribeDoc) unsubscribeDoc();
         setUser(null);
         setRole(null);
         setUserName(null);
         setBarangay(null);
+        setAvatarUrl(null);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeDoc) unsubscribeDoc();
+      unsubscribeAuth();
+    };
   }, [navigate]);
 
   // 3. Load live public analytics from the new backend aggregator
@@ -88,8 +97,6 @@ export default function HomePage() {
   const activeBarangaysCount = analytics?.activeBarangaysCount ?? 0;
   const activeUsersCount = analytics?.activeUsersCount ?? 0;
   const totalSubmissions = totalSubmissionsCount;
-
-
 
   // 5. Scroll animation trigger via Intersection Observer
   useEffect(() => {
@@ -129,6 +136,7 @@ export default function HomePage() {
         user={user}
         role={role}
         userName={userName}
+        avatarUrl={avatarUrl}
         onLoginClick={() => setShowAuthModal(true)}
       />
 
