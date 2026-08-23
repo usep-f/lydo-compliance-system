@@ -174,9 +174,9 @@ export default function UserDashboard() {
   // Real-time submissions for this barangay (wide data query)
   const { pending = [], history = [], fetchHistory } = useSubmissions(userInfo?.barangay, false);
 
-  // Filter lists to personal only for specific views
-  const personalPending = pending.filter((s) => s.userId === userInfo?.uid);
-  const personalHistory = history.filter((s) => s.userId === userInfo?.uid);
+  // Show submissions for the entire barangay instead of filtering to just the active user
+  const barangayPending = pending;
+  const barangayHistory = history;
 
   // Client-side analytics — zero extra Firestore reads (hybrid scoping)
   const analytics = useUserAnalytics(pending, history, currentYear, userInfo?.uid);
@@ -568,7 +568,7 @@ export default function UserDashboard() {
               )}
             </div>
 
-            {personalHistory.length > 5 && (
+            {barangayHistory.length > 5 && (
               <div
                 style={{
                   padding: '12px 20px',
@@ -592,7 +592,7 @@ export default function UserDashboard() {
                     gap: '4px',
                   }}
                 >
-                  View all {personalHistory.length} submissions
+                  View all {barangayHistory.length} submissions
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
                 </button>
               </div>
@@ -614,13 +614,13 @@ export default function UserDashboard() {
               setShowConfirmModal(true);
             }}
           />
-          <UserPendingSubmissions pending={personalPending} />
+          <UserPendingSubmissions pending={barangayPending} />
         </div>
       )}
 
       {/* ====== HISTORY SECTION ====== */}
       {activeSection === 'history' && (
-        <UserSubmissionHistory history={personalHistory} />
+        <UserSubmissionHistory history={barangayHistory} />
       )}
 
       {/* ====== SETTINGS SECTION ====== */}

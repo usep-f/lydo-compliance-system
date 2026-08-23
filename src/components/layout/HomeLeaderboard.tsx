@@ -1,48 +1,35 @@
 import React, { useState, useMemo } from 'react';
-import { Container, Row, Col, Table, Form, InputGroup, Button, Modal, Badge } from 'react-bootstrap';
-import type { ComplianceData } from '../../hooks/useComplianceData';
+import { Container, Row, Col, Table, Form, InputGroup, Button, Modal, Badge, Spinner } from 'react-bootstrap';
+import type { PublicAnalytics } from '../../hooks/usePublicAnalytics';
 import { BARANGAYS } from '../../constants/barangays';
-import { SCHEDULED_TYPES } from '../../constants/submissionTypes';
+import { SCHEDULED_TYPES, ASAP_TYPES } from '../../constants/submissionTypes';
 
 interface HomeLeaderboardProps {
-  liveData: ComplianceData | null;
+  analytics: PublicAnalytics | null;
+  loading: boolean;
   userBarangay?: string | null;
 }
 
-export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, userBarangay }) => {
+export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loading, userBarangay }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'top' | 'bottom'>('top');
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Deterministic mock compliance rate for guests based on Barangay name hash
-  const getMockData = useMemo(() => {
-    return BARANGAYS.map(b => {
-      let hash = 0;
-      for (let i = 0; i < b.length; i++) {
-        hash = b.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      // Possible rates: 100, 95, 90, 85, 80, 75, 60
-      const rates = [100, 95, 90, 85, 80, 75, 60];
-      const idx = Math.abs(hash) % rates.length;
-      const rate = rates[idx];
-      const approvedCount = Math.round((rate / 100) * 15); // assume 15 expected docs
-      return {
-        barangay: b,
-        rate,
-        approved: approvedCount,
-        expected: 15,
-      };
-    }).sort((a, b) => b.rate - a.rate);
-  }, []);
-
   // Compute leaderboard dataset
   const leaderboardDataset = useMemo(() => {
-    if (liveData && liveData.barangayRanking) {
-      return liveData.barangayRanking;
+    if (analytics && analytics.barangayRanking && analytics.barangayRanking.length > 0) {
+      return analytics.barangayRanking.map(b => ({
+        barangay: b.barangay,
+        rate: b.complianceRate
+      }));
     }
-    return getMockData;
-  }, [liveData, getMockData]);
+    // Fallback: list all 33 barangays so table is never empty/broken
+    return BARANGAYS.map(b => ({
+      barangay: b,
+      rate: 0
+    }));
+  }, [analytics]);
 
   // Filtered leaderboard list based on search query and Top 5 / Bottom 5 filters
   const filteredDataset = useMemo(() => {
@@ -69,66 +56,48 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, user
   const detailsData = useMemo(() => {
     if (!selectedBarangay) return null;
 
-    const rankInfo = leaderboardDataset.find(r => r.barangay === selectedBarangay);
-    const rate = rankInfo ? rankInfo.rate : 80;
+    const breakdown = analytics?.barangayBreakdown?.[selectedBarangay];
+    const rate = breakdown ? breakdown.complianceRate : 0;
 
-    // 1. Live Data mapping
-    if (liveData) {
-      const scheduledRows = liveData.matrixData.filter(cell => cell.barangay === selectedBarangay);
-      const asapRows = liveData.asapStatus.filter(cell => cell.barangay === selectedBarangay);
-      const perennialRow = liveData.barangayPerennialSummary.find(cell => cell.barangay === selectedBarangay);
+    const scheduled: { docType: string; label: string; period: string; status: string }[] = [];
+    const asap: { docType: string; label: string; status: string }[] = [];
 
-      return {
-        rate,
-        isLive: true,
-        scheduled: scheduledRows.map(row => ({
-          docType: row.docType,
-          label: SCHEDULED_TYPES.find(t => t.id === row.docType)?.label || row.docType,
-          period: row.period,
-          status: row.status
-        })),
-        asap: asapRows.map(row => ({
-          docType: row.docType,
-          label: row.label,
-          status: row.status
-        })),
-        perennial: {
-          resolutions: perennialRow ? perennialRow.resolutions : 0,
-          accomplishments: perennialRow ? perennialRow.accomplishmentsTotal : 0
+    if (breakdown && breakdown.checklist) {
+      // Parse checklist keys
+      Object.entries(breakdown.checklist).forEach(([key, status]) => {
+        if (key.endsWith('_ASAP')) {
+          const docType = key.replace('_ASAP', '');
+          asap.push({
+            docType,
+            label: ASAP_TYPES.find(t => t.id === docType)?.label || docType,
+            status: status === 'compliant' ? 'approved' : 'missing'
+          });
+        } else {
+          // Scheduled
+          const lastUnderscore = key.lastIndexOf('_');
+          const docType = key.substring(0, lastUnderscore);
+          const period = key.substring(lastUnderscore + 1);
+          scheduled.push({
+            docType,
+            label: SCHEDULED_TYPES.find(t => t.id === docType)?.label || docType,
+            period,
+            status: status === 'compliant' ? 'approved' : 'missing'
+          });
         }
-      };
+      });
     }
-
-    // 2. Guest mock checklist mapping (determinstic checkmarks based on compliance rate)
-    // Scheduled docs mock: AYDP (Q1-Q4), Sessions (Jan-Jun)
-    const mockScheduled = [
-      { docType: 'full_disclosure', label: 'Full Disclosure Policy Board', period: '2026-Q1', status: rate >= 75 ? 'approved' : 'missing' },
-      { docType: 'full_disclosure', label: 'Full Disclosure Policy Board', period: '2026-Q2', status: rate >= 90 ? 'approved' : 'pending' },
-      { docType: 'regular_session_minutes', label: 'Regular Session Minutes', period: 'Jan 2026', status: 'approved' },
-      { docType: 'regular_session_minutes', label: 'Regular Session Minutes', period: 'Feb 2026', status: rate >= 60 ? 'approved' : 'missing' },
-      { docType: 'regular_session_minutes', label: 'Regular Session Minutes', period: 'Mar 2026', status: rate >= 80 ? 'approved' : 'pending' },
-      { docType: 'kk_minutes', label: 'KK Minutes of Meeting', period: '2026-S1', status: rate === 100 ? 'approved' : 'missing' }
-    ];
-
-    const mockAsap = [
-      { docType: 'directory_sk_officials', label: 'Directory of SK Officials', status: 'approved' },
-      { docType: 'kk_profiling', label: 'KK Profiling Registry', status: rate >= 80 ? 'approved' : 'pending' },
-      { docType: 'list_youth_orgs', label: 'List of Youth Organizations', status: rate >= 75 ? 'approved' : 'missing' }
-    ];
-
-    const mockPerennial = {
-      resolutions: Math.round(rate / 10),
-      accomplishments: Math.round(rate / 15)
-    };
 
     return {
       rate,
-      isLive: false,
-      scheduled: mockScheduled,
-      asap: mockAsap,
-      perennial: mockPerennial
+      isLive: true,
+      scheduled,
+      asap,
+      perennial: {
+        resolutions: 0, // Not tracked in public analytics
+        accomplishments: 0
+      }
     };
-  }, [selectedBarangay, leaderboardDataset, liveData]);
+  }, [selectedBarangay, analytics]);
 
   // Color helper for badges
   const getBadgeColor = (rate: number) => {
@@ -249,7 +218,14 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, user
               </tr>
             </thead>
             <tbody>
-              {filteredDataset.length > 0 ? (
+              {loading && (!analytics || !analytics.barangayRanking) ? (
+                <tr>
+                  <td colSpan={4} className="text-center py-5 text-muted">
+                    <Spinner animation="border" variant="primary" size="sm" className="me-2" />
+                    <span>Loading compliance rankings...</span>
+                  </td>
+                </tr>
+              ) : filteredDataset.length > 0 ? (
                 filteredDataset.map((item) => {
                   const originalIndex = leaderboardDataset.findIndex(r => r.barangay === item.barangay) + 1;
                   const isUserBrgy = item.barangay === userBarangay;
@@ -302,7 +278,11 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ liveData, user
                 <tr>
                   <td colSpan={4} className="text-center py-5 text-muted">
                     <span className="material-symbols-outlined fs-1 text-secondary mb-2">search_off</span>
-                    <div>No barangays match "{searchTerm}"</div>
+                    <div>
+                      {searchTerm.trim() !== '' 
+                        ? `No barangays match "${searchTerm}"` 
+                        : 'No compliance records available'}
+                    </div>
                   </td>
                 </tr>
               )}

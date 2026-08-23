@@ -23,7 +23,8 @@ export {
   deleteUser,
   updateOwnProfile,
   deleteOwnAccount,
-  onApplicationCreated 
+  onApplicationCreated,
+  requestPasswordReset
 } from './users';
 
 export { 
@@ -43,3 +44,18 @@ export {
 export {
   publishDeadlineBulletins
 } from './bulletinScheduler';
+
+export {
+  initiateLogin,
+  verifyTwoFactorLogin,
+  requestTwoFactorEnrollment,
+  confirmTwoFactorEnrollment,
+  disableTwoFactor,
+  revokeTrustedDevices,
+  adminResetUserTwoFactor
+} from './twoFactorAuth';
+
+export {
+  refreshPublicAnalyticsCron,
+  triggerAnalyticsSync
+} from './analytics';

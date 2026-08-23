@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { Button } from 'react-bootstrap';
 
 import HomeNavbar from '../components/layout/HomeNavbar';
@@ -18,15 +18,14 @@ import HomeFAQ from '../components/layout/HomeFAQ';
 import HomeContact from '../components/layout/HomeContact';
 import HomeFooter from '../components/layout/HomeFooter';
 
-import { useSubmissions } from '../hooks/useSubmissions';
-import { useComplianceData } from '../hooks/useComplianceData';
-import { BARANGAYS } from '../constants/barangays';
+import { usePublicAnalytics } from '../hooks/usePublicAnalytics';
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [barangay, setBarangay] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,88 +49,54 @@ export default function HomePage() {
 
   // 2. Auth State subscription
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeDoc: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        unsubscribeDoc = onSnapshot(userDocRef, (userDocSnap) => {
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
             setRole(userData.role || 'user');
             setUserName(userData.fullName || currentUser.displayName || 'User');
             setBarangay(userData.barangay || null);
+            setAvatarUrl(userData.avatarUrl || null);
           } else {
             setRole('user');
             setUserName(currentUser.displayName || 'User');
             setBarangay(null);
+            setAvatarUrl(null);
           }
-        } catch (error) {
+        }, (error) => {
           console.error("Error fetching user data on homepage:", error);
           setRole('user');
           setUserName(currentUser.displayName || 'User');
           setBarangay(null);
-        }
+          setAvatarUrl(null);
+        });
       } else {
+        if (unsubscribeDoc) unsubscribeDoc();
         setUser(null);
         setRole(null);
         setUserName(null);
         setBarangay(null);
+        setAvatarUrl(null);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeDoc) unsubscribeDoc();
+      unsubscribeAuth();
+    };
   }, [navigate]);
 
-  // 3. Submissions data query
-  const queryBarangay = role === 'admin' ? null : (role === 'user' ? barangay : undefined);
-  const isAdminQuery = role === 'admin';
-  
-  const submissionsHook = useSubmissions(
-    queryBarangay,
-    isAdminQuery
-  );
+  // 3. Load live public analytics from the new backend aggregator
+  const { analytics, loading } = usePublicAnalytics();
 
-  // Trigger historical listener on mount to load live public compliance data
-  useEffect(() => {
-    submissionsHook.fetchHistory();
-  }, [submissionsHook]);
-
-  // Calculate live statistics from data stream
-  const computedData = useComplianceData(
-    2026,
-    submissionsHook.pending,
-    submissionsHook.history,
-    BARANGAYS
-  );
-
-  // Total submissions tracked helper
-  const totalSubmissionsCount = submissionsHook.history.length + submissionsHook.pending.length;
-
-  // Calculate active registered branches count
-  const activeBarangaysCount = useMemo(() => {
-    const uniqueBrgys = new Set([
-      ...submissionsHook.history.map(s => s.barangay),
-      ...submissionsHook.pending.map(s => s.barangay)
-    ]);
-    return uniqueBrgys.size;
-  }, [submissionsHook.history, submissionsHook.pending]);
-
-  // Calculate active registered users count
-  const activeUsersCount = useMemo(() => {
-    const uniqueUsers = new Set([
-      ...submissionsHook.history.map(s => s.userId),
-      ...submissionsHook.pending.map(s => s.userId)
-    ]);
-    return uniqueUsers.size;
-  }, [submissionsHook.history, submissionsHook.pending]);
-
-  // Calculate total submissions count for the hero chip
-  const totalSubmissions = useMemo(() => {
-    return totalSubmissionsCount;
-  }, [totalSubmissionsCount]);
-
-
+  const totalSubmissionsCount = analytics?.totalSubmissionsCount ?? 0;
+  const activeBarangaysCount = analytics?.activeBarangaysCount ?? 0;
+  const activeUsersCount = analytics?.activeUsersCount ?? 0;
+  const totalSubmissions = totalSubmissionsCount;
 
   // 5. Scroll animation trigger via Intersection Observer
   useEffect(() => {
@@ -171,6 +136,7 @@ export default function HomePage() {
         user={user}
         role={role}
         userName={userName}
+        avatarUrl={avatarUrl}
         onLoginClick={() => setShowAuthModal(true)}
       />
 
@@ -187,8 +153,8 @@ export default function HomePage() {
       {/* 3. System Compliance stats */}
       <div className="kinetic-section">
         <HomeStats 
-          liveData={computedData} 
-          totalSubmissionsCount={totalSubmissionsCount}
+          analytics={analytics} 
+          loading={loading}
         />
       </div>
 
@@ -200,7 +166,8 @@ export default function HomePage() {
       {/* 4. Searchable Barangay Compliance Ledger Directory */}
       <div className="kinetic-section">
         <HomeLeaderboard 
-          liveData={computedData} 
+          analytics={analytics} 
+          loading={loading}
           userBarangay={barangay}
         />
       </div>

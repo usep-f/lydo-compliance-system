@@ -3,7 +3,8 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
-
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import type { AppCheck } from "firebase/app-check";
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -16,6 +17,23 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+let appCheck: AppCheck | undefined;
+if (typeof window !== "undefined") {
+  if (import.meta.env.DEV) {
+    const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+    // @ts-expect-error - self.FIREBASE_APPCHECK_DEBUG_TOKEN is recognized by Firebase SDK
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken && debugToken.trim().length > 0 ? debugToken : true;
+  }
+
+  if (import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+      isTokenAutoRefreshEnabled: true
+    });
+  }
+}
+
+export { appCheck };
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

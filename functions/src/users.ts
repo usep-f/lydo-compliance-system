@@ -11,6 +11,7 @@ import {
   validatePasswordStrength
 } from './helpers';
 import { writeNotification, writeNotificationToAdmins, deleteUserNotifications } from './notifications';
+import { recomputePublicAnalytics } from './analytics';
 
 // ---------------------------------------------------------------------------
 // checkEmailAvailability
@@ -203,6 +204,8 @@ export const approveUser = functions.https.onCall(
         title: 'Account Approved 🎉',
         body: 'Your SK Official account has been approved. Welcome to the LYDO Compliance System!',
       });
+
+      await recomputePublicAnalytics(db);
 
       return { success: true, message: 'User approved and email sent.' };
     } catch (error: any) {
@@ -474,6 +477,8 @@ export const deleteUser = functions.https.onCall(
       await db.collection('users').doc(uid).delete();
       await deleteUserNotifications(uid);
 
+      await recomputePublicAnalytics(db);
+
       return { success: true, message: 'User deleted successfully.' };
     } catch (error: any) {
       console.error('Delete user error:', error);
@@ -501,7 +506,10 @@ export const updateOwnProfile = functions.https.onCall(
       throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
     }
     const uid = request.auth.uid;
-    const { email, fullName, passwordChanged, syncEmail } = request.data;
+    const { 
+      email, fullName, passwordChanged, syncEmail, 
+      designation, contactNumber, address, socialLinks, avatarUrl 
+    } = request.data;
 
     // Validate email
     if (email !== undefined && email !== null) {
@@ -527,6 +535,21 @@ export const updateOwnProfile = functions.https.onCall(
       let emailVerificationSent = false;
       const updateData: any = {};
       if (fullName) updateData.fullName = fullName.trim();
+      if (designation !== undefined) updateData.designation = typeof designation === 'string' ? designation.trim() : null;
+      if (contactNumber !== undefined) updateData.contactNumber = typeof contactNumber === 'string' ? contactNumber.trim() : null;
+      if (address !== undefined) updateData.address = typeof address === 'string' ? address.trim() : null;
+      if (avatarUrl !== undefined) updateData.avatarUrl = typeof avatarUrl === 'string' ? avatarUrl.trim() : null;
+      
+      if (socialLinks !== undefined) {
+        if (Array.isArray(socialLinks) && socialLinks.length <= 4) {
+          updateData.socialLinks = socialLinks.map((link: any) => ({
+            platform: String(link.platform).trim(),
+            url: String(link.url).trim()
+          }));
+        } else {
+          throw new functions.https.HttpsError('invalid-argument', 'Invalid social links provided.');
+        }
+      }
 
       if (email) {
         const cleanEmail = email.trim().toLowerCase();
@@ -765,6 +788,8 @@ export const deleteOwnAccount = functions.https.onCall(
         )
       );
 
+      await recomputePublicAnalytics(db);
+
       return { success: true, message: 'Account deleted successfully.' };
     } catch (error: any) {
       console.error('deleteOwnAccount error:', error);
@@ -776,7 +801,84 @@ export const deleteOwnAccount = functions.https.onCall(
   }
 );
 
+// ---------------------------------------------------------------------------
+// requestPasswordReset
+// ---------------------------------------------------------------------------
+export const requestPasswordReset = functions.https.onCall(
+  {
+    maxInstances: 10,
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (request) => {
+    const db = admin.firestore();
+    const { email } = request.data;
+    
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      throw new functions.https.HttpsError('invalid-argument', 'A valid email address is required.');
+    }
+    const cleanEmail = email.trim().toLowerCase();
 
+    try {
+      // 1. Check if user exists and is approved
+      const userQuery = await db.collection('users').where('email', '==', cleanEmail).limit(1).get();
+      if (!userQuery.empty) {
+        const userData = userQuery.docs[0].data();
+        if (userData.status !== 'approved') {
+          throw new functions.https.HttpsError(
+            'failed-precondition', 
+            'Your account is not fully approved yet.'
+          );
+        }
+
+        // 2. Generate the Firebase Auth password reset link
+        const defaultResetLink = await admin.auth().generatePasswordResetLink(cleanEmail);
+        const urlParts = new URL(defaultResetLink);
+        // Map the default auth handler to our custom route
+        const customResetLink = `https://lydo-compliance-system-ce8c3.firebaseapp.com/reset-password${urlParts.search}`;
+
+        // 3. Send email via Brevo
+        await sendEmailViaBrevo(
+          cleanEmail,
+          escapeHtml(userData.fullName ?? 'User'),
+          'Password Reset Request',
+          `<h1>Password Reset Request</h1>
+           <p>Dear ${escapeHtml(userData.fullName ?? 'User')},</p>
+           <p>We received a request to reset your password for the LYDO Compliance System.</p>
+           <p>Please <a href="${customResetLink}">click here to set a new password</a>.</p>
+           <p>If you did not request this, you can safely ignore this email.</p>`
+        );
+
+        return { success: true, message: 'Password reset link sent to your email.' };
+      }
+
+      // 4. Check if pending
+      const pendingQuery = await db.collection('pending_users').where('email', '==', cleanEmail).limit(1).get();
+      if (!pendingQuery.empty) {
+        throw new functions.https.HttpsError(
+          'failed-precondition', 
+          'Your account registration is still pending administrator approval.'
+        );
+      }
+
+      // 5. Not found anywhere
+      throw new functions.https.HttpsError(
+        'not-found', 
+        'No account found with this email address.'
+      );
+
+    } catch (error: any) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      console.error('requestPasswordReset error:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        'An error occurred while requesting a password reset.'
+      );
+    }
+  }
+);
 
 // -------------------------------------------------------------------------------------------
 // onApplicationCreated (Document trigger)

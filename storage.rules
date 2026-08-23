@@ -27,6 +27,17 @@ service firebase.storage {
       allow read, delete: if request.auth != null && isAdmin();
     }
 
+    // ── User Avatars ──
+    match /avatars/{userId}/{allPaths=**} {
+      allow create: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow update: if false;
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
     // ── Submission Files ──
     // Users upload PDFs under their own userId path.
     // Only PDF format, max 100 MB.

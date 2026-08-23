@@ -9,6 +9,7 @@ import { exportSubmissionHistoryToCsv } from '../../utils/csvUtils';
 import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
+import UserProfileTrigger from '../common/UserProfileTrigger';
 interface AdminSubmissionHistoryProps {
   history: HistoricalSubmission[];
   loading: boolean;
@@ -102,7 +103,10 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
       header: 'Submitted By',
       render: (sub) => (
         <div className="w-100">
-          <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>{sub.fullName}</div>
+          <UserProfileTrigger
+            userId={sub.userId}
+            fullName={sub.fullName}
+          />
           <div className="cell-subtitle">{sub.barangay}</div>
         </div>
       ),
@@ -235,7 +239,11 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">Submitted By</div>
-              <div className="body-large text-dark fw-semibold">{selectedSub?.fullName}</div>
+              <UserProfileTrigger
+                userId={selectedSub?.userId || ''}
+                fullName={selectedSub?.fullName || ''}
+                className="body-large text-dark fw-semibold"
+              />
             </div>
 
             <div className="mb-3">

@@ -11,6 +11,7 @@ import {
 } from './helpers';
 import { writeNotification, writeNotificationToAdmins } from './notifications';
 import { verifyPdfBuffer } from './pdfScreening';
+import { recomputePublicAnalytics } from './analytics';
 
 // ---------------------------------------------------------------------------
 // approveSubmission
@@ -114,6 +115,8 @@ export const approveSubmission = functions.https.onCall(
           },
         });
       }
+
+      await recomputePublicAnalytics(db);
 
       return { success: true, message: 'Submission approved successfully.' };
     } catch (error: any) {
@@ -238,6 +241,8 @@ export const denySubmission = functions.https.onCall(
           },
         });
       }
+
+      await recomputePublicAnalytics(db);
 
       return { success: true, message: 'Submission denied and notification sent.' };
     } catch (error: any) {
@@ -397,4 +402,7 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
       applicantName: fullName ?? '',
     },
   });
+
+  await recomputePublicAnalytics(db);
 });
+

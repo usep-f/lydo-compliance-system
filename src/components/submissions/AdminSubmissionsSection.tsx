@@ -14,6 +14,7 @@ import DocumentReviewModal from '../common/DocumentReviewModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import FormField from '../common/FormField';
 import StatusBadge from '../common/StatusBadge';
+import UserProfileTrigger from '../common/UserProfileTrigger';
 import { useToast } from '../../context/ToastContext';
 import type { HistoricalSubmission, PendingSubmission } from '../../constants/submissionTypes';
 
@@ -181,7 +182,10 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
       header: 'Submitted By',
       render: (sub) => (
         <div className="w-100">
-          <div className="fw-semibold cell-text-clamp-2" title={sub.fullName}>{sub.fullName}</div>
+          <UserProfileTrigger
+            userId={sub.userId}
+            fullName={sub.fullName}
+          />
           <div className="cell-subtitle">{sub.barangay}</div>
         </div>
       ),
@@ -293,7 +297,11 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">Submitted By</div>
-              <div className="body-large text-dark fw-semibold">{selectedSub?.fullName}</div>
+              <UserProfileTrigger
+                userId={selectedSub?.userId || ''}
+                fullName={selectedSub?.fullName || ''}
+                className="body-large text-dark fw-semibold"
+              />
             </div>
 
             <div className="mb-3">

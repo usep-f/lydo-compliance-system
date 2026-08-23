@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import lydoLogo from '../../assets/lydo-logo.webp';
 
 export interface NavigationSection {
@@ -93,6 +93,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 }) => {
   const [adminName, setAdminName] = useState<string>('Loading...');
   const [adminRole, setAdminRole] = useState<string>('user');
+  const [adminAvatar, setAdminAvatar] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('lydo_sidebar_collapsed') === 'true';
   });
@@ -120,26 +121,35 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeDoc: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        try {
-          const docRef = doc(db, 'users', currentUser.uid);
-          const docSnap = await getDoc(docRef);
+        const docRef = doc(db, 'users', currentUser.uid);
+        unsubscribeDoc = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.fullName) setAdminName(data.fullName);
             if (data.role) setAdminRole(data.role);
-            return;
+            setAdminAvatar(data.avatarUrl || '');
+          } else {
+            setAdminName(currentUser.email || 'Admin Portal');
+            setAdminAvatar('');
           }
-        } catch (err) {
-          console.error('Error loading user name:', err);
-        }
-        setAdminName(currentUser.email || 'Admin Portal');
+        }, (err) => {
+          console.error('Error loading user profile in sidebar:', err);
+        });
       } else {
+        if (unsubscribeDoc) unsubscribeDoc();
         setAdminName('Admin Portal');
+        setAdminRole('user');
+        setAdminAvatar('');
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      if (unsubscribeDoc) unsubscribeDoc();
+      unsubscribeAuth();
+    };
   }, []);
 
   /** First two initials for the avatar */
@@ -193,7 +203,17 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
         {/* User chip */}
         <div className="sidebar-user-chip" title={isCollapsed ? `${adminName} (${isAdmin ? 'Admin' : 'SK'})` : undefined}>
-          <div className="sidebar-user-avatar">{initials}</div>
+          <div className="sidebar-user-avatar">
+            {adminAvatar ? (
+              <img 
+                src={adminAvatar} 
+                alt={adminName} 
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+              />
+            ) : (
+              initials
+            )}
+          </div>
           {showText && (
             <div className="sidebar-text-fade-in d-flex align-items-center justify-content-between gap-2 flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>
               <div className="sidebar-user-name">{adminName}</div>

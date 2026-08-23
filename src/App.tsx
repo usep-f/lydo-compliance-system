@@ -11,8 +11,10 @@ import HomePage from './pages/HomePage';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SetupPasswordPage from './pages/SetupPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import RegistrationSuccessPage from './pages/RegistrationSuccessPage';
 import { ToastProvider, useToast } from './context/ToastContext';
+import { UserProfileModalProvider } from './context/UserProfileModalContext';
 import './App.css';
 
 function AppInner() {
@@ -102,6 +104,11 @@ function AppInner() {
         />
 
         <Route 
+          path="/reset-password" 
+          element={<ResetPasswordPage />} 
+        />
+
+        <Route 
           path="/registration-success" 
           element={<RegistrationSuccessPage />} 
         />
@@ -128,9 +135,11 @@ function AppInner() {
 function App() {
   return (
     <ToastProvider>
-      <Router>
-        <AppInner />
-      </Router>
+      <UserProfileModalProvider>
+        <Router>
+          <AppInner />
+        </Router>
+      </UserProfileModalProvider>
     </ToastProvider>
   );
 }

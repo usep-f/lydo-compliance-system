@@ -11,10 +11,11 @@ interface HomeNavbarProps {
   user: User | null;
   role: string | null;
   userName: string | null;
+  avatarUrl?: string | null;
   onLoginClick: () => void;
 }
 
-export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, onLoginClick }) => {
+export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, avatarUrl, onLoginClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -134,14 +135,23 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
                         transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         boxShadow: '0 4px 16px rgba(0,110,183,0.35)',
                         fontFamily: 'var(--font-headline)',
-                        border: '2px solid rgba(255,255,255,0.25)'
+                        border: '2px solid rgba(255,255,255,0.25)',
+                        overflow: 'hidden',
                       }}
                       onClick={handleDashboardRedirect}
                       title={`${userName ?? 'User'} — Go to Dashboard`}
                       onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; }}
                       onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                     >
-                      {getInitials(userName)}
+                      {avatarUrl ? (
+                        <img 
+                          src={avatarUrl} 
+                          alt={userName ?? 'User'} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        getInitials(userName)
+                      )}
                     </div>
                     <Button
                       onClick={handleLogout}
@@ -245,10 +255,19 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, on
                       borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       color: '#FFF', fontWeight: 800, fontSize: '14px',
-                      fontFamily: 'var(--font-headline)'
+                      fontFamily: 'var(--font-headline)',
+                      overflow: 'hidden',
                     }}
                   >
-                    {getInitials(userName)}
+                    {avatarUrl ? (
+                      <img 
+                        src={avatarUrl} 
+                        alt={userName ?? 'User'} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      getInitials(userName)
+                    )}
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '14px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
