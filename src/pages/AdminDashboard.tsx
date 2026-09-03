@@ -1389,6 +1389,7 @@ export default function AdminDashboard() {
         <AdminAnalyticsSection
           pending={pendingSubs}
           history={historySubs}
+          adminName={adminName}
         />
       ) : activeSection === 'matrix' ? (
         <ComplianceMatrix

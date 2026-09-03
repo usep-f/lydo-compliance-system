@@ -20,7 +20,7 @@ import {
 } from '../../constants/submissionTypes';
 import { useComplianceData, type TrendTimeframe } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
-import { exportBarangayProfileToCsv } from '../../utils/csvUtils';
+import ExportReportModal from './ExportReportModal';
 
 // Register Chart.js
 ChartJS.register(
@@ -171,16 +171,21 @@ const SortToggle: React.FC<{
 interface AdminAnalyticsSectionProps {
   pending: PendingSubmission[];
   history: HistoricalSubmission[];
+  adminName?: string;
 }
 
 const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   pending = [],
   history = [],
+  adminName = 'Admin',
 }) => {
   const currentYear = new Date().getFullYear();
 
   // Global barangay filter — '' means "All Barangays"
   const [selectedBarangay, setSelectedBarangay] = useState('');
+
+  // Report Generator Modal visibility state
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Sort direction for the compliance ranking bar chart
   const [rankingSortDir, setRankingSortDir] = useState<'desc' | 'asc'>('desc');
@@ -386,13 +391,12 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           <div className="ms-auto">
             <button
               type="button"
-              className="bfc-btn-export"
-              onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
-              disabled={!selectedBarangay}
-              title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+              className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 px-3 py-1 shadow-sm"
+              style={{ borderRadius: '8px', fontWeight: 600, fontSize: '13px' }}
+              onClick={() => setShowExportModal(true)}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-              Export Barangay Profile CSV
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>summarize</span>
+              Generate Reports &amp; Exports
             </button>
           </div>
         </div>
@@ -433,13 +437,12 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
             </div>
             <button
               type="button"
-              className="bfc-btn-export"
-              onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
-              disabled={!selectedBarangay}
-              title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+              className="btn btn-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1 py-2 shadow-sm"
+              style={{ borderRadius: '8px', fontWeight: 600, fontSize: '13px' }}
+              onClick={() => setShowExportModal(true)}
             >
-              <span className="material-symbols-outlined">download</span>
-              Export Barangay Profile CSV
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>summarize</span>
+              Generate Reports &amp; Exports
             </button>
           </div>
         </div>
@@ -531,6 +534,17 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           </Col>
         </Row>
       )}
+
+      {/* Centralized Export & Report Generator Modal */}
+      <ExportReportModal
+        show={showExportModal}
+        onHide={() => setShowExportModal(false)}
+        adminName={adminName}
+        compliance={compliance}
+        pendingSubmissions={pending}
+        historySubmissions={history}
+        currentYear={currentYear}
+      />
     </>
   );
 };

@@ -13,6 +13,8 @@
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "firebase": "^12.13.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.6",
     "react-bootstrap": "^2.10.10",
