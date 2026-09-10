@@ -123,17 +123,20 @@ export default function AdminDashboard() {
   const adminGaugeSlices = useMemo(() => {
     const totalExpected = compliance.barangayRanking.reduce((s, b) => s + b.expected, 0);
     const pendingPct = Math.round((pendingSubs.length / Math.max(1, totalExpected)) * 100);
+    const deniedCount = historySubs.filter((s) => s.status === 'denied' && s.year === currentYear).length;
+    const deniedPct = Math.round((deniedCount / Math.max(1, totalExpected)) * 100);
     return [
       { label: 'Approved',       value: compliance.overallRate, color: '#16A34A' },
       { label: 'Pending Review', value: pendingPct,              color: '#F59E0B' },
       {
         label: 'Missing/Overdue',
-        value: Math.max(0, 100 - compliance.overallRate - pendingPct),
+        value: Math.max(0, 100 - compliance.overallRate - pendingPct - deniedPct),
         color: '#EF4444',
         isStriped: true,
       },
+      { label: 'Denied',         value: deniedPct,              color: '#18181B' },
     ];
-  }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length]);
+  }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length, historySubs, currentYear]);
 
   // ── Welcome Banner Dynamic Description ─────────────────────────────────────
   const bannerDescription = useMemo(() => {
@@ -649,6 +652,7 @@ export default function AdminDashboard() {
                   slices={adminGaugeSlices}
                   centerValue={`${compliance.overallRate}%`}
                   centerLabel="Compliant"
+                  valueSuffix="%"
                   emptyMessage="No compliance data available."
                 />
               </div>

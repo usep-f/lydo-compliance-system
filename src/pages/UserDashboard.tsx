@@ -196,15 +196,15 @@ export default function UserDashboard() {
 
   const handleSectionSelect = (section: string) => {
     setActiveSection(section);
-    if (section !== 'submissions') {
-      setPrefilledDocType('');
-      setPrefilledPeriod('');
-    }
+    setPrefilledDocType('');
+    setPrefilledPeriod('');
   };
 
   const handleUploadSuccess = () => {
     setShowConfirmModal(false);
     setPendingUpload(null);
+    setPrefilledDocType('');
+    setPrefilledPeriod('');
     setActiveSection('history');
   };
 

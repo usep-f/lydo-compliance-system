@@ -22,6 +22,10 @@ interface UnifiedGaugeChartProps {
   centerValue: string | number;
   /** Small label beneath the centre value */
   centerLabel: string;
+  /** Suffix to append to hover slice values (e.g. "%") */
+  valueSuffix?: string;
+  /** Custom formatter function for displayed hover value */
+  formatValue?: (value: number | string) => string;
   /** Empty-state message when all values are 0 */
   emptyMessage?: string;
   /** Total height of the chart canvas in px */
@@ -161,6 +165,8 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
   slices,
   centerValue,
   centerLabel,
+  valueSuffix = '',
+  formatValue,
   emptyMessage = 'No data available.',
 }) => {
   const uid = useId();
@@ -213,7 +219,9 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
 
   // Resolve what the centre displays (changes on hover)
   const displayValue = hoveredIndex !== null
-    ? slices[hoveredIndex].value
+    ? (formatValue
+        ? formatValue(slices[hoveredIndex].value)
+        : `${slices[hoveredIndex].value}${valueSuffix}`)
     : centerValue;
   const displayLabel = hoveredIndex !== null
     ? slices[hoveredIndex].label
@@ -329,7 +337,9 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
                       }}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
-                    />
+                    >
+                      <title>{`${slice.label}: ${formatValue ? formatValue(slice.value) : `${slice.value}${valueSuffix}`}`}</title>
+                    </path>
                   );
                 })}
               </svg>
@@ -356,9 +366,7 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  {typeof displayValue === 'number' && !String(displayValue).includes('%')
-                    ? `${displayValue}`
-                    : displayValue}
+                  {displayValue}
                 </div>
                 <div
                   style={{

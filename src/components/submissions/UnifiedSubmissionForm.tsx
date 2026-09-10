@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import {
   SCHEDULED_TYPES,
@@ -34,8 +34,8 @@ interface UnifiedSubmissionFormProps {
 const BASE_DOCUMENT_TYPES = [
   ...SCHEDULED_TYPES,
   ...ASAP_TYPES,
-  { id: 'resolutions', label: 'Resolutions', category: 'perennial', frequency: 'annual' },
-  { id: 'accomplishment_report', label: 'Accomplishment Report', category: 'perennial', frequency: 'annual' },
+  { id: 'resolutions', label: 'Resolutions', category: 'perennial' as const },
+  { id: 'accomplishment_report', label: 'Accomplishment Report', category: 'perennial' as const },
 ];
 
 const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ 
@@ -46,16 +46,68 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
   onSubmitReady 
 }) => {
   const [selectedBaseTypeId, setSelectedBaseTypeId] = useState<string>(initialDocumentTypeId);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>(initialPeriod);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
+    if (initialPeriod) return initialPeriod;
+    if (!initialDocumentTypeId) return '';
+    const matched = BASE_DOCUMENT_TYPES.find((t) => t.id === initialDocumentTypeId);
+    if (matched?.category === 'asap') return 'ASAP';
+    if (matched?.category === 'perennial') return currentYear.toString();
+    if (matched?.category === 'scheduled' && matched.frequency) {
+      const periods = getSubmittablePeriods(matched.frequency as Frequency, currentYear, new Date());
+      const available = periods.find(p => !existingSubmissions.some(
+        (s) => s.documentType === initialDocumentTypeId && s.period === p && s.status !== 'denied'
+      ));
+      return available || '';
+    }
+    return '';
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const selectedYear = currentYear;
+
+  // Synchronize incoming prefilled changes from props during render (React recommended pattern)
+  const [prevProps, setPrevProps] = useState({
+    initialDocumentTypeId,
+    initialPeriod,
+  });
+
+  if (
+    prevProps.initialDocumentTypeId !== initialDocumentTypeId ||
+    prevProps.initialPeriod !== initialPeriod
+  ) {
+    setPrevProps({
+      initialDocumentTypeId,
+      initialPeriod,
+    });
+    if (initialDocumentTypeId) {
+      setSelectedBaseTypeId(initialDocumentTypeId);
+      setSelectedCategory('');
+
+      const matched = BASE_DOCUMENT_TYPES.find((t) => t.id === initialDocumentTypeId);
+      if (initialPeriod) {
+        setSelectedPeriod(initialPeriod);
+      } else if (matched?.category === 'asap') {
+        setSelectedPeriod('ASAP');
+      } else if (matched?.category === 'perennial') {
+        setSelectedPeriod(selectedYear.toString());
+      } else if (matched?.category === 'scheduled' && matched.frequency) {
+        const periods = getSubmittablePeriods(matched.frequency as Frequency, selectedYear, new Date());
+        const available = periods.find(p => !existingSubmissions.some(
+          (s) => s.documentType === initialDocumentTypeId && s.period === p && s.status !== 'denied'
+        ));
+        setSelectedPeriod(available || '');
+      } else {
+        setSelectedPeriod('');
+      }
+    } else {
+      setSelectedBaseTypeId('');
+      setSelectedCategory('');
+      setSelectedPeriod('');
+    }
+  }
 
   const [file, setFile] = useState<File | null>(null);
   const [screening, setScreening] = useState<PdfScreeningResult | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-
-  const [prevInitialDocumentTypeId, setPrevInitialDocumentTypeId] = useState<string>(initialDocumentTypeId);
-  const [prevInitialPeriod, setPrevInitialPeriod] = useState<string>(initialPeriod);
 
   // Derived state
   const baseType = BASE_DOCUMENT_TYPES.find((t) => t.id === selectedBaseTypeId);
@@ -81,55 +133,42 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
     );
   }, [actualDocTypeId, existingSubmissions]);
 
-  // Check if the entire document is submitted (for ASAP and Perennial where there's only 1 period)
+  // Check if the document is fully submitted (only applies to ASAP one-time documents)
+  // Perennial documents (resolutions and accomplishment reports) can be submitted as many times as desired.
   const isFullySubmitted = useMemo(() => {
     if (!baseType || !actualDocTypeId) return false;
     if (baseType.category === 'asap') return isPeriodSubmitted('ASAP');
-    if (baseType.category === 'perennial') return isPeriodSubmitted(selectedYear.toString());
     return false;
-  }, [baseType, actualDocTypeId, isPeriodSubmitted, selectedYear]);
+  }, [baseType, actualDocTypeId, isPeriodSubmitted]);
 
-  // Synchronize incoming prefilled changes during rendering to avoid useEffect cascading renders
-  if (initialDocumentTypeId !== prevInitialDocumentTypeId) {
-    setPrevInitialDocumentTypeId(initialDocumentTypeId);
-    setSelectedBaseTypeId(initialDocumentTypeId);
-  }
+  // Handle Base Document Type Change synchronously
+  const handleBaseTypeChange = useCallback((newTypeId: string) => {
+    setSelectedBaseTypeId(newTypeId);
+    setSelectedCategory('');
 
-  if (initialPeriod !== prevInitialPeriod) {
-    setPrevInitialPeriod(initialPeriod);
-    if (initialPeriod) {
-      setSelectedPeriod(initialPeriod);
+    const newBaseType = BASE_DOCUMENT_TYPES.find((t) => t.id === newTypeId);
+    if (!newBaseType) {
+      setSelectedPeriod('');
+    } else if (newBaseType.category === 'asap') {
+      setSelectedPeriod('ASAP');
+    } else if (newBaseType.category === 'perennial') {
+      setSelectedPeriod(selectedYear.toString());
+    } else if (newBaseType.category === 'scheduled' && newBaseType.frequency) {
+      const periods = getSubmittablePeriods(newBaseType.frequency as Frequency, selectedYear, new Date());
+      const available = periods.find(p => !existingSubmissions.some(
+        (s) => s.documentType === newTypeId && s.period === p && s.status !== 'denied'
+      ));
+      setSelectedPeriod(available || '');
     }
-  }
+  }, [selectedYear, existingSubmissions]);
 
-  // Reset dependent fields when parent fields change
-  useEffect(() => {
-    let active = true;
-    Promise.resolve().then(() => {
-      if (!active) return;
-      setSelectedCategory('');
+  // Handle Category Change synchronously
+  const handleCategoryChange = useCallback((newCategory: string) => {
+    setSelectedCategory(newCategory);
+    setSelectedPeriod(selectedYear.toString());
+  }, [selectedYear]);
 
-      if (!baseType) {
-        setSelectedPeriod('');
-      } else if (baseType.category === 'asap') {
-        setSelectedPeriod('ASAP');
-      } else if (baseType.category === 'perennial') {
-        setSelectedPeriod(selectedYear.toString());
-      } else if (baseType.category === 'scheduled') {
-        if (baseType.id === initialDocumentTypeId && initialPeriod) {
-          setSelectedPeriod(initialPeriod);
-        } else {
-          // Auto-select the first unsubmitted period
-          const available = elapsedPeriods.find(p => !isPeriodSubmitted(p));
-          setSelectedPeriod(available || '');
-        }
-      }
-    });
-    
-    return () => {
-      active = false;
-    };
-  }, [selectedBaseTypeId, baseType, selectedYear, elapsedPeriods, isPeriodSubmitted, initialDocumentTypeId, initialPeriod]);
+
 
   // Handle file selection and screening immediately
   const handleFileSelect = useCallback(async (selectedFile: File) => {
@@ -202,7 +241,7 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
                 <Form.Label className="fw-semibold text-muted small text-uppercase">Document Type</Form.Label>
                 <Form.Select
                   value={selectedBaseTypeId}
-                  onChange={(e) => setSelectedBaseTypeId(e.target.value)}
+                  onChange={(e) => handleBaseTypeChange(e.target.value)}
                   size="lg"
                 >
                   <option value="">-- Select Document Type --</option>
@@ -213,14 +252,14 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
               </Form.Group>
             </div>
 
-            {/* Category Selection (Conditional) */}
+            {/* Category Selection (Conditional for Accomplishments) */}
             {isAccomplishment && (
               <div className="col-12 col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold text-muted small text-uppercase">Accomplishment Category</Form.Label>
                   <Form.Select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     size="lg"
                   >
                     <option value="">-- Select Category --</option>
@@ -228,6 +267,40 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
                       <option key={cat.id} value={cat.id}>{cat.label}</option>
                     ))}
                   </Form.Select>
+                </Form.Group>
+              </div>
+            )}
+
+            {/* Resolutions Target Period / Mode (Conditional for Resolutions) */}
+            {baseType?.id === 'resolutions' && (
+              <div className="col-12 col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold text-muted small text-uppercase">Target Year / Mode</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={`${selectedYear} — Year-Round (Multi-submission)`}
+                    disabled
+                    readOnly
+                    size="lg"
+                    className="bg-light text-muted"
+                  />
+                </Form.Group>
+              </div>
+            )}
+
+            {/* ASAP Target Period (Conditional for ASAP) */}
+            {baseType?.category === 'asap' && (
+              <div className="col-12 col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold text-muted small text-uppercase">Submission Period</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value="ASAP (One-time Submission)"
+                    disabled
+                    readOnly
+                    size="lg"
+                    className="bg-light text-muted"
+                  />
                 </Form.Group>
               </div>
             )}

@@ -13,12 +13,13 @@ import {
 import { Line } from 'react-chartjs-2';
 import UnifiedGaugeChart from './UnifiedGaugeChart';
 import UnifiedBarChart from './UnifiedBarChart';
+import PerennialSubmissionsChart from './PerennialSubmissionsChart';
 import { BARANGAYS } from '../../constants/barangays';
 import {
   type PendingSubmission,
   type HistoricalSubmission,
 } from '../../constants/submissionTypes';
-import { useComplianceData, type TrendTimeframe } from '../../hooks/useComplianceData';
+import { useComplianceData, type TrendTimeframe, type TrendDocFilter } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
 import ExportReportModal from './ExportReportModal';
 
@@ -31,6 +32,22 @@ ChartJS.register(
 
 ChartJS.defaults.font.family = "'Inter', system-ui, sans-serif";
 ChartJS.defaults.color = '#71717A';
+
+/**
+ * Chart.js plugin to horizontally offset overlapping datasets by a few pixels
+ * so 'Submitted' (-5px), 'Approved' (0px), and 'Denied' (+5px) run parallel instead of occluding each other.
+ */
+const lineOffsetPlugin = {
+  id: 'lineOffset',
+  beforeDatasetDraw(chart: ChartJS, args: { index: number }) {
+    chart.ctx.save();
+    const dx = args.index === 0 ? -5 : args.index === 1 ? 0 : args.index === 2 ? 5 : 0;
+    chart.ctx.translate(dx, 0);
+  },
+  afterDatasetDraw(chart: ChartJS) {
+    chart.ctx.restore();
+  },
+};
 
 /* ─────────────────────────────────────────────
    Small shared sub-components
@@ -120,6 +137,58 @@ const TimeframeToggle: React.FC<{
 );
 
 /* ─────────────────────────────────────────────
+   Document Category Toggle for Trend Chart
+───────────────────────────────────────────── */
+const TrendDocFilterToggle: React.FC<{
+  value: TrendDocFilter;
+  onChange: (val: TrendDocFilter) => void;
+}> = ({ value, onChange }) => (
+  <div
+    style={{
+      display: 'inline-flex',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      border: '1px solid #E4E4E7',
+      flexShrink: 0,
+      background: '#F4F4F5',
+      padding: '2px',
+      gap: '2px',
+    }}
+  >
+    {(
+      [
+        { key: 'all', label: 'All Docs' },
+        { key: 'perennial', label: 'Resolutions & Acc.' },
+        { key: 'compliance', label: 'Scheduled & ASAP' },
+      ] as const
+    ).map((btn) => {
+      const isActive = value === btn.key;
+      return (
+        <button
+          key={btn.key}
+          type="button"
+          onClick={() => onChange(btn.key)}
+          style={{
+            padding: '3px 8px',
+            fontSize: '11.5px',
+            fontWeight: isActive ? 600 : 500,
+            borderRadius: '6px',
+            background: isActive ? '#fff' : 'transparent',
+            color: isActive ? '#18181B' : '#71717A',
+            border: 'none',
+            boxShadow: isActive ? 'var(--shadow-subtle-token)' : 'none',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {btn.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+/* ─────────────────────────────────────────────
    Sort toggle button
 ───────────────────────────────────────────── */
 const SortToggle: React.FC<{
@@ -193,8 +262,15 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   // Timeframe filter for Submission Trend chart
   const [trendTimeframe, setTrendTimeframe] = useState<TrendTimeframe>('year');
 
+  // Document category filter for Submission Trend chart
+  const [trendDocFilter, setTrendDocFilter] = useState<TrendDocFilter>('all');
+
   const approved = useMemo(
     () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
+    [history],
+  );
+  const denied = useMemo(
+    () => history.filter((s) => s.status === 'denied'),
     [history],
   );
 
@@ -208,51 +284,79 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     [pending, selectedBarangay],
   );
 
-  const compliance = useComplianceData(currentYear, filteredPending, approved, activeBarangays, trendTimeframe);
+  const compliance = useComplianceData(
+    currentYear,
+    filteredPending,
+    approved,
+    activeBarangays,
+    trendTimeframe,
+    denied,
+    trendDocFilter,
+  );
 
-  // Compute total submitted documents (both pending and history) for current year and barangay filter
-  const submittedCount = useMemo(() => {
+  // Compute total approved documents for current year and barangay filter
+  const approvedCount = useMemo(() => {
+    const brgyApproved = selectedBarangay
+      ? approved.filter((s) => s.barangay === selectedBarangay && s.year === currentYear)
+      : approved.filter((s) => s.year === currentYear);
+    return brgyApproved.length;
+  }, [approved, selectedBarangay, currentYear]);
+
+  // Compute total pending submissions for current year and barangay filter
+  const pendingCount = useMemo(() => {
     const brgyPending = selectedBarangay
       ? pending.filter((s) => s.barangay === selectedBarangay && s.year === currentYear)
       : pending.filter((s) => s.year === currentYear);
-    const brgyHistory = selectedBarangay
-      ? history.filter((s) => s.barangay === selectedBarangay && s.year === currentYear)
-      : history.filter((s) => s.year === currentYear);
-    return brgyPending.length + brgyHistory.length;
-  }, [pending, history, selectedBarangay, currentYear]);
+    return brgyPending.length;
+  }, [pending, selectedBarangay, currentYear]);
 
   // ── KPI cards — context-sensitive per barangay or system-wide ─────────────
   const kpiCards = selectedBarangay
     ? [
-        { title: 'Compliance Rate',     value: `${compliance.overallRate}%`,                                        variant: 'primary' as const, icon: 'check_circle'   },
         { title: 'Compliance Status',   value: compliance.fullyCompliantCount === 1 ? 'Compliant' : 'Behind',      variant: compliance.fullyCompliantCount === 1 ? 'success' as const : 'danger' as const, icon: 'verified'      },
+        { title: 'Approved Documents',  value: approvedCount,                                                       variant: 'info'    as const, icon: 'task_alt'        },
         { title: 'Overdue Submissions', value: compliance.overdueCount,                                             variant: 'danger'  as const, icon: 'error'          },
-        { title: 'Submitted Documents', value: submittedCount,                                                      variant: 'info' as const,    icon: 'upload_file'    },
+        { title: 'Pending Submissions', value: pendingCount,                                                        variant: 'warning' as const, icon: 'pending_actions' },
       ]
     : [
-        { title: 'Overall Compliance',  value: `${compliance.overallRate}%`,                                        variant: 'primary' as const, icon: 'check_circle'   },
         { title: 'Fully Compliant',     value: `${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`, variant: 'success' as const, icon: 'verified'       },
+        { title: 'Approved Documents',  value: approvedCount,                                                       variant: 'info'    as const, icon: 'task_alt'        },
         { title: 'Overdue Submissions', value: compliance.overdueCount,                                             variant: 'danger'  as const, icon: 'error'          },
-        { title: 'Submitted Documents', value: submittedCount,                                                      variant: 'info' as const,    icon: 'upload_file'    },
+        { title: 'Pending Submissions', value: pendingCount,                                                        variant: 'warning' as const, icon: 'pending_actions' },
       ];
 
   // ── Chart Data ──────────────────────────────────────────────────
 
+  const totalExpectedAll = useMemo(() => (
+    Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))
+  ), [compliance.barangayRanking]);
+
   const pendingPct = useMemo(() => Math.round(
-    (compliance.pendingReviewCount /
-      Math.max(1, compliance.barangayRanking.reduce((s, b) => s + b.expected, 0))) * 100,
-  ), [compliance.pendingReviewCount, compliance.barangayRanking]);
+    (compliance.pendingReviewCount / totalExpectedAll) * 100,
+  ), [compliance.pendingReviewCount, totalExpectedAll]);
+
+  const deniedCount = useMemo(() => {
+    const brgyDenied = selectedBarangay
+      ? history.filter((s) => s.barangay === selectedBarangay && s.status === 'denied' && s.year === currentYear)
+      : history.filter((s) => s.status === 'denied' && s.year === currentYear);
+    return brgyDenied.length;
+  }, [history, selectedBarangay, currentYear]);
+
+  const deniedPct = useMemo(() => Math.round(
+    (deniedCount / totalExpectedAll) * 100,
+  ), [deniedCount, totalExpectedAll]);
 
   const gaugeSlices = useMemo(() => [
     { label: 'Approved',       value: compliance.overallRate, color: '#16A34A' },
     { label: 'Pending Review', value: pendingPct,             color: '#F59E0B' },
     {
       label: 'Missing',
-      value: Math.max(0, 100 - compliance.overallRate - pendingPct),
+      value: Math.max(0, 100 - compliance.overallRate - pendingPct - deniedPct),
       color: '#EF4444',
       isStriped: true,
     },
-  ], [compliance.overallRate, pendingPct]);
+    { label: 'Denied',         value: deniedPct,              color: '#18181B' },
+  ], [compliance.overallRate, pendingPct, deniedPct]);
 
   // Sorted ranking list controlled by the sort direction toggle
   const sortedRanking = useMemo(() => {
@@ -276,45 +380,36 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     { key: 'rate', label: 'Compliance Rate', color: '#16A34A' },
   ], []);
 
-  // Single-barangay: Document Type Breakdown
-  const docBreakdownCategories = useMemo(() => compliance.docTypeCompliance.map((d) => ({
+  // Document Type Compliance (horizontal progress bars normalized to compliance rate %)
+  const docTypeCategories = useMemo(() => compliance.docTypeCompliance.map((d) => ({
     label: d.label,
-    values: {
-      approved: d.approved,
-      remaining: Math.max(0, d.expected - d.approved),
-    },
+    values: { rate: d.rate },
+    color: d.rate >= 80 ? '#16A34A' : d.rate >= 50 ? '#F59E0B' : d.rate > 0 ? '#0284C7' : '#94A3B8',
     tooltipSubtext: `${d.approved}/${d.expected} approved`,
   })), [compliance.docTypeCompliance]);
 
-  const docBreakdownSeries = useMemo(() => [
-    { key: 'approved',  label: 'Approved Submissions', color: '#16A34A' },
-    { key: 'remaining', label: 'Remaining Target',     color: '#BBF7D0' },
-  ], []);
-
-  // Document Type Compliance (vertical single-column stacked pill bar chart)
-  const docTypeBarCategories = useMemo(() => compliance.docTypeCompliance.map((d) => ({
-    label: d.label,
-    values: {
-      approved: d.approved,
-      remaining: Math.max(0, d.expected - d.approved),
-    },
-    tooltipSubtext: `${d.approved}/${d.expected} approved`,
-  })), [compliance.docTypeCompliance]);
-
-  const docTypeBarSeries = useMemo(() => [
-    { key: 'approved',  label: 'Approved Submissions', color: '#006EB7' },
-    { key: 'remaining', label: 'Remaining Target',     color: '#C7D2FE' },
+  const docTypeSeries = useMemo(() => [
+    { key: 'rate', label: 'Compliance Rate', color: '#0284C7' },
   ], []);
 
   const trendSubtitle = useMemo(() => {
+    const docText =
+      trendDocFilter === 'perennial'
+        ? 'Resolutions & Accomplishment Reports'
+        : trendDocFilter === 'compliance'
+        ? 'Scheduled & ASAP Documents'
+        : 'All Submissions (Scheduled, ASAP, Resolutions & Accomplishments)';
+
     const rangeText =
       trendTimeframe === '7d'
-        ? 'Daily submission vs. approval volume (Past 7 days)'
+        ? 'Daily volume (Past 7 days)'
         : trendTimeframe === '30d'
-        ? 'Daily submission vs. approval volume (Past 30 days)'
-        : 'Monthly submission vs. approval volume';
-    return selectedBarangay ? `${rangeText} — ${selectedBarangay}` : rangeText;
-  }, [trendTimeframe, selectedBarangay]);
+        ? 'Daily volume (Past 30 days)'
+        : 'Monthly volume';
+
+    const base = `${docText} — ${rangeText}`;
+    return selectedBarangay ? `${base} — ${selectedBarangay}` : base;
+  }, [trendDocFilter, trendTimeframe, selectedBarangay]);
 
   const trendLineData = {
     labels: compliance.monthlyTrend.map((m) => m.month),
@@ -323,23 +418,45 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
         label: 'Submitted',
         data: compliance.monthlyTrend.map((m) => m.submitted),
         borderColor: '#06B6D4',
-        backgroundColor: 'rgba(6, 182, 212, 0.12)',
+        backgroundColor: 'rgba(6, 182, 212, 0.08)',
         fill: true,
-        tension: 0.4,
-        pointRadius: 4,
-        pointHoverRadius: 7,
-        borderWidth: 2,
+        tension: 0.35,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#06B6D4',
+        pointBorderColor: '#FFFFFF',
+        pointBorderWidth: 1.5,
       },
       {
         label: 'Approved',
         data: compliance.monthlyTrend.map((m) => m.approved),
-        borderColor: '#22C55E',
-        backgroundColor: 'rgba(34, 197, 94, 0.12)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 4,
-        pointHoverRadius: 7,
-        borderWidth: 2,
+        borderColor: '#16A34A',
+        backgroundColor: 'transparent',
+        borderDash: [5, 4],
+        fill: false,
+        tension: 0.35,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#16A34A',
+        pointBorderColor: '#FFFFFF',
+        pointBorderWidth: 1.5,
+      },
+      {
+        label: 'Denied',
+        data: compliance.monthlyTrend.map((m) => m.denied),
+        borderColor: '#18181B',
+        backgroundColor: 'transparent',
+        borderDash: [3, 3],
+        fill: false,
+        tension: 0.35,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#18181B',
+        pointBorderColor: '#FFFFFF',
+        pointBorderWidth: 1.5,
       },
     ],
   };
@@ -347,10 +464,38 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   const trendLineOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'top' as const, labels: { boxWidth: 10, font: { size: 12 } } } },
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          boxWidth: 20,
+          usePointStyle: false,
+          font: { size: 12 },
+        },
+      },
+      tooltip: {
+        backgroundColor: '#18181B',
+        titleFont: { size: 12, weight: 'bold' as const },
+        bodyFont: { size: 12 },
+        padding: 10,
+        cornerRadius: 8,
+      },
+    },
     scales: {
-      x: { grid: { display: false } },
-      y: { grid: { color: '#F4F4F5' }, beginAtZero: true },
+      x: {
+        grid: { display: false },
+        offset: true,
+      },
+      y: {
+        grid: { color: '#F4F4F5' },
+        border: { display: false },
+        beginAtZero: true,
+        ticks: { display: false },
+      },
     },
   };
 
@@ -468,10 +613,11 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           <div className="analytics-card h-100" style={{ background: '#fff' }}>
             <UnifiedGaugeChart
               title="Overall Compliance"
-              subtitle={selectedBarangay ? `Share of approved vs. pending vs. missing — ${selectedBarangay}` : "Share of approved vs. pending vs. missing"}
+              subtitle={selectedBarangay ? `Share of approved vs. pending vs. missing vs. denied — ${selectedBarangay}` : "Share of approved vs. pending vs. missing vs. denied"}
               slices={gaugeSlices}
               centerValue={`${compliance.overallRate}%`}
               centerLabel="Compliant"
+              valueSuffix="%"
               emptyMessage="No compliance data available."
             />
           </div>
@@ -484,10 +630,15 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
             iconClass="icon-info"
             title="Submission Trend"
             subtitle={trendSubtitle}
-            headerRight={<TimeframeToggle value={trendTimeframe} onChange={setTrendTimeframe} />}
+            headerRight={
+              <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                <TrendDocFilterToggle value={trendDocFilter} onChange={setTrendDocFilter} />
+                <TimeframeToggle value={trendTimeframe} onChange={setTrendTimeframe} />
+              </div>
+            }
           >
             <div style={{ height: '280px' }}>
-              <Line data={trendLineData} options={trendLineOptions} />
+              <Line data={trendLineData} options={trendLineOptions} plugins={[lineOffsetPlugin]} />
             </div>
           </AnalyticsCard>
         </Col>
@@ -499,18 +650,32 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           <div className="analytics-card h-100" style={{ background: '#fff' }}>
             <UnifiedBarChart
               title="Document Type Compliance"
-              subtitle={selectedBarangay ? `Expected vs. approved — ${selectedBarangay}` : "Expected vs. approved per document type"}
-              categories={selectedBarangay ? docBreakdownCategories : docTypeBarCategories}
-              series={selectedBarangay ? docBreakdownSeries : docTypeBarSeries}
-              orientation="vertical"
-              stacked={true}
-              chartHeight={190}
+              subtitle={
+                selectedBarangay
+                  ? `Compliance rate (% approved vs. target) — ${selectedBarangay}`
+                  : "Compliance rate (% approved vs. target) per document type"
+              }
+              categories={docTypeCategories}
+              series={docTypeSeries}
+              orientation="horizontal"
+              valueSuffix="%"
+              maxValue={100}
             />
           </div>
         </Col>
       </Row>
 
-      {/* 4 ── Row 4: Barangay Compliance Ranking (Full Width, hidden when filtered) */}
+      {/* 4 ── Row 4: Dedicated Perennial Submissions Chart (Resolutions & Accomplishment Reports) */}
+      <Row className="mb-4 g-3">
+        <Col md={12}>
+          <PerennialSubmissionsChart
+            summary={compliance.overallPerennialSummary}
+            selectedBarangay={selectedBarangay}
+          />
+        </Col>
+      </Row>
+
+      {/* 5 ── Row 5: Barangay Compliance Ranking (Full Width, hidden when filtered) */}
       {!selectedBarangay && (
         <Row className="mb-4 g-3">
           <Col md={12}>

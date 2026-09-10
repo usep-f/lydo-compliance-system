@@ -371,9 +371,10 @@ const HorizontalBarChart: React.FC<{
   setHoveredIndex: (idx: number | null) => void;
   uid: string;
 }> = ({ categories, series, maxVal, valueSuffix, hoveredIndex, setHoveredIndex, uid }) => {
-  const rowHeight = 32;
-  const padLeft = 240;
-  const padRight = 50;
+  const rowHeight = 34;
+  const maxLabelLen = Math.max(...categories.map((c) => (c.shortLabel || c.label || '').length), 0);
+  const padLeft = Math.min(320, Math.max(220, Math.round(maxLabelLen * 6.8 + 16)));
+  const padRight = 75;
   const padTop = 14;
   const padBottom = 26;
 
@@ -459,8 +460,8 @@ const HorizontalBarChart: React.FC<{
                   {cat.shortLabel || cat.label}
                 </text>
 
-                {/* Background Cap */}
-                {bgSeries && bgW > 0 && (
+                {/* Background Cap or subtle track */}
+                {bgSeries && bgW > 0 ? (
                   <rect
                     x={padLeft}
                     y={y}
@@ -471,6 +472,16 @@ const HorizontalBarChart: React.FC<{
                     fill={bgSeries.color}
                     opacity={isHovered ? 0.9 : 0.6}
                     style={{ transition: 'all 0.2s ease' }}
+                  />
+                ) : (
+                  <rect
+                    x={padLeft}
+                    y={y}
+                    width={chartW}
+                    height={barH}
+                    rx="5"
+                    ry="5"
+                    fill="#F1F5F9"
                   />
                 )}
 
