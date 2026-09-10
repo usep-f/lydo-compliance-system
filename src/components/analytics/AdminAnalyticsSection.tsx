@@ -13,13 +13,12 @@ import {
 import { Line } from 'react-chartjs-2';
 import UnifiedGaugeChart from './UnifiedGaugeChart';
 import UnifiedBarChart from './UnifiedBarChart';
-import PerennialSubmissionsChart from './PerennialSubmissionsChart';
 import { BARANGAYS } from '../../constants/barangays';
 import {
   type PendingSubmission,
   type HistoricalSubmission,
 } from '../../constants/submissionTypes';
-import { useComplianceData, type TrendTimeframe, type TrendDocFilter } from '../../hooks/useComplianceData';
+import { useComplianceData, type TrendTimeframe } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
 import ExportReportModal from './ExportReportModal';
 
@@ -137,58 +136,6 @@ const TimeframeToggle: React.FC<{
 );
 
 /* ─────────────────────────────────────────────
-   Document Category Toggle for Trend Chart
-───────────────────────────────────────────── */
-const TrendDocFilterToggle: React.FC<{
-  value: TrendDocFilter;
-  onChange: (val: TrendDocFilter) => void;
-}> = ({ value, onChange }) => (
-  <div
-    style={{
-      display: 'inline-flex',
-      borderRadius: '8px',
-      overflow: 'hidden',
-      border: '1px solid #E4E4E7',
-      flexShrink: 0,
-      background: '#F4F4F5',
-      padding: '2px',
-      gap: '2px',
-    }}
-  >
-    {(
-      [
-        { key: 'all', label: 'All Docs' },
-        { key: 'perennial', label: 'Resolutions & Acc.' },
-        { key: 'compliance', label: 'Scheduled & ASAP' },
-      ] as const
-    ).map((btn) => {
-      const isActive = value === btn.key;
-      return (
-        <button
-          key={btn.key}
-          type="button"
-          onClick={() => onChange(btn.key)}
-          style={{
-            padding: '3px 8px',
-            fontSize: '11.5px',
-            fontWeight: isActive ? 600 : 500,
-            borderRadius: '6px',
-            background: isActive ? '#fff' : 'transparent',
-            color: isActive ? '#18181B' : '#71717A',
-            border: 'none',
-            boxShadow: isActive ? 'var(--shadow-subtle-token)' : 'none',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          {btn.label}
-        </button>
-      );
-    })}
-  </div>
-);
-
-/* ─────────────────────────────────────────────
    Sort toggle button
 ───────────────────────────────────────────── */
 const SortToggle: React.FC<{
@@ -262,9 +209,6 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   // Timeframe filter for Submission Trend chart
   const [trendTimeframe, setTrendTimeframe] = useState<TrendTimeframe>('year');
 
-  // Document category filter for Submission Trend chart
-  const [trendDocFilter, setTrendDocFilter] = useState<TrendDocFilter>('all');
-
   const approved = useMemo(
     () => history.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
     [history],
@@ -284,15 +228,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     [pending, selectedBarangay],
   );
 
-  const compliance = useComplianceData(
-    currentYear,
-    filteredPending,
-    approved,
-    activeBarangays,
-    trendTimeframe,
-    denied,
-    trendDocFilter,
-  );
+  const compliance = useComplianceData(currentYear, filteredPending, approved, activeBarangays, trendTimeframe, denied);
 
   // Compute total approved documents for current year and barangay filter
   const approvedCount = useMemo(() => {
@@ -393,23 +329,14 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   ], []);
 
   const trendSubtitle = useMemo(() => {
-    const docText =
-      trendDocFilter === 'perennial'
-        ? 'Resolutions & Accomplishment Reports'
-        : trendDocFilter === 'compliance'
-        ? 'Scheduled & ASAP Documents'
-        : 'All Submissions (Scheduled, ASAP, Resolutions & Accomplishments)';
-
     const rangeText =
       trendTimeframe === '7d'
-        ? 'Daily volume (Past 7 days)'
+        ? 'Daily submission vs. approval vs. denial volume (Past 7 days)'
         : trendTimeframe === '30d'
-        ? 'Daily volume (Past 30 days)'
-        : 'Monthly volume';
-
-    const base = `${docText} — ${rangeText}`;
-    return selectedBarangay ? `${base} — ${selectedBarangay}` : base;
-  }, [trendDocFilter, trendTimeframe, selectedBarangay]);
+        ? 'Daily submission vs. approval vs. denial volume (Past 30 days)'
+        : 'Monthly submission vs. approval vs. denial volume';
+    return selectedBarangay ? `${rangeText} — ${selectedBarangay}` : rangeText;
+  }, [trendTimeframe, selectedBarangay]);
 
   const trendLineData = {
     labels: compliance.monthlyTrend.map((m) => m.month),
@@ -630,12 +557,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
             iconClass="icon-info"
             title="Submission Trend"
             subtitle={trendSubtitle}
-            headerRight={
-              <div className="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-                <TrendDocFilterToggle value={trendDocFilter} onChange={setTrendDocFilter} />
-                <TimeframeToggle value={trendTimeframe} onChange={setTrendTimeframe} />
-              </div>
-            }
+            headerRight={<TimeframeToggle value={trendTimeframe} onChange={setTrendTimeframe} />}
           >
             <div style={{ height: '280px' }}>
               <Line data={trendLineData} options={trendLineOptions} plugins={[lineOffsetPlugin]} />
@@ -665,17 +587,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
         </Col>
       </Row>
 
-      {/* 4 ── Row 4: Dedicated Perennial Submissions Chart (Resolutions & Accomplishment Reports) */}
-      <Row className="mb-4 g-3">
-        <Col md={12}>
-          <PerennialSubmissionsChart
-            summary={compliance.overallPerennialSummary}
-            selectedBarangay={selectedBarangay}
-          />
-        </Col>
-      </Row>
-
-      {/* 5 ── Row 5: Barangay Compliance Ranking (Full Width, hidden when filtered) */}
+      {/* 4 ── Row 4: Barangay Compliance Ranking (Full Width, hidden when filtered) */}
       {!selectedBarangay && (
         <Row className="mb-4 g-3">
           <Col md={12}>

@@ -240,16 +240,6 @@ export const exportBarangayProfileToCsv = (
     matrixData,
     asapStatus: [],
     barangayPerennialSummary: summaries,
-    overallPerennialSummary: {
-      totalResolutions: 0,
-      totalResolutionsApproved: 0,
-      totalResolutionsPending: 0,
-      totalAccomplishments: 0,
-      totalAccomplishmentsApproved: 0,
-      totalAccomplishmentsPending: 0,
-      grandTotal: 0,
-      items: [],
-    },
   };
   exportAnalyticsSummaryCsv(year, barangay, dummyCompliance);
 };

@@ -47,46 +47,15 @@ export interface AsapStatus {
 export interface PerennialCategoryCount {
   id: string;
   label: string;
-  count: number; // for backwards compatibility, count = approved
-  approved: number;
-  pending: number;
-  total: number;
+  count: number;
 }
 
 export interface BarangayPerennialSummary {
   barangay: string;
-  resolutions: number; // approved
-  resolutionsPending: number;
-  resolutionsTotal: number;
-  accomplishmentsTotal: number; // approved
-  accomplishmentsPending: number;
-  accomplishmentsGrandTotal: number;
+  resolutions: number;
+  accomplishmentsTotal: number;
   categoryData: PerennialCategoryCount[];
 }
-
-export interface OverallPerennialItem {
-  id: string;
-  label: string;
-  category: 'resolutions' | 'accomplishment';
-  icon: string;
-  approved: number;
-  pending: number;
-  total: number;
-}
-
-export interface OverallPerennialSummary {
-  totalResolutions: number;
-  totalResolutionsApproved: number;
-  totalResolutionsPending: number;
-  totalAccomplishments: number;
-  totalAccomplishmentsApproved: number;
-  totalAccomplishmentsPending: number;
-  grandTotal: number;
-  items: OverallPerennialItem[];
-}
-
-export type TrendTimeframe = '7d' | '30d' | 'year';
-export type TrendDocFilter = 'all' | 'perennial' | 'compliance';
 
 export interface ComplianceData {
   overallRate: number;
@@ -100,8 +69,9 @@ export interface ComplianceData {
   matrixData: MatrixCell[];
   asapStatus: AsapStatus[];
   barangayPerennialSummary: BarangayPerennialSummary[];
-  overallPerennialSummary: OverallPerennialSummary;
 }
+
+export type TrendTimeframe = '7d' | '30d' | 'year';
 
 function getTimestampMs(val: unknown): number | null {
   if (!val) return null;
@@ -118,26 +88,6 @@ function getTimestampMs(val: unknown): number | null {
   return null;
 }
 
-function isPerennialDoc(s: { category?: string; documentType?: string }): boolean {
-  return (
-    s.category === 'perennial' ||
-    s.documentType === 'resolutions' ||
-    Boolean(s.documentType?.startsWith('acc_'))
-  );
-}
-
-function matchesDocFilter(s: PendingSubmission | HistoricalSubmission, filter: TrendDocFilter): boolean {
-  if (filter === 'all') return true;
-  const isP = isPerennialDoc(s);
-  return filter === 'perennial' ? isP : !isP;
-}
-
-function matchesYear(s: PendingSubmission | HistoricalSubmission, targetYear: number, dateMs: number | null): boolean {
-  if (s.year) return Number(s.year) === targetYear;
-  if (dateMs) return new Date(dateMs).getFullYear() === targetYear;
-  return false;
-}
-
 function computeDailyTrend(
   daysCount: number,
   pending: PendingSubmission[],
@@ -145,18 +95,11 @@ function computeDailyTrend(
   barangays: string[],
   now: Date,
   denied: HistoricalSubmission[] = [],
-  docFilter: TrendDocFilter = 'all',
 ): MonthlyTrend[] {
-  const barangaySet = new Set(barangays.map((b) => b.trim()));
-  const filteredApproved = approved.filter(
-    (s) => barangaySet.has(s.barangay?.trim()) && matchesDocFilter(s, docFilter)
-  );
-  const filteredDenied = denied.filter(
-    (s) => barangaySet.has(s.barangay?.trim()) && matchesDocFilter(s, docFilter)
-  );
-  const filteredSubmitted = [...pending, ...approved, ...denied].filter(
-    (s) => barangaySet.has(s.barangay?.trim()) && matchesDocFilter(s, docFilter)
-  );
+  const barangaySet = new Set(barangays);
+  const filteredApproved = approved.filter((s) => barangaySet.has(s.barangay));
+  const filteredDenied = denied.filter((s) => barangaySet.has(s.barangay));
+  const filteredSubmitted = [...pending, ...approved, ...denied].filter((s) => barangaySet.has(s.barangay));
 
   const result: MonthlyTrend[] = [];
 
@@ -199,41 +142,43 @@ function computeYearlyTrend(
   approved: HistoricalSubmission[],
   barangays: string[],
   denied: HistoricalSubmission[] = [],
-  docFilter: TrendDocFilter = 'all',
 ): MonthlyTrend[] {
-  const barangaySet = new Set(barangays.map((b) => b.trim()));
+  const barangaySet = new Set(barangays);
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  const filteredApproved = approved.filter(
-    (s) => barangaySet.has(s.barangay?.trim()) && matchesDocFilter(s, docFilter)
-  );
-  const filteredDenied = denied.filter(
-    (s) => barangaySet.has(s.barangay?.trim()) && matchesDocFilter(s, docFilter)
-  );
-  const filteredSubmitted = [...pending, ...approved, ...denied].filter(
-    (s) => barangaySet.has(s.barangay?.trim()) && matchesDocFilter(s, docFilter)
-  );
+  const filteredApproved = approved.filter((s) => barangaySet.has(s.barangay));
+  const filteredDenied = denied.filter((s) => barangaySet.has(s.barangay));
+  const filteredSubmitted = [...pending, ...approved, ...denied].filter((s) => barangaySet.has(s.barangay));
 
   return monthNames.map((month, i) => {
     const monthApproved = filteredApproved.filter((s) => {
+      if (s.year !== year) return false;
       const ms = getTimestampMs(s.approvedAt);
-      if (!ms || !matchesYear(s, year, ms)) return false;
-      const d = new Date(ms);
-      return d.getFullYear() === year && d.getMonth() === i;
+      if (ms) {
+        const d = new Date(ms);
+        return d.getFullYear() === year && d.getMonth() === i;
+      }
+      return false;
     }).length;
 
     const monthDenied = filteredDenied.filter((s) => {
+      if (s.year !== year) return false;
       const ms = getTimestampMs(s.deniedAt);
-      if (!ms || !matchesYear(s, year, ms)) return false;
-      const d = new Date(ms);
-      return d.getFullYear() === year && d.getMonth() === i;
+      if (ms) {
+        const d = new Date(ms);
+        return d.getFullYear() === year && d.getMonth() === i;
+      }
+      return false;
     }).length;
 
     const monthSubmitted = filteredSubmitted.filter((s) => {
+      if (s.year !== year) return false;
       const ms = getTimestampMs(s.submittedAt);
-      if (!ms || !matchesYear(s, year, ms)) return false;
-      const d = new Date(ms);
-      return d.getFullYear() === year && d.getMonth() === i;
+      if (ms) {
+        const d = new Date(ms);
+        return d.getFullYear() === year && d.getMonth() === i;
+      }
+      return false;
     }).length;
 
     return {
@@ -260,7 +205,6 @@ export function useComplianceData(
   barangays: string[],
   timeframe: TrendTimeframe = 'year',
   denied: HistoricalSubmission[] = [],
-  trendDocFilter: TrendDocFilter = 'all',
 ): ComplianceData {
   return useMemo(() => {
     const now = new Date();
@@ -366,10 +310,10 @@ export function useComplianceData(
     // -----------------------------------------------------------------------
     const monthlyTrend: MonthlyTrend[] =
       timeframe === '7d'
-        ? computeDailyTrend(7, pending, approved, barangays, now, denied, trendDocFilter)
+        ? computeDailyTrend(7, pending, approved, barangays, now, denied)
         : timeframe === '30d'
-        ? computeDailyTrend(30, pending, approved, barangays, now, denied, trendDocFilter)
-        : computeYearlyTrend(year, pending, approved, barangays, denied, trendDocFilter);
+        ? computeDailyTrend(30, pending, approved, barangays, now, denied)
+        : computeYearlyTrend(year, pending, approved, barangays, denied);
 
     // -----------------------------------------------------------------------
     // Compliance Matrix
@@ -450,109 +394,29 @@ export function useComplianceData(
     // -----------------------------------------------------------------------
     // Perennial Data Aggregation
     // -----------------------------------------------------------------------
-    const matchesSubmissionYear = (s: PendingSubmission | HistoricalSubmission) => {
-      if (s.year) return Number(s.year) === year;
-      const ms = getTimestampMs(s.submittedAt || (s as HistoricalSubmission).approvedAt);
-      return ms ? new Date(ms).getFullYear() === year : false;
-    };
-
     const barangayPerennialSummary: BarangayPerennialSummary[] = barangays.map((brgy) => {
-      const brgyApproved = approved.filter(
-        (s) => s.barangay?.trim() === brgy.trim() && matchesSubmissionYear(s)
-      );
-      const brgyPending = pending.filter(
-        (s) => s.barangay?.trim() === brgy.trim() && matchesSubmissionYear(s)
-      );
+      const brgyApproved = approved.filter((s) => s.barangay === brgy && s.year === year);
 
-      const resApproved = brgyApproved.filter((s) => s.documentType === 'resolutions').length;
-      const resPending = brgyPending.filter((s) => s.documentType === 'resolutions').length;
+      const resolutionsCount = brgyApproved.filter((s) => s.documentType === 'resolutions').length;
 
-      let accApprovedTotal = 0;
-      let accPendingTotal = 0;
-
+      let accomplishmentsTotal = 0;
       const categoryData: PerennialCategoryCount[] = ACCOMPLISHMENT_CATEGORIES.map((cat) => {
-        const catApproved = brgyApproved.filter((s) => s.documentType === `acc_${cat.id}`).length;
-        const catPending = brgyPending.filter((s) => s.documentType === `acc_${cat.id}`).length;
-        accApprovedTotal += catApproved;
-        accPendingTotal += catPending;
+        const count = brgyApproved.filter((s) => s.documentType === `acc_${cat.id}`).length;
+        accomplishmentsTotal += count;
         return {
           id: cat.id,
           label: cat.label,
-          count: catApproved,
-          approved: catApproved,
-          pending: catPending,
-          total: catApproved + catPending,
+          count,
         };
       });
 
       return {
         barangay: brgy,
-        resolutions: resApproved,
-        resolutionsPending: resPending,
-        resolutionsTotal: resApproved + resPending,
-        accomplishmentsTotal: accApprovedTotal,
-        accomplishmentsPending: accPendingTotal,
-        accomplishmentsGrandTotal: accApprovedTotal + accPendingTotal,
+        resolutions: resolutionsCount,
+        accomplishmentsTotal,
         categoryData,
       };
     });
-
-    // Aggregate overall perennial across active barangays
-    let overallResApproved = 0;
-    let overallResPending = 0;
-    let overallAccApproved = 0;
-    let overallAccPending = 0;
-
-    const overallCatMap: Record<string, { approved: number; pending: number; total: number }> = {};
-    ACCOMPLISHMENT_CATEGORIES.forEach((cat) => {
-      overallCatMap[cat.id] = { approved: 0, pending: 0, total: 0 };
-    });
-
-    barangayPerennialSummary.forEach((bps) => {
-      overallResApproved += bps.resolutions;
-      overallResPending += bps.resolutionsPending;
-      overallAccApproved += bps.accomplishmentsTotal;
-      overallAccPending += bps.accomplishmentsPending;
-      bps.categoryData.forEach((cd) => {
-        if (overallCatMap[cd.id]) {
-          overallCatMap[cd.id].approved += cd.approved;
-          overallCatMap[cd.id].pending += cd.pending;
-          overallCatMap[cd.id].total += cd.total;
-        }
-      });
-    });
-
-    const items: OverallPerennialItem[] = [
-      {
-        id: 'resolutions',
-        label: 'Resolutions',
-        category: 'resolutions',
-        icon: 'gavel',
-        approved: overallResApproved,
-        pending: overallResPending,
-        total: overallResApproved + overallResPending,
-      },
-      ...ACCOMPLISHMENT_CATEGORIES.map((cat) => ({
-        id: cat.id,
-        label: cat.label,
-        category: 'accomplishment' as const,
-        icon: 'assessment',
-        approved: overallCatMap[cat.id]?.approved ?? 0,
-        pending: overallCatMap[cat.id]?.pending ?? 0,
-        total: overallCatMap[cat.id]?.total ?? 0,
-      })),
-    ];
-
-    const overallPerennialSummary: OverallPerennialSummary = {
-      totalResolutions: overallResApproved + overallResPending,
-      totalResolutionsApproved: overallResApproved,
-      totalResolutionsPending: overallResPending,
-      totalAccomplishments: overallAccApproved + overallAccPending,
-      totalAccomplishmentsApproved: overallAccApproved,
-      totalAccomplishmentsPending: overallAccPending,
-      grandTotal: overallResApproved + overallResPending + overallAccApproved + overallAccPending,
-      items,
-    };
 
     return {
       overallRate,
@@ -566,7 +430,6 @@ export function useComplianceData(
       matrixData,
       asapStatus,
       barangayPerennialSummary,
-      overallPerennialSummary,
     };
-  }, [year, pending, approved, barangays, timeframe, denied, trendDocFilter]);
+  }, [year, pending, approved, barangays, timeframe, denied]);
 }
