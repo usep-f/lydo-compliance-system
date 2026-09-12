@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef, useEffect } from 'react';
 
 /* ─────────────────────────────────────────────
    Types
@@ -23,6 +23,9 @@ export interface UnifiedBarChartProps {
   title?: string;
   subtitle?: string;
   headerRight?: React.ReactNode;
+  icon?: string;
+  iconClass?: string;
+  headerClass?: string;
   categories: BarCategory[];
   series: BarSeries[];
   orientation?: 'vertical' | 'horizontal';
@@ -31,6 +34,7 @@ export interface UnifiedBarChartProps {
   maxValue?: number;
   emptyMessage?: string;
   chartHeight?: number;
+  maxScrollHeight?: number | string;
 }
 
 /* ─────────────────────────────────────────────
@@ -66,26 +70,27 @@ const LegendRow: React.FC<{ series: BarSeries[] }> = ({ series }) => (
     style={{
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '12px 20px',
+      gap: '12px 24px',
       justifyContent: 'center',
-      marginTop: '12px',
-      paddingTop: '8px',
+      marginTop: '14px',
+      paddingTop: '12px',
+      borderTop: '1px solid #F1F5F9',
     }}
   >
     {series.map((s) => (
-      <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span
           style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: s.isBackgroundCap ? '3px' : '50%',
+            width: '12px',
+            height: '12px',
+            borderRadius: s.isBackgroundCap ? '3px' : '4px',
             background: s.color,
             display: 'inline-block',
             flexShrink: 0,
             boxShadow: `0 0 0 2px ${s.color}33`,
           }}
         />
-        <span style={{ fontSize: '11.5px', color: '#52525B', fontWeight: 500, fontFamily: 'var(--font-body)' }}>
+        <span style={{ fontSize: '13px', color: '#334155', fontWeight: 600, fontFamily: 'var(--font-body)' }}>
           {s.label}
         </span>
       </div>
@@ -359,6 +364,58 @@ const VerticalBarChart: React.FC<{
 };
 
 /* ─────────────────────────────────────────────
+   Label formatting helper (Horizontal Charts)
+───────────────────────────────────────────── */
+
+function formatHorizontalLabelLines(label: string, maxCharsPerLine = 24): string[] {
+  if (label.includes('\n')) return label.split('\n');
+  if (label.includes('|')) return label.split('|');
+
+  if (label.length <= maxCharsPerLine) return [label];
+
+  // Tailored multi-line splits for official document types
+  if (label.includes('Comprehensive Barangay Youth Development Plan')) {
+    return ['Comprehensive Barangay Youth', 'Dev. Plan (CBYDP)'];
+  }
+  if (label.includes('Annual Barangay Youth Investment Program')) {
+    return ['Annual Barangay Youth', 'Investment Program (ABYIP)'];
+  }
+  if (label.includes('Katipunan ng Kabataan Directory')) {
+    return ['Katipunan ng Kabataan', 'Directory (KK Directory)'];
+  }
+  if (label.includes('Local Youth Development Council Directory')) {
+    return ['Local Youth Development', 'Council Directory (LYDC)'];
+  }
+  if (label.includes('Internal Rules of Procedure')) {
+    return ['Internal Rules of', 'Procedure (IRP)'];
+  }
+  if (label.includes('SK Chairperson and Kagawad Oath')) {
+    return ['SK Chairperson and', 'Kagawad Oath'];
+  }
+  if (label.includes('Peace-Building and Security')) {
+    return ['Peace-Building and', 'Security'];
+  }
+  if (label.includes('Social Inclusion and Equity')) {
+    return ['Social Inclusion and', 'Equity'];
+  }
+
+  // General word wrap
+  const words = label.split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const w of words) {
+    if ((current ? current + ' ' + w : w).length <= maxCharsPerLine) {
+      current = current ? current + ' ' + w : w;
+    } else {
+      if (current) lines.push(current);
+      current = w;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.length > 0 ? lines : [label];
+}
+
+/* ─────────────────────────────────────────────
    Horizontal Chart Component (Ranking & Breakdown)
 ───────────────────────────────────────────── */
 
@@ -370,39 +427,89 @@ const HorizontalBarChart: React.FC<{
   hoveredIndex: number | null;
   setHoveredIndex: (idx: number | null) => void;
   uid: string;
-}> = ({ categories, series, maxVal, valueSuffix, hoveredIndex, setHoveredIndex, uid }) => {
-  const rowHeight = 34;
-  const maxLabelLen = Math.max(...categories.map((c) => (c.shortLabel || c.label || '').length), 0);
-  const padLeft = Math.min(320, Math.max(220, Math.round(maxLabelLen * 6.8 + 16)));
-  const padRight = 75;
-  const padTop = 14;
-  const padBottom = 26;
+  maxScrollHeight?: number | string;
+}> = ({ categories, series, maxVal, valueSuffix, hoveredIndex, setHoveredIndex, uid, maxScrollHeight }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
 
-  const height = padTop + categories.length * rowHeight + padBottom;
-  const width = 1000;
-  const chartW = width - padLeft - padRight;
-
-  const steps = 4;
-  const gridTicks = Array.from({ length: steps + 1 }, (_, i) => Math.round((maxVal / steps) * i));
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const update = () => {
+      if (el) {
+        const w = el.clientWidth;
+        if (w > 0) setContainerWidth(w);
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const mainSeries = series.filter((s) => !s.isBackgroundCap);
   const bgSeries = series.find((s) => s.isBackgroundCap);
 
+  const isMultiSeries = mainSeries.length > 1;
+
+  // Sizing tuned for high readability and utilizing container + scroll space
+  const singleBarH = isMultiSeries ? 16 : 22;
+  const barGap = isMultiSeries ? 5 : 0;
+  const barGroupH = isMultiSeries
+    ? mainSeries.length * singleBarH + (mainSeries.length - 1) * barGap
+    : singleBarH;
+  const rowHeight = isMultiSeries ? 92 : 52;
+
+  // Strict left-alignment margin
+  const labelX = 20;
+  const padLeft = isMultiSeries ? 260 : 180;
+  const padRight = 75;
+  const padTop = 34;
+  const padBottom = 34;
+
+  const minChartWidth = isMultiSeries ? 700 : 560;
+  const width = Math.max(containerWidth || 800, minChartWidth);
+  const chartW = Math.max(100, width - padLeft - padRight);
+
+  const height = padTop + categories.length * rowHeight + padBottom;
+
+  const steps = 4;
+  const gridTicks = Array.from({ length: steps + 1 }, (_, i) => Math.round((maxVal / steps) * i));
+
+  const scrollHeightStyle = maxScrollHeight
+    ? typeof maxScrollHeight === 'number'
+      ? `${maxScrollHeight}px`
+      : maxScrollHeight
+    : undefined;
+
   return (
-    <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <div style={{ position: 'relative', minWidth: '650px' }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        maxHeight: scrollHeightStyle,
+        overflowY: scrollHeightStyle ? 'auto' : 'visible',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        paddingRight: scrollHeightStyle ? '6px' : undefined,
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#CBD5E1 #F4F4F5',
+      }}
+    >
+      <div style={{ position: 'relative', width: `${width}px`, minWidth: '100%', height: `${height}px` }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          width="100%"
+          width={width}
+          height={height}
           style={{ display: 'block', overflow: 'visible' }}
         >
           <defs>
             <filter id={`hBarGlow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="2" dy="0" stdDeviation="3" floodColor="#000" floodOpacity="0.1" />
+              <feDropShadow dx="2" dy="0" stdDeviation="3" floodColor="#000" floodOpacity="0.12" />
             </filter>
           </defs>
 
-          {/* Grid lines */}
+          {/* Grid lines & Top/Bottom Scale Ticks */}
           {gridTicks.map((tick, i) => {
             const x = padLeft + (maxVal > 0 ? (tick / maxVal) * chartW : 0);
             return (
@@ -416,12 +523,26 @@ const HorizontalBarChart: React.FC<{
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                 />
+                {/* Top Scale Tick */}
                 <text
                   x={x}
-                  y={height - padBottom + 16}
+                  y={padTop - 10}
                   textAnchor="middle"
-                  fontSize="11"
-                  fill="#94A3B8"
+                  fontSize="11.5"
+                  fontWeight="600"
+                  fill="#64748B"
+                  fontFamily="var(--font-body)"
+                >
+                  {tick}{valueSuffix}
+                </text>
+                {/* Bottom Scale Tick */}
+                <text
+                  x={x}
+                  y={height - padBottom + 18}
+                  textAnchor="middle"
+                  fontSize="11.5"
+                  fontWeight="600"
+                  fill="#64748B"
                   fontFamily="var(--font-body)"
                 >
                   {tick}{valueSuffix}
@@ -432,13 +553,17 @@ const HorizontalBarChart: React.FC<{
 
           {/* Rows */}
           {categories.map((cat, i) => {
-            const y = padTop + i * rowHeight + 4;
-            const barH = 16;
+            const rowTop = padTop + i * rowHeight;
+            const barGroupTop = rowTop + (rowHeight - barGroupH) / 2;
             const isHovered = hoveredIndex === i;
 
             // Background Cap length
             const bgVal = bgSeries ? cat.values[bgSeries.key] || 0 : 0;
             const bgW = maxVal > 0 ? (bgVal / maxVal) * chartW : 0;
+
+            const lines = formatHorizontalLabelLines(cat.shortLabel || cat.label);
+            const groupCenterY = rowTop + rowHeight / 2;
+            const startLabelY = lines.length === 1 ? groupCenterY + 5 : groupCenterY - 4;
 
             return (
               <g
@@ -447,71 +572,105 @@ const HorizontalBarChart: React.FC<{
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* Row label */}
+                {/* Subtle Hover Highlight Card */}
+                <rect
+                  x={labelX - 10}
+                  y={rowTop + 3}
+                  width={width - labelX - padRight + 20}
+                  height={rowHeight - 6}
+                  rx="8"
+                  ry="8"
+                  fill="#F8FAFC"
+                  opacity={isHovered ? 1 : 0}
+                  style={{ transition: 'opacity 0.15s ease' }}
+                />
+
+                {/* Left-Aligned Category Header Label */}
                 <text
-                  x={padLeft - 10}
-                  y={y + barH / 2 + 4}
-                  textAnchor="end"
-                  fontSize="11.5"
-                  fill={isHovered ? '#1E293B' : '#475569'}
-                  fontWeight={isHovered ? 700 : 500}
+                  x={labelX}
+                  y={startLabelY}
+                  textAnchor="start"
+                  fontSize="13.5"
+                  fill={isHovered ? '#0F172A' : '#1E293B'}
+                  fontWeight={isHovered ? 800 : 600}
                   fontFamily="var(--font-body)"
                 >
-                  {cat.shortLabel || cat.label}
+                  {lines.map((line, lIdx) => (
+                    <tspan key={lIdx} x={labelX} dy={lIdx === 0 ? 0 : 17}>
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
 
-                {/* Background Cap or subtle track */}
-                {bgSeries && bgW > 0 ? (
-                  <rect
-                    x={padLeft}
-                    y={y}
-                    width={bgW}
-                    height={barH}
-                    rx="5"
-                    ry="5"
-                    fill={bgSeries.color}
-                    opacity={isHovered ? 0.9 : 0.6}
-                    style={{ transition: 'all 0.2s ease' }}
-                  />
-                ) : (
-                  <rect
-                    x={padLeft}
-                    y={y}
-                    width={chartW}
-                    height={barH}
-                    rx="5"
-                    ry="5"
-                    fill="#F1F5F9"
-                  />
+                {/* Single-Series Background Cap or Track */}
+                {!isMultiSeries && (
+                  bgSeries && bgW > 0 ? (
+                    <rect
+                      x={padLeft}
+                      y={barGroupTop}
+                      width={bgW}
+                      height={barGroupH}
+                      rx="6"
+                      ry="6"
+                      fill={bgSeries.color}
+                      opacity={isHovered ? 0.9 : 0.6}
+                      style={{ transition: 'all 0.2s ease' }}
+                    />
+                  ) : (
+                    <rect
+                      x={padLeft}
+                      y={barGroupTop}
+                      width={chartW}
+                      height={barGroupH}
+                      rx="6"
+                      ry="6"
+                      fill="#F1F5F9"
+                    />
+                  )
                 )}
 
                 {/* Series Bars */}
                 {mainSeries.map((s, sIdx) => {
                   const val = cat.values[s.key] || 0;
                   const w = maxVal > 0 ? (val / maxVal) * chartW : 0;
-                  const fillColor = cat.color || s.color;
-                  const barY = y + (mainSeries.length > 1 ? (sIdx * (barH / mainSeries.length)) : 0);
-                  const actualH = mainSeries.length > 1 ? barH / mainSeries.length - 2 : barH;
+                  const fillColor = isMultiSeries ? s.color : (cat.color || s.color);
+                  const barY = barGroupTop + (isMultiSeries ? sIdx * (singleBarH + barGap) : 0);
+                  const actualH = singleBarH;
 
                   return (
                     <g key={s.key}>
+                      {/* Subtle Track for Multi-Series Bars */}
+                      {isMultiSeries && (
+                        <rect
+                          x={padLeft}
+                          y={barY}
+                          width={chartW}
+                          height={actualH}
+                          rx="4"
+                          ry="4"
+                          fill="#F8FAFC"
+                          stroke="#F1F5F9"
+                          strokeWidth="1"
+                        />
+                      )}
+                      {/* Filled Bar */}
                       <rect
                         x={padLeft}
                         y={barY}
-                        width={Math.max(0, w)}
+                        width={Math.max(val > 0 ? 4 : 0, w)}
                         height={actualH}
-                        rx="5"
-                        ry="5"
+                        rx={isMultiSeries ? 4 : 6}
+                        ry={isMultiSeries ? 4 : 6}
                         fill={fillColor}
-                        opacity={isHovered ? 1 : 0.88}
+                        opacity={isHovered ? 1 : 0.9}
                         filter={isHovered ? `url(#hBarGlow-${uid})` : undefined}
                         style={{ transition: 'all 0.2s ease' }}
                       />
-                      {/* Value label next to bar */}
+                      {/* High-Contrast Value Label Next to Bar */}
                       <text
                         x={padLeft + w + 8}
                         y={barY + actualH / 2 + 4}
-                        fontSize="11.5"
+                        fontSize={isMultiSeries ? '12.5' : '13'}
                         fontWeight="700"
                         fill={fillColor}
                         fontFamily="var(--font-body)"
@@ -521,18 +680,32 @@ const HorizontalBarChart: React.FC<{
                     </g>
                   );
                 })}
+
+                {/* Row Separator Line (except last row) */}
+                {i < categories.length - 1 && (
+                  <line
+                    x1={labelX}
+                    y1={rowTop + rowHeight}
+                    x2={width - padRight + 10}
+                    y2={rowTop + rowHeight}
+                    stroke="#F1F5F9"
+                    strokeWidth="1"
+                  />
+                )}
               </g>
             );
           })}
         </svg>
 
-        {/* Tooltip Overlay */}
+        {/* Tooltip Overlay (Sticky so it stays visible while scrolling) */}
         {hoveredIndex !== null && categories[hoveredIndex] && (
           <div
             style={{
-              position: 'absolute',
-              top: '0px',
-              right: '15px',
+              position: 'sticky',
+              top: '8px',
+              float: 'right',
+              marginRight: '15px',
+              marginTop: '-30px',
               background: '#1E293B',
               color: '#FFFFFF',
               padding: '6px 14px',
@@ -542,7 +715,7 @@ const HorizontalBarChart: React.FC<{
               boxShadow: 'var(--dashboard-shadow-global)',
               pointerEvents: 'none',
               whiteSpace: 'nowrap',
-              zIndex: 10,
+              zIndex: 30,
             }}
           >
             <span>{categories[hoveredIndex].label}: </span>
@@ -571,6 +744,9 @@ const UnifiedBarChart: React.FC<UnifiedBarChartProps> = ({
   title,
   subtitle,
   headerRight,
+  icon = 'bar_chart',
+  iconClass = 'icon-info',
+  headerClass = 'chart-header-info',
   categories,
   series,
   orientation = 'vertical',
@@ -579,6 +755,7 @@ const UnifiedBarChart: React.FC<UnifiedBarChartProps> = ({
   maxValue,
   emptyMessage = 'No chart data available.',
   chartHeight,
+  maxScrollHeight,
 }) => {
   const uid = useId().replace(/:/g, '');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -612,16 +789,16 @@ const UnifiedBarChart: React.FC<UnifiedBarChartProps> = ({
     >
       {/* Card Header Strip */}
       {(title || subtitle || headerRight) && (
-        <div className="chart-card-header chart-header-primary">
+        <div className={`chart-card-header ${headerClass}`}>
           <div className="d-flex align-items-center justify-content-between gap-2">
             <div>
               {title && (
                 <p className="chart-card-title">
                   <span
-                    className="material-symbols-outlined icon-primary"
+                    className={`material-symbols-outlined ${iconClass}`}
                     style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}
                   >
-                    bar_chart
+                    {icon}
                   </span>
                   {title}
                 </p>
@@ -660,6 +837,7 @@ const UnifiedBarChart: React.FC<UnifiedBarChartProps> = ({
                 hoveredIndex={hoveredIndex}
                 setHoveredIndex={setHoveredIndex}
                 uid={uid}
+                maxScrollHeight={maxScrollHeight}
               />
             )}
 

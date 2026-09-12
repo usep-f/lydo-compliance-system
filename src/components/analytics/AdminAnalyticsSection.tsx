@@ -13,10 +13,13 @@ import {
 import { Line } from 'react-chartjs-2';
 import UnifiedGaugeChart from './UnifiedGaugeChart';
 import UnifiedBarChart from './UnifiedBarChart';
+import AccomplishmentBreakdownPie from './AccomplishmentBreakdownPie';
+import DenialBreakdownPie from './DenialBreakdownPie';
 import { BARANGAYS } from '../../constants/barangays';
 import {
   type PendingSubmission,
   type HistoricalSubmission,
+  ACCOMPLISHMENT_CATEGORIES,
 } from '../../constants/submissionTypes';
 import { useComplianceData, type TrendTimeframe } from '../../hooks/useComplianceData';
 import StatCard from '../common/StatCard';
@@ -135,6 +138,10 @@ const TimeframeToggle: React.FC<{
   </div>
 );
 
+
+
+
+
 /* ─────────────────────────────────────────────
    Sort toggle button
 ───────────────────────────────────────────── */
@@ -224,7 +231,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     [selectedBarangay],
   );
   const filteredPending = useMemo(
-    () => (selectedBarangay ? pending.filter((s) => s.barangay === selectedBarangay) : pending),
+    () => (selectedBarangay ? pending.filter((s) => s.barangay?.trim() === selectedBarangay.trim()) : pending),
     [pending, selectedBarangay],
   );
 
@@ -233,16 +240,16 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
   // Compute total approved documents for current year and barangay filter
   const approvedCount = useMemo(() => {
     const brgyApproved = selectedBarangay
-      ? approved.filter((s) => s.barangay === selectedBarangay && s.year === currentYear)
-      : approved.filter((s) => s.year === currentYear);
+      ? approved.filter((s) => s.barangay?.trim() === selectedBarangay.trim() && Number(s.year) === currentYear)
+      : approved.filter((s) => Number(s.year) === currentYear);
     return brgyApproved.length;
   }, [approved, selectedBarangay, currentYear]);
 
   // Compute total pending submissions for current year and barangay filter
   const pendingCount = useMemo(() => {
     const brgyPending = selectedBarangay
-      ? pending.filter((s) => s.barangay === selectedBarangay && s.year === currentYear)
-      : pending.filter((s) => s.year === currentYear);
+      ? pending.filter((s) => s.barangay?.trim() === selectedBarangay.trim() && Number(s.year) === currentYear)
+      : pending.filter((s) => Number(s.year) === currentYear);
     return brgyPending.length;
   }, [pending, selectedBarangay, currentYear]);
 
@@ -273,8 +280,8 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
 
   const deniedCount = useMemo(() => {
     const brgyDenied = selectedBarangay
-      ? history.filter((s) => s.barangay === selectedBarangay && s.status === 'denied' && s.year === currentYear)
-      : history.filter((s) => s.status === 'denied' && s.year === currentYear);
+      ? history.filter((s) => s.barangay?.trim() === selectedBarangay.trim() && s.status === 'denied' && Number(s.year) === currentYear)
+      : history.filter((s) => s.status === 'denied' && Number(s.year) === currentYear);
     return brgyDenied.length;
   }, [history, selectedBarangay, currentYear]);
 
@@ -316,27 +323,81 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
     { key: 'rate', label: 'Compliance Rate', color: '#16A34A' },
   ], []);
 
-  // Document Type Compliance (horizontal progress bars normalized to compliance rate %)
+  // Document Type Compliance (3 bars: Total Submitted, Approved, Denied across all submittable categories)
+  const docTypeSeries = useMemo(() => [
+    { key: 'submitted', label: 'Total Submitted', color: '#0284C7' },
+    { key: 'approved',  label: 'Approved',        color: '#16A34A' },
+    { key: 'denied',    label: 'Denied',          color: '#EF4444' },
+  ], []);
+
   const docTypeCategories = useMemo(() => compliance.docTypeCompliance.map((d) => ({
     label: d.label,
-    values: { rate: d.rate },
-    color: d.rate >= 80 ? '#16A34A' : d.rate >= 50 ? '#F59E0B' : d.rate > 0 ? '#0284C7' : '#94A3B8',
-    tooltipSubtext: `${d.approved}/${d.expected} approved`,
+    values: {
+      submitted: d.submitted ?? 0,
+      approved: d.approved ?? 0,
+      denied: d.denied ?? 0,
+    },
+    tooltipSubtext: `${d.submitted ?? 0} submitted, ${d.approved ?? 0} approved, ${d.denied ?? 0} denied`,
   })), [compliance.docTypeCompliance]);
-
-  const docTypeSeries = useMemo(() => [
-    { key: 'rate', label: 'Compliance Rate', color: '#0284C7' },
-  ], []);
 
   const trendSubtitle = useMemo(() => {
     const rangeText =
       trendTimeframe === '7d'
-        ? 'Daily submission vs. approval vs. denial volume (Past 7 days)'
+        ? 'Daily volume (Past 7 days)'
         : trendTimeframe === '30d'
-        ? 'Daily submission vs. approval vs. denial volume (Past 30 days)'
-        : 'Monthly submission vs. approval vs. denial volume';
-    return selectedBarangay ? `${rangeText} — ${selectedBarangay}` : rangeText;
+        ? 'Daily volume (Past 30 days)'
+        : 'Monthly volume';
+    const base = `All Submissions (Scheduled, ASAP, Resolutions & Accomplishments) — ${rangeText}`;
+    return selectedBarangay ? `${base} — ${selectedBarangay}` : base;
   }, [trendTimeframe, selectedBarangay]);
+
+  // Dedicated Accomplishment Reports Bar Chart (3 bars: Total Submitted, Approved, Denied)
+  const accomplishmentSeries = useMemo(() => [
+    { key: 'submitted', label: 'Total Submitted', color: '#0284C7' },
+    { key: 'approved',  label: 'Approved',        color: '#16A34A' },
+    { key: 'denied',    label: 'Denied',          color: '#EF4444' },
+  ], []);
+
+  const accomplishmentCategories = useMemo(() => {
+    if (selectedBarangay) {
+      const entry = compliance.barangayPerennialSummary.find(
+        (s) => s.barangay?.trim() === selectedBarangay.trim()
+      );
+      return ACCOMPLISHMENT_CATEGORIES.map((cat) => {
+        const item = entry?.categoryData.find((c) => c.id === cat.id);
+        const approved = item?.approved ?? 0;
+        const denied = item?.denied ?? 0;
+        const submitted = item?.submitted ?? (approved + (item?.pending ?? 0) + denied);
+        return {
+          label: cat.label,
+          values: { submitted, approved, denied },
+          tooltipSubtext: `${submitted} submitted, ${approved} approved, ${denied} denied`,
+        };
+      });
+    }
+
+    const overall = compliance.overallPerennialSummary;
+    return ACCOMPLISHMENT_CATEGORIES.map((cat) => {
+      const item = overall.items.find((i) => i.id === cat.id);
+      const approved = item?.approved ?? 0;
+      const denied = item?.denied ?? 0;
+      const submitted = item?.submitted ?? (approved + (item?.pending ?? 0) + denied);
+      return {
+        label: cat.label,
+        values: { submitted, approved, denied },
+        tooltipSubtext: `${submitted} submitted, ${approved} approved, ${denied} denied`,
+      };
+    });
+  }, [selectedBarangay, compliance.barangayPerennialSummary, compliance.overallPerennialSummary]);
+
+  const totalAccApproved = useMemo(() => {
+    if (selectedBarangay) {
+      return compliance.barangayPerennialSummary.find(
+        (s) => s.barangay?.trim() === selectedBarangay.trim()
+      )?.accomplishmentsTotal ?? 0;
+    }
+    return compliance.overallPerennialSummary.totalAccomplishmentsApproved;
+  }, [selectedBarangay, compliance.barangayPerennialSummary, compliance.overallPerennialSummary]);
 
   const trendLineData = {
     labels: compliance.monthlyTrend.map((m) => m.month),
@@ -566,28 +627,68 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
         </Col>
       </Row>
 
-      {/* 3 ── Row 3: Document Type Compliance (Full Width) */}
+      {/* 3 ── Row 2: Document Type Compliance (Left) + Denial Breakdown (Right) */}
       <Row className="mb-4 g-3">
-        <Col md={12}>
+        <Col lg={8} md={7}>
           <div className="analytics-card h-100" style={{ background: '#fff' }}>
             <UnifiedBarChart
               title="Document Type Compliance"
               subtitle={
                 selectedBarangay
-                  ? `Compliance rate (% approved vs. target) — ${selectedBarangay}`
-                  : "Compliance rate (% approved vs. target) per document type"
+                  ? `Submission volume (Submitted, Approved, Denied) across all document categories — ${selectedBarangay}`
+                  : "Submission volume (Submitted, Approved, Denied) across all document categories (Scheduled, ASAP, Resolutions & Accomplishments)"
               }
               categories={docTypeCategories}
               series={docTypeSeries}
               orientation="horizontal"
-              valueSuffix="%"
-              maxValue={100}
+              valueSuffix=" docs"
+              maxScrollHeight={315}
             />
           </div>
         </Col>
+
+        <Col lg={4} md={5}>
+          <DenialBreakdownPie
+            shares={compliance.denialReasonShare}
+            totalDenied={deniedCount}
+            subtitle={selectedBarangay ? `Distribution — ${selectedBarangay}` : "Municipal distribution across all barangays"}
+          />
+        </Col>
       </Row>
 
-      {/* 4 ── Row 4: Barangay Compliance Ranking (Full Width, hidden when filtered) */}
+      {/* 4 ── Row 3: Accomplishment Reports (Left, Vertically Scrollable) + Acc Report Brk. (Right) */}
+      <Row className="mb-4 g-3">
+        <Col lg={8} md={7}>
+          <div className="analytics-card h-100" style={{ background: '#fff' }}>
+            <UnifiedBarChart
+              title="Accomplishment Reports"
+              subtitle={
+                selectedBarangay
+                  ? `Submission volume across 10 accomplishment areas — ${selectedBarangay}`
+                  : "Submission volume across 10 accomplishment areas"
+              }
+              icon="assessment"
+              iconClass="icon-info"
+              headerClass="chart-header-info"
+              categories={accomplishmentCategories}
+              series={accomplishmentSeries}
+              orientation="horizontal"
+              valueSuffix=" docs"
+              emptyMessage="No submissions recorded for accomplishment reports."
+              maxScrollHeight={225}
+            />
+          </div>
+        </Col>
+        <Col lg={4} md={5}>
+          <AccomplishmentBreakdownPie
+            shares={compliance.accomplishmentApprovalShare}
+            totalApproved={totalAccApproved}
+            subtitle={selectedBarangay ? `${selectedBarangay}` : 'Municipal Distribution'}
+          />
+        </Col>
+      </Row>
+
+      {/* 5 ── Row 4: Barangay Compliance Ranking (Repositioned to Bottom) */}
       {!selectedBarangay && (
         <Row className="mb-4 g-3">
           <Col md={12}>

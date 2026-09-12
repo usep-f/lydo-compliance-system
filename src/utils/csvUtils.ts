@@ -174,6 +174,7 @@ const buildSubmissionCsvRow = (
   const submittedAt = formatCsvDate(s.submittedAt);
   const processedAt = hist ? formatCsvDate(hist.approvedAt || hist.deniedAt) : '';
   const processedBy = hist ? (hist.approvedBy || hist.deniedBy || '') : '';
+  const denialCategory = hist?.denialCategory || '';
   const reviewNotes = hist?.reviewNotes || '';
 
   const anySub = s as unknown as { status?: string; approvedAt?: unknown; deniedAt?: unknown };
@@ -190,6 +191,7 @@ const buildSubmissionCsvRow = (
     submittedAt,
     processedAt,
     processedBy,
+    denialCategory,
     reviewNotes,
   ].map(escapeCsv).join(',');
 };
@@ -210,6 +212,7 @@ export const exportFilteredSubmissionsCsv = (
     'Submitted At',
     'Processed At',
     'Processed By',
+    'Denial Category',
     'Review Notes / Denial Reason',
   ].map(escapeCsv).join(',');
 
@@ -240,6 +243,18 @@ export const exportBarangayProfileToCsv = (
     matrixData,
     asapStatus: [],
     barangayPerennialSummary: summaries,
+    overallPerennialSummary: {
+      totalResolutions: 0,
+      totalResolutionsApproved: 0,
+      totalResolutionsPending: 0,
+      totalAccomplishments: 0,
+      totalAccomplishmentsApproved: 0,
+      totalAccomplishmentsPending: 0,
+      grandTotal: 0,
+      items: [],
+    },
+    accomplishmentApprovalShare: [],
+    denialReasonShare: [],
   };
   exportAnalyticsSummaryCsv(year, barangay, dummyCompliance);
 };

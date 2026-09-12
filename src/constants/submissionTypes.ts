@@ -189,7 +189,19 @@ export interface HistoricalSubmission {
   deniedAt?: Timestamp;          // Firestore Timestamp (if denied)
   deniedBy?: string;             // Admin's UID (if denied)
   reviewNotes?: string;          // Reason for denial
+  denialCategory?: DenialCategory; // Categorical reason for denial
 }
+
+export const DENIAL_CATEGORIES = [
+  'Missing Signatures / Endorsements',
+  'Incomplete Content / Missing Attachments',
+  'Non-compliant with Official Template / Format',
+  'Invalid or Incorrect Period / Year',
+  'Content Inaccuracies / Data Discrepancies',
+  'Other / Specific Discrepancy',
+] as const;
+
+export type DenialCategory = typeof DENIAL_CATEGORIES[number];
 
 export interface AccomplishmentReports {
   activeCitizenship: number;

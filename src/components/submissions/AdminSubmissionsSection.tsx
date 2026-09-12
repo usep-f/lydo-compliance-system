@@ -12,11 +12,11 @@ import { DataTable } from '../common/DataTable';
 import type { Column } from '../common/DataTable';
 import DocumentReviewModal from '../common/DocumentReviewModal';
 import ConfirmDialog from '../common/ConfirmDialog';
-import FormField from '../common/FormField';
 import StatusBadge from '../common/StatusBadge';
 import UserProfileTrigger from '../common/UserProfileTrigger';
 import { useToast } from '../../context/ToastContext';
-import type { HistoricalSubmission, PendingSubmission } from '../../constants/submissionTypes';
+import type { HistoricalSubmission, PendingSubmission, DenialCategory } from '../../constants/submissionTypes';
+import { DENIAL_CATEGORIES } from '../../constants/submissionTypes';
 
 interface AdminSubmissionsSectionProps {
   defaultSearch?: string;
@@ -29,7 +29,7 @@ interface AdminSubmissionsSectionProps {
 
 /**
  * Admin Submissions Section — review pending submissions, approve/deny.
- * Reuses: DataTable, StatCard, DocumentReviewModal, ConfirmDialog, FormField, StatusBadge
+ * Reuses: DataTable, StatCard, DocumentReviewModal, ConfirmDialog, StatusBadge
  */
 const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
   defaultSearch = '',
@@ -70,6 +70,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
   const [showDenyPrompt, setShowDenyPrompt] = useState(false);
   const [showDenyConfirm, setShowDenyConfirm] = useState(false);
   const [denyReason, setDenyReason] = useState('');
+  const [denyCategory, setDenyCategory] = useState<DenialCategory | ''>('');
 
 
 
@@ -89,6 +90,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
     setShowReview(true);
     setShowDenyPrompt(false);
     setDenyReason('');
+    setDenyCategory('');
 
     if (sub.fileStoragePath) {
       setFileUrl('');
@@ -112,6 +114,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
     setShowApproveConfirm(false);
     setShowDenyConfirm(false);
     setDenyReason('');
+    setDenyCategory('');
     setFileUrl('');
     setFileLoading(false);
   };
@@ -138,14 +141,22 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
   // Deny handler
   const handleDeny = async () => {
     if (!selectedSub) return;
+    if (!denyCategory) {
+      addToast('Please select a denial category.', 'warning');
+      return;
+    }
     if (!denyReason.trim()) {
-      addToast('Please provide a reason for denial.', 'warning');
+      addToast('Please provide an explanation for denial.', 'warning');
       return;
     }
     setIsProcessing(true);
     try {
       const denySubmissionFn = httpsCallable(functions, 'denySubmission');
-      await denySubmissionFn({ submissionId: selectedSub.id, reason: denyReason });
+      await denySubmissionFn({
+        submissionId: selectedSub.id,
+        reason: denyReason.trim(),
+        category: denyCategory,
+      });
       addToast('Submission denied and notification sent.', 'info');
       await refreshHistory();
       setShowDenyConfirm(false);
@@ -368,19 +379,54 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
             </div>
           ) : (
             <div className="bg-white p-3 rounded shadow-sm border border-danger">
-              <h6 className="text-danger fw-bold mb-3">Denial Reason</h6>
-              <FormField
-                label=""
-                as="textarea"
-                rows={3}
-                placeholder="e.g., Wrong document type, file is unreadable, incorrect period."
-                value={denyReason}
-                onChange={(e) => setDenyReason(e.target.value)}
-              />
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-danger" style={{ fontSize: '20px' }}>
+                  cancel
+                </span>
+                <h6 className="text-danger fw-bold mb-0">Denial Details</h6>
+              </div>
+
+              {/* Standardized Denial Reason Category */}
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-muted text-uppercase mb-1" style={{ letterSpacing: '0.04em', fontSize: '11px' }}>
+                  Reason Category <span className="text-danger">*</span>
+                </label>
+                <Form.Select
+                  value={denyCategory}
+                  onChange={(e) => setDenyCategory(e.target.value as DenialCategory)}
+                  className="form-select-sm"
+                  style={{ borderRadius: '8px', fontSize: '13px' }}
+                >
+                  <option value="">-- Select a Reason Category --</option>
+                  {DENIAL_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </Form.Select>
+              </div>
+
+              {/* Mandatory Explanation / Remarks */}
+              <div className="mb-3">
+                <label className="form-label small fw-bold text-muted text-uppercase mb-1" style={{ letterSpacing: '0.04em', fontSize: '11px' }}>
+                  Explanation &amp; Instructions <span className="text-danger">*</span>
+                </label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Provide specific instructions or details for the SK official (e.g. Page 3 is missing the Treasurer's signature)."
+                  value={denyReason}
+                  onChange={(e) => setDenyReason(e.target.value)}
+                  style={{ borderRadius: '8px', fontSize: '13px' }}
+                />
+              </div>
+
               <div className="d-flex gap-2">
                 <Button
                   variant="secondary"
-                  onClick={() => setShowDenyPrompt(false)}
+                  onClick={() => {
+                    setShowDenyPrompt(false);
+                    setDenyCategory('');
+                    setDenyReason('');
+                  }}
                   disabled={isProcessing}
                   className="flex-fill"
                 >
@@ -388,17 +434,22 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
                 </Button>
                 <Button
                   variant="danger"
-                  disabled={isProcessing || !denyReason.trim()}
-                  className="flex-fill"
+                  disabled={isProcessing || !denyCategory || !denyReason.trim()}
+                  className="flex-fill d-inline-flex align-items-center justify-content-center gap-1"
                   onClick={() => {
+                    if (!denyCategory) {
+                      addToast('Please select a denial category.', 'warning');
+                      return;
+                    }
                     if (!denyReason.trim()) {
-                      addToast('Please provide a reason for denial.', 'warning');
+                      addToast('Please provide an explanation for the denial.', 'warning');
                       return;
                     }
                     setShowDenyConfirm(true);
                   }}
                 >
-                  Confirm Deny
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check</span>
+                  Proceed with Denial
                 </Button>
               </div>
             </div>
@@ -444,8 +495,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
         title="Deny Submission"
         message={
           <>
-            You are about to deny <strong>{selectedSub?.fullName}</strong>'s submission with the
-            following reason:
+            You are about to deny <strong>{selectedSub?.fullName}</strong>'s submission.
           </>
         }
         detail={
@@ -453,22 +503,18 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
             <div className="fw-bold mb-1">{selectedSub?.documentLabel}</div>
             <div className="text-muted small mb-2">{selectedSub?.barangay}</div>
             <div className="border-top pt-2 mt-1" style={{ fontSize: '13px', color: '#18181B' }}>
-              <span
-                className="text-muted"
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                Denial Reason
-              </span>
-              <div className="mt-1">{denyReason}</div>
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <span className="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style={{ fontSize: '12px' }}>
+                  {denyCategory}
+                </span>
+              </div>
+              <div className="p-2 rounded bg-light border text-secondary" style={{ whiteSpace: 'pre-wrap', fontSize: '12.5px' }}>
+                {denyReason}
+              </div>
             </div>
           </>
         }
-        warning="This will delete the submission and notify the user by email."
+        warning="This will mark the submission as denied, safely delete the file, and notify the official via email and in-app alert."
         confirmLabel="Confirm Deny"
         confirmVariant="danger"
         loading={isProcessing}

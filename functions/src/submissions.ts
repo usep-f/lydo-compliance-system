@@ -12,6 +12,7 @@ import {
 import { writeNotification, writeNotificationToAdmins } from './notifications';
 import { verifyPdfBuffer } from './pdfScreening';
 import { recomputePublicAnalytics } from './analytics';
+import { DENIAL_CATEGORIES, DenialCategory } from './constants/submissionTypes';
 
 // ---------------------------------------------------------------------------
 // approveSubmission
@@ -153,9 +154,13 @@ export const denySubmission = functions.https.onCall(
     }
 
     // 3. Input validation
-    const { submissionId, reason } = request.data;
+    const { submissionId, reason, category } = request.data;
     validateApplicationId(submissionId);
     validateReason(reason);
+
+    const safeCategory: DenialCategory = DENIAL_CATEGORIES.includes(category as DenialCategory)
+      ? (category as DenialCategory)
+      : 'Other / Specific Discrepancy';
 
     // 4. Fetch and lock the pending submission via Transaction
     const pendingRef = db.collection('pending_submissions').doc(submissionId);
@@ -184,6 +189,7 @@ export const denySubmission = functions.https.onCall(
           deniedAt: admin.firestore.FieldValue.serverTimestamp(),
           deniedBy: request.auth?.uid,
           reviewNotes: reason,
+          denialCategory: safeCategory,
         });
 
         // Delete the pending document within transaction
@@ -213,6 +219,7 @@ export const denySubmission = functions.https.onCall(
           const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
           const safePeriod = escapeHtml(submissionData.period ?? '');
           const safeReason = escapeHtml(reason);
+          const safeCategoryLabel = escapeHtml(safeCategory);
 
           await sendEmailViaBrevo(
             userEmail,
@@ -221,7 +228,14 @@ export const denySubmission = functions.https.onCall(
             `<h1>Submission Denied</h1>
              <p>Dear ${safeName},</p>
              <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been denied.</p>
-             <p><strong>Reason:</strong> ${safeReason}</p>
+             <div style="background: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 6px; margin: 16px 0;">
+               <p style="margin: 0 0 8px 0; color: #991B1B; font-weight: 600;">
+                 <strong>Category:</strong> ${safeCategoryLabel}
+               </p>
+               <p style="margin: 0; color: #7F1D1D;">
+                 <strong>Admin Remarks:</strong> ${safeReason}
+               </p>
+             </div>
              <p>Please review the feedback and submit a corrected document through the LYDO Compliance System.</p>`
           );
         }
@@ -232,11 +246,12 @@ export const denySubmission = functions.https.onCall(
         await writeNotification(submissionData.userId, {
           type: 'submission_denied',
           title: 'Submission Denied',
-          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was denied. Reason: ${reason}`,
+          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was denied for "${safeCategory}". Remarks: ${reason}`,
           metadata: {
             submissionId: request.data.submissionId,
             documentLabel: docLabel,
             period,
+            category: safeCategory,
             reason,
           },
         });
