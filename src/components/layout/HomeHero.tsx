@@ -43,7 +43,46 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
   const animatedSubmissions = useCountUp(totalSubmissions, 1200);
 
   return (
-    <section className="home-hero-section kinetic-section">
+    <section className="home-hero-section kinetic-section position-relative overflow-hidden">
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture-hero" />
+
+      {/* 2. Fluid Organic Morphing Blobs */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '550px', height: '550px', top: '-15%', left: '-10%', opacity: 0.45 }} />
+      <div className="organic-blob organic-blob-gold" style={{ width: '480px', height: '480px', bottom: '-15%', right: '-8%', opacity: 0.38 }} />
+      <div className="organic-blob organic-blob-cyan" style={{ width: '380px', height: '380px', top: '35%', left: '30%', opacity: 0.25 }} />
+
+      {/* 3. Floating Decorative Spline Lines */}
+      <svg className="floating-deco-lines" viewBox="0 0 1440 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hero-grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#006EB7" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#00B4D8" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#7CB342" stopOpacity="0.1" />
+          </linearGradient>
+          <linearGradient id="hero-grad-amber" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#FBA100" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#FFC133" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#006EB7" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+        <path d="M-100,280 C350,120 700,520 1100,200 C1300,80 1500,340 1650,250" className="line-glow-blue" style={{ stroke: 'url(#hero-grad-blue)' }} />
+        <path d="M-80,480 C400,600 750,180 1150,450 C1350,560 1550,300 1700,380" className="line-glow-amber" style={{ stroke: 'url(#hero-grad-amber)' }} />
+      </svg>
+
+      {/* 4. Floating Geometric Elements */}
+      <div className="floating-geo-shape geo-concentric-ring geo-concentric-amber" style={{ top: '12%', right: '12%', width: '80px', height: '80px' }} />
+      <div className="floating-geo-shape-alt geo-diamond geo-diamond-blue" style={{ bottom: '20%', left: '5%' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-amber" style={{ top: '25%', left: '8%' }} />
+      <div className="floating-geo-drift geo-square-wire geo-square-wire-blue" style={{ bottom: '15%', right: '18%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ top: '18%', left: '42%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-cyan" style={{ bottom: '28%', right: '35%' }} />
+      <div className="floating-geo-shape-alt geo-dots-cluster text-info" style={{ top: '65%', left: '3%' }}>
+        {[...Array(16)].map((_, i) => (
+          <div key={i} className="geo-dot" />
+        ))}
+      </div>
+
       {/* Animated mesh blobs */}
       <div className="hero-blob-wrap">
         <div className="hero-blob hero-blob-1" />
@@ -57,10 +96,10 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
       {/* Dot grid */}
       <div className="hero-grid" />
 
-      <Container className="hero-content">
-        <Row className="align-items-center gy-5" style={{ paddingTop: '100px', paddingBottom: '80px' }}>
+      <Container className="hero-content position-relative" style={{ zIndex: 4 }}>
+        <Row className="align-items-center gy-5 justify-content-between">
           {/* Left: Text */}
-          <Col lg={7} className="text-center text-lg-start order-2 order-lg-1">
+          <Col lg={7} xl={7} className="text-center text-lg-start order-2 order-lg-1">
             {/* Headline */}
             <h1 className="hero-headline hero-animate hero-anim-1">
               Empowering Youth.
@@ -132,7 +171,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
           </Col>
 
           {/* Right: Glowing LYDO Logo */}
-          <Col lg={5} className="d-flex justify-content-center justify-content-lg-end align-items-center order-1 order-lg-2">
+          <Col lg={5} xl={5} className="d-flex justify-content-center align-items-center order-1 order-lg-2">
             <div className="hero-logo-container">
               <div className="hero-logo-glow" />
               <div className="hero-logo-circle">

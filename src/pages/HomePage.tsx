@@ -130,7 +130,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="home-layout min-vh-100 d-flex flex-column" style={{ background: '#F8FAFC' }}>
+    <div className="home-layout min-vh-100 d-flex flex-column overflow-hidden" style={{ background: '#F8FAFC' }}>
       {/* 1. Transparent-to-Glassmorphic Header */}
       <HomeNavbar
         user={user}

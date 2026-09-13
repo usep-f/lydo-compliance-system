@@ -24,15 +24,37 @@ export const HomeTimeline: React.FC = () => {
   ];
 
   return (
-    <section className="py-5 bg-light border-bottom position-relative">
-      <Container className="py-4">
+    <section className="home-timeline-section bg-blueprint-dark position-relative overflow-hidden">
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture" />
+
+      {/* 2. Fluid Organic Morphing Blobs */}
+      <div className="organic-blob organic-blob-amber" style={{ width: '450px', height: '450px', top: '-5%', right: '-8%', opacity: 0.42 }} />
+      <div className="organic-blob organic-blob-blue" style={{ width: '500px', height: '500px', bottom: '-8%', left: '-8%', opacity: 0.45 }} />
+      <div className="organic-blob organic-blob-cyan" style={{ width: '320px', height: '320px', top: '45%', right: '30%', opacity: 0.25 }} />
+
+      {/* 3. Floating Decorative Spline Lines */}
+      <svg className="floating-deco-lines" viewBox="0 0 1440 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M-100,120 C400,300 700,50 1100,450 C1300,550 1500,200 1600,280" className="line-glow-amber" />
+        <path d="M-80,500 C300,650 600,200 950,550 C1200,400 1450,600 1650,450" className="line-glow-blue" />
+      </svg>
+
+      {/* 4. Floating Abstract Geometric Elements */}
+      <div className="floating-geo-shape geo-diamond geo-diamond-amber" style={{ top: '15%', right: '7%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-blue" style={{ bottom: '18%', left: '5%', width: '90px', height: '90px' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-blue" style={{ top: '22%', left: '8%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ top: '28%', right: '35%' }} />
+      <div className="floating-geo-shape geo-square-wire geo-square-wire-blue" style={{ bottom: '22%', right: '9%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-amber" style={{ top: '20%', left: '8%', width: '60px', height: '60px' }} />
+
+      <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-5 sr-heading">
-          <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
+        <div className="text-center mb-4 sr-heading">
+          <div className="home-section-overline" style={{ justifyContent: 'center', color: '#5CB8FF' }}>
             Portal Onboarding
           </div>
-          <h2 className="home-section-title mb-3">SK Official Registration Journey</h2>
-          <p className="home-section-subtitle">
+          <h2 className="home-section-title home-section-title-white mb-3">SK Official Registration Journey</h2>
+          <p className="home-section-subtitle home-section-subtitle-muted">
             A guide to setting up your account. Read below to understand how validation documents are reviewed and approved.
           </p>
         </div>
@@ -41,22 +63,30 @@ export const HomeTimeline: React.FC = () => {
         <Row className="justify-content-center">
           <Col lg={9}>
             <div className="home-timeline">
+              <div className="home-timeline-line" />
               {steps.map((step, idx) => (
-                <div key={idx} className="d-flex gap-4 mb-4 pb-2 position-relative sr-item">
+                <div key={idx} className="home-timeline-step d-flex align-items-start gap-3 gap-md-4 mb-4 pb-2 position-relative sr-item">
                   {/* Step Badge */}
-                  <div className="home-timeline-badge flex-shrink-0">
+                  <div className="home-timeline-badge flex-shrink-0 mt-1">
                     {step.step}
                   </div>
 
                   {/* Step Content */}
-                  <div className="p-4 bg-white rounded-3 border shadow-sm w-100 glow-hover-card">
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                      <span className="material-symbols-outlined text-primary fs-4">{step.icon}</span>
-                      <h5 className="fw-bold text-dark mb-0 font-headline" style={{ fontSize: '15px' }}>
-                        {step.title}
-                      </h5>
+                  <div className="p-4 home-timeline-card w-100">
+                    <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="timeline-icon-box">
+                          <span className="material-symbols-outlined fs-5">{step.icon}</span>
+                        </div>
+                        <h5 className="fw-bold text-dark mb-0 font-headline" style={{ fontSize: '16px' }}>
+                          {step.title}
+                        </h5>
+                      </div>
+                      <span className="timeline-step-tag">
+                        Stage 0{step.step}
+                      </span>
                     </div>
-                    <p className="text-secondary small mb-0" style={{ lineHeight: 1.6 }}>
+                    <p className="text-secondary small mb-0" style={{ lineHeight: 1.7, fontSize: '13.5px' }}>
                       {step.desc}
                     </p>
                   </div>

@@ -100,24 +100,33 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ analytics, loading }) => {
   return (
     <section
       id="stats"
-      className="home-stats-section py-5"
+      className="home-stats-section bg-grid-dark position-relative overflow-hidden"
       ref={sectionRef}
     >
-      <div 
-        className="stats-blackout-mask"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: '#000000',
-          opacity: visible ? 0 : 1,
-          transition: 'opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          pointerEvents: 'none',
-          zIndex: 3
-        }}
-      />
-      <Container className="py-4" style={{ position: 'relative', zIndex: 2 }}>
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture" />
+
+      {/* 2. Fluid Organic Morphing Blobs (Subtle Ambient Lighting) */}
+      <div className="organic-blob organic-blob-navy" style={{ width: '500px', height: '500px', top: '-10%', left: '-5%', opacity: 0.35 }} />
+      <div className="organic-blob organic-blob-blue" style={{ width: '380px', height: '380px', bottom: '-10%', right: '-5%', opacity: 0.18 }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '320px', height: '320px', top: '25%', right: '25%', opacity: 0.15 }} />
+
+      {/* 3. Floating Decorative Spline Lines */}
+      <svg className="floating-deco-lines" viewBox="0 0 1440 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M-100,120 C350,300 700,50 1100,280 C1300,380 1500,120 1650,220" className="line-glow-cyan" style={{ opacity: 0.25 }} />
+        <path d="M-50,380 C400,450 800,100 1200,320 C1350,420 1550,200 1700,280" className="line-glow-amber" style={{ opacity: 0.25 }} />
+      </svg>
+
+      {/* 4. Floating Geometric Elements */}
+      <div className="floating-geo-shape geo-diamond geo-diamond-amber" style={{ top: '15%', right: '8%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-blue" style={{ bottom: '15%', left: '6%', width: '80px', height: '80px' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-blue" style={{ top: '20%', left: '10%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ bottom: '25%', right: '15%' }} />
+      <div className="floating-geo-shape-alt geo-diamond geo-diamond-blue" style={{ bottom: '10%', right: '6%' }} />
+
+      <Container className="position-relative" style={{ zIndex: 4 }}>
         {/* Section Header */}
-        <div className={`text-center mb-5 sr-heading${visible ? ' visible' : ''}`}>
+        <div className={`text-center mb-4 sr-heading${visible ? ' visible' : ''}`}>
           <div className="home-section-overline" style={{ justifyContent: 'center', color: 'rgba(92,184,255,0.8)' }}>
             Compliance Overview
           </div>
@@ -159,7 +168,7 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ analytics, loading }) => {
                 </div>
 
                 {/* Sub-note */}
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '8px', fontFamily: 'var(--font-body)' }}>
+                <div style={{ fontSize: '12.5px', color: '#94A3B8', marginTop: '10px', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
                   {card.sub}
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Container, Row, Col, Table, Form, InputGroup, Button, Modal, Badge, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Table, Button, Modal, Badge, Spinner } from 'react-bootstrap';
 import type { PublicAnalytics } from '../../hooks/usePublicAnalytics';
 import { BARANGAYS } from '../../constants/barangays';
 import { SCHEDULED_TYPES, ASAP_TYPES } from '../../constants/submissionTypes';
@@ -101,10 +101,10 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
 
   // Color helper for badges
   const getBadgeColor = (rate: number) => {
-    if (rate === 100) return 'bg-success';
-    if (rate >= 80) return 'bg-info';
-    if (rate >= 60) return 'bg-warning';
-    return 'bg-danger';
+    if (rate === 100) return 'rate-badge-success';
+    if (rate >= 80) return 'rate-badge-info';
+    if (rate >= 60) return 'rate-badge-warning';
+    return 'rate-badge-danger';
   };
 
   const getStatusBadge = (status: string) => {
@@ -122,15 +122,50 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
   };
 
   return (
-    <section id="leaderboard" className="py-5 bg-light border-bottom">
-      <Container className="py-4">
+    <section id="leaderboard" className="home-leaderboard-section bg-grid-dark position-relative overflow-hidden">
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture" />
+
+      {/* 2. Fluid Organic Morphing Blobs */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '500px', height: '500px', top: '-10%', left: '-5%', opacity: 0.45 }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '420px', height: '420px', bottom: '-10%', right: '-5%', opacity: 0.4 }} />
+      <div className="organic-blob organic-blob-cyan" style={{ width: '350px', height: '350px', top: '35%', right: '25%', opacity: 0.25 }} />
+
+      {/* 3. Floating Decorative Spline Lines */}
+      <svg className="floating-deco-lines" viewBox="0 0 1440 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="line-grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#006EB7" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#00B4D8" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#7CB342" stopOpacity="0.1" />
+          </linearGradient>
+          <linearGradient id="line-grad-amber" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#FBA100" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#FFC133" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#006EB7" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+        <path d="M-100,180 C300,40 600,420 1000,140 C1200,40 1400,240 1600,160" className="line-glow-blue" />
+        <path d="M-50,420 C350,520 700,80 1100,380 C1300,480 1500,280 1650,320" className="line-glow-amber" />
+      </svg>
+
+      {/* 4. Floating Abstract Geometric Elements */}
+      <div className="floating-geo-shape geo-diamond geo-diamond-amber" style={{ top: '10%', left: '4%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-blue" style={{ top: '16%', right: '7%', width: '90px', height: '90px' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-blue" style={{ top: '22%', right: '14%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ top: '14%', left: '35%' }} />
+      <div className="floating-geo-shape geo-hexagon geo-hexagon-amber" style={{ bottom: '12%', left: '5%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-amber" style={{ bottom: '10%', right: '4%', width: '70px', height: '70px' }} />
+      <div className="floating-geo-drift geo-square-wire geo-square-wire-blue" style={{ bottom: '18%', right: '18%' }} />
+
+      <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-5 sr-heading">
-          <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
-            CIVIC TRANSPARENCY
+        <div className="text-center mb-4 sr-heading">
+          <div className="home-section-overline" style={{ justifyContent: 'center', color: '#FBA100' }}>
+            Civic Transparency
           </div>
-          <h2 className="home-section-title mb-3">Barangay Compliance Leaderboard</h2>
-          <p className="home-section-subtitle">
+          <h2 className="home-section-title home-section-title-white mb-3">Barangay Compliance Leaderboard</h2>
+          <p className="home-section-subtitle home-section-subtitle-muted">
             Search and examine the active compliance rankings and submission checklists of individual Barangay SK branches.
           </p>
         </div>
@@ -139,35 +174,34 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
         <Row className="mb-4 align-items-center justify-content-between g-3 sr-item">
           <Col md={6} lg={5}>
             <div className="d-flex flex-column gap-2">
-              <InputGroup className="shadow-sm rounded-pill" style={{ overflow: 'hidden' }}>
-                <InputGroup.Text className="bg-white border-end-0 px-3">
-                  <span className="material-symbols-outlined text-secondary">search</span>
-                </InputGroup.Text>
-                <Form.Control
+              <div className="home-search-pill">
+                <span className="material-symbols-outlined text-secondary me-2 flex-shrink-0" style={{ fontSize: '20px' }}>
+                  search
+                </span>
+                <input
                   type="text"
                   placeholder="Search barangay name..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="border-start-0 ps-1"
-                  style={{ borderTopRightRadius: searchTerm ? '0' : '9999px', borderBottomRightRadius: searchTerm ? '0' : '9999px', height: '42px' }}
+                  className="home-search-pill-input"
                 />
                 {searchTerm && (
-                  <Button 
-                    variant="white" 
+                  <button 
+                    type="button"
                     onClick={() => setSearchTerm('')} 
-                    className="border border-start-0 px-3 d-flex align-items-center justify-content-center"
-                    style={{ borderTopRightRadius: '9999px', borderBottomRightRadius: '9999px', height: '42px', zIndex: 5 }}
+                    className="btn btn-link p-0 text-secondary d-flex align-items-center justify-content-center ms-2 text-decoration-none"
+                    style={{ border: 'none', background: 'transparent' }}
                   >
-                    <span className="material-symbols-outlined text-secondary fs-5">close</span>
-                  </Button>
+                    <span className="material-symbols-outlined fs-5">close</span>
+                  </button>
                 )}
-              </InputGroup>
+              </div>
               {userBarangay && (
                 <div className="ps-2">
-                  <span className="text-muted small">Quick link: </span>
+                  <span className="text-white-50 small">Quick link: </span>
                   <Button 
                     variant="link" 
-                    className="p-0 text-primary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 align-baseline"
+                    className="p-0 text-warning small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 align-baseline"
                     onClick={() => setSearchTerm(userBarangay)}
                   >
                     <span className="material-symbols-outlined fs-6">near_me</span>
@@ -179,7 +213,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
           </Col>
           <Col md={5} lg={4} className="d-flex justify-content-md-end align-items-center">
             {searchTerm.trim() !== '' ? (
-              <div className="text-secondary small fw-semibold d-flex align-items-center gap-1">
+              <div className="text-white-50 small fw-semibold d-flex align-items-center gap-1">
                 <span className="material-symbols-outlined fs-5">search</span>
                 <span>Search Results ({filteredDataset.length} found)</span>
               </div>
@@ -207,9 +241,9 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
         </Row>
 
         {/* Leaderboard Table View */}
-        <div className="table-responsive shadow-sm bg-white rounded-3 border sr-item">
+        <div className="table-responsive leaderboard-table-card sr-item">
           <Table hover className="mb-0 align-middle">
-            <thead>
+            <thead className="leaderboard-table-header">
               <tr>
                 <th style={{ width: '80px' }} className="text-center">Rank</th>
                 <th>Barangay Name</th>
@@ -232,6 +266,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
                   return (
                     <tr 
                       key={item.barangay} 
+                      className="leaderboard-table-row"
                       style={isUserBrgy ? { backgroundColor: 'rgba(0, 110, 183, 0.08)', borderLeft: '4px solid var(--primary, #006EB7)' } : undefined}
                     >
                       <td className="text-center fw-bold text-secondary">
@@ -242,7 +277,9 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
                         ) : originalIndex === 3 ? (
                           <span className="badge rank-badge-bronze rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
                         ) : (
-                          originalIndex
+                          <span className="badge rank-badge-standard rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {originalIndex}
+                          </span>
                         )}
                       </td>
                       <td className="fw-bold text-dark">
@@ -256,7 +293,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
                         </div>
                       </td>
                       <td className="text-center">
-                        <Badge className={`${getBadgeColor(item.rate)} px-3 py-1.5 text-uppercase`} style={{ fontSize: '11.5px', letterSpacing: '0.03em' }}>
+                        <Badge className={`${getBadgeColor(item.rate)} px-3 py-1.5 text-uppercase fw-bold`} style={{ fontSize: '11.5px', letterSpacing: '0.03em' }}>
                           {item.rate}%
                         </Badge>
                       </td>

@@ -58,10 +58,43 @@ export const HomeDocGuide: React.FC = () => {
   }, []);
 
   return (
-    <section id="guidelines" className="py-5 bg-white" ref={sectionRef}>
-      <Container className="py-4">
+    <section id="guidelines" className="home-docguide-section bg-grid-light position-relative overflow-hidden" ref={sectionRef}>
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture-light" />
+
+      {/* 2. Fluid Organic Morphing Blobs */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '400px', height: '400px', top: '-8%', right: '-5%', opacity: 0.26 }} />
+      <div className="organic-blob organic-blob-green" style={{ width: '360px', height: '360px', bottom: '-8%', left: '-5%', opacity: 0.24 }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '300px', height: '300px', top: '35%', left: '15%', opacity: 0.2 }} />
+
+      {/* 3. Floating Decorative Spline Lines */}
+      <svg className="floating-deco-lines" viewBox="0 0 1440 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="doc-grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#006EB7" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#00B4D8" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#7CB342" stopOpacity="0.1" />
+          </linearGradient>
+          <linearGradient id="doc-grad-emerald" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#7CB342" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#A5D65E" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="#006EB7" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+        <path d="M-50,150 C300,50 650,450 1050,120 C1250,30 1450,220 1600,160" className="line-glow-blue" style={{ stroke: 'url(#doc-grad-blue)', opacity: 0.35 }} />
+        <path d="M-80,480 C350,560 750,180 1150,420 C1300,520 1500,280 1650,340" className="line-glow-emerald" style={{ stroke: 'url(#doc-grad-emerald)', opacity: 0.35 }} />
+      </svg>
+
+      {/* 4. Floating Geometric Elements */}
+      <div className="floating-geo-shape geo-diamond geo-diamond-blue" style={{ top: '10%', right: '6%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-blue" style={{ bottom: '15%', left: '4%', width: '75px', height: '75px' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-emerald" style={{ top: '22%', left: '7%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-cyan" style={{ top: '16%', right: '35%' }} />
+      <div className="floating-geo-shape geo-hexagon geo-hexagon-amber" style={{ bottom: '25%', right: '5%' }} />
+
+      <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Header */}
-        <div className={`text-center mb-5 sr-heading${visible ? ' visible' : ''}`}>
+        <div className={`text-center mb-4 sr-heading${visible ? ' visible' : ''}`}>
           <div className="home-section-overline" style={{ justifyContent: 'center' }}>
             Compliance Guidelines
           </div>

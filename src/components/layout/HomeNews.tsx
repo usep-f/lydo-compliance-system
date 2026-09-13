@@ -106,8 +106,41 @@ export const HomeNews: React.FC = () => {
   }
 
   return (
-    <section id="news" className="py-5 bg-white border-bottom" ref={sectionRef}>
-      <Container className="py-4">
+    <section id="news" className="home-news-section bg-grid-light position-relative overflow-hidden" ref={sectionRef}>
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture-light" />
+
+      {/* 2. Fluid Organic Morphing Blobs */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '420px', height: '420px', top: '-10%', left: '-5%', opacity: 0.28 }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '380px', height: '380px', bottom: '-10%', right: '-5%', opacity: 0.24 }} />
+      <div className="organic-blob organic-blob-green" style={{ width: '320px', height: '320px', top: '40%', right: '20%', opacity: 0.2 }} />
+
+      {/* 3. Floating Decorative Spline Lines */}
+      <svg className="floating-deco-lines" viewBox="0 0 1440 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="news-grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#006EB7" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#00B4D8" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#7CB342" stopOpacity="0.1" />
+          </linearGradient>
+          <linearGradient id="news-grad-amber" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#FBA100" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#FFC133" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#006EB7" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+        <path d="M-50,220 C350,80 750,450 1150,150 C1300,50 1450,300 1600,200" className="line-glow-blue" style={{ stroke: 'url(#news-grad-blue)', opacity: 0.35 }} />
+        <path d="M-80,420 C400,550 780,120 1180,380 C1350,480 1500,260 1650,320" className="line-glow-amber" style={{ stroke: 'url(#news-grad-amber)', opacity: 0.35 }} />
+      </svg>
+
+      {/* 4. Floating Geometric Elements */}
+      <div className="floating-geo-shape geo-diamond geo-diamond-blue" style={{ top: '15%', left: '4%' }} />
+      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-amber" style={{ bottom: '15%', right: '5%', width: '75px', height: '75px' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-emerald" style={{ top: '18%', right: '12%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ bottom: '25%', left: '15%' }} />
+      <div className="floating-geo-shape geo-hexagon geo-hexagon-blue" style={{ bottom: '12%', left: '5%' }} />
+
+      <Container className="position-relative" style={{ zIndex: 2 }}>
         {loading ? (
           <div className="py-5 text-center">
             <Spinner animation="border" variant="primary" />
@@ -115,7 +148,7 @@ export const HomeNews: React.FC = () => {
           </div>
         ) : bulletins.length === 0 ? (
           <div className="py-4 text-center">
-            <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
+            <div className="home-section-overline" style={{ justifyContent: 'center' }}>
               Office Advisories
             </div>
             <h2 className="home-section-title mb-3">Latest Bulletins & Advisories</h2>
@@ -124,8 +157,8 @@ export const HomeNews: React.FC = () => {
         ) : (
           <>
             {/* Section Header */}
-            <div className={`text-center mb-5 sr-heading${visible ? ' visible' : ''}`}>
-              <div className="text-primary fw-bold text-uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-headline)', fontSize: '12px' }}>
+            <div className={`text-center mb-4 sr-heading${visible ? ' visible' : ''}`}>
+              <div className="home-section-overline" style={{ justifyContent: 'center' }}>
                 Office Advisories
               </div>
               <h2 className="home-section-title mb-3">Latest Bulletins & Advisories</h2>
@@ -146,7 +179,7 @@ export const HomeNews: React.FC = () => {
                 className={`btn-slider btn-slider-left${maxIndex === 0 ? ' btn-slider-disabled' : ''}`}
                 onClick={handlePrev}
                 aria-label="Previous bulletin"
-                style={{ zIndex: 10, left: '-20px' }}
+                style={{ zIndex: 10 }}
               >
                 <span className="material-symbols-outlined fs-5">chevron_left</span>
               </button>
@@ -235,7 +268,7 @@ export const HomeNews: React.FC = () => {
                 className={`btn-slider btn-slider-right${maxIndex === 0 ? ' btn-slider-disabled' : ''}`}
                 onClick={handleNext}
                 aria-label="Next bulletin"
-                style={{ zIndex: 10, right: '-20px' }}
+                style={{ zIndex: 10 }}
               >
                 <span className="material-symbols-outlined fs-5">chevron_right</span>
               </button>

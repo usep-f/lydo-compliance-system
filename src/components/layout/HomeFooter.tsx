@@ -5,8 +5,14 @@ export const HomeFooter: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="py-4 bg-dark text-white-50 border-top border-secondary">
-      <Container>
+    <footer className="home-footer-section py-4 text-white-50 position-relative overflow-hidden">
+      {/* 1. Subtle Masked Texture Overlay */}
+      <div className="section-masked-texture" style={{ opacity: 0.1 }} />
+
+      {/* 2. Ambient Soft Blob */}
+      <div className="organic-blob organic-blob-navy" style={{ width: '350px', height: '350px', bottom: '-20%', left: '30%', opacity: 0.3 }} />
+
+      <Container className="position-relative" style={{ zIndex: 2 }}>
         <div className="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 text-center text-md-start">
           <div>
             <div className="fw-semibold text-white mb-1" style={{ fontSize: '14px', fontFamily: 'var(--font-headline)', letterSpacing: '-0.02em' }}>
