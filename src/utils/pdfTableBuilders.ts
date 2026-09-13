@@ -1,5 +1,5 @@
 import type jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { type CellHookData } from 'jspdf-autotable';
 import type { ComplianceData, DenialShare } from '../hooks/useComplianceData';
 import {
   SCHEDULED_TYPES,
@@ -9,17 +9,19 @@ import {
 } from '../constants/submissionTypes';
 
 /* ─────────────────────────────────────────────
-   Executive Color Tokens for PDF Tables
+   Executive Color Tokens & Design System
 ───────────────────────────────────────────── */
 const TABLE_THEME = {
-  headerBg: [15, 31, 56] as [number, number, number], // Executive Deep Navy
+  headerBg: [0, 66, 110] as [number, number, number], // LYDO Deep Navy #00426E
   headerText: [255, 255, 255] as [number, number, number],
-  zebraBg: [248, 250, 252] as [number, number, number], // Slate 50
-  borderColor: [226, 232, 240] as [number, number, number], // Slate 200
+  zebraBg: [248, 250, 252] as [number, number, number], // Slate 50 #F8FAFC
+  borderColor: [226, 232, 240] as [number, number, number], // Slate 200 #E2E8F0
+  textDark: [15, 23, 42] as [number, number, number], // Slate 900
+  textMuted: [100, 116, 139] as [number, number, number], // Slate 500
 };
 
 /* ─────────────────────────────────────────────
-   Helpers
+   Helpers (Pure Functions)
 ───────────────────────────────────────────── */
 
 const getDocLabel = (id: string): string => {
@@ -49,7 +51,6 @@ const getSubmissionStatus = (s: HistoricalSubmission | PendingSubmission): strin
 
 const sanitizeRemarks = (text: string): string => {
   if (!text) return '—';
-  // Redact profanities or offensive test entries from official government PDF exports
   const slurs = [/\bnigger\b/gi, /\bfuck\b/gi, /\bshit\b/gi, /\bbitch\b/gi, /\basshole\b/gi];
   let cleaned = text;
   slurs.forEach((pattern) => {
@@ -58,17 +59,36 @@ const sanitizeRemarks = (text: string): string => {
   return cleaned.trim();
 };
 
+/** Helper to apply pill badge styles based on compliance or submission status */
+const applyStatusPillStyle = (data: CellHookData, statusVal: string): void => {
+  const normalized = statusVal.toUpperCase();
+  if (normalized.includes('FULLY') || normalized === 'APPROVED' || normalized.includes('100%')) {
+    data.cell.styles.fillColor = [220, 252, 231]; // Emerald 100
+    data.cell.styles.textColor = [21, 128, 61];   // Emerald 700
+    data.cell.styles.fontStyle = 'bold';
+  } else if (normalized.includes('SUBSTANTIAL') || normalized === 'PENDING' || normalized.includes('MODERATE')) {
+    data.cell.styles.fillColor = [254, 243, 199]; // Amber 100
+    data.cell.styles.textColor = [180, 83, 9];    // Amber 700
+    data.cell.styles.fontStyle = 'bold';
+  } else {
+    data.cell.styles.fillColor = [255, 228, 230]; // Rose 100
+    data.cell.styles.textColor = [190, 18, 60];   // Rose 700
+    data.cell.styles.fontStyle = 'bold';
+  }
+};
+
 /* ─────────────────────────────────────────────
    Table Builders
 ───────────────────────────────────────────── */
 
-/** Draws Compliance Matrix or Barangay Breakdown Table */
+/** Draws Municipal Compliance Matrix or Barangay Breakdown Table */
 export const drawComplianceMatrixTable = (
   doc: jsPDF,
   startY: number,
   compliance: ComplianceData,
   scope: string,
-  marginLeft: number
+  marginLeft: number,
+  printableWidth?: number
 ): number => {
   const isAll = scope === 'all' || !scope;
 
@@ -90,6 +110,7 @@ export const drawComplianceMatrixTable = (
     autoTable(doc, {
       startY,
       margin: { left: marginLeft, right: marginLeft },
+      tableWidth: printableWidth,
       head,
       body,
       theme: 'grid',
@@ -97,26 +118,26 @@ export const drawComplianceMatrixTable = (
         fillColor: TABLE_THEME.headerBg,
         textColor: TABLE_THEME.headerText,
         fontStyle: 'bold',
-        fontSize: 7.5,
-        cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
+        fontSize: 9,
+        cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
         halign: 'left',
       },
       styles: {
-        fontSize: 7,
-        cellPadding: { top: 2.5, bottom: 2.5, left: 5, right: 5 },
+        fontSize: 8.5,
+        cellPadding: { top: 4.5, bottom: 4.5, left: 6, right: 6 },
         overflow: 'linebreak',
         lineColor: TABLE_THEME.borderColor,
-        lineWidth: 0.3,
-        textColor: [30, 41, 59],
+        lineWidth: 0.4,
+        textColor: TABLE_THEME.textDark,
       },
       columnStyles: {
-        0: { cellWidth: 36, halign: 'center', fontStyle: 'bold' },
-        1: { cellWidth: 'auto', halign: 'left' },
-        2: { cellWidth: 80, halign: 'right', fontStyle: 'bold' },
-        3: { cellWidth: 60, halign: 'right' },
-        4: { cellWidth: 60, halign: 'right' },
-        5: { cellWidth: 60, halign: 'right' },
-        6: { cellWidth: 95, halign: 'center' },
+        0: { cellWidth: 40, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 'auto', halign: 'left', fontStyle: 'bold' },
+        2: { cellWidth: 88, halign: 'right', fontStyle: 'bold' },
+        3: { cellWidth: 58, halign: 'right' },
+        4: { cellWidth: 58, halign: 'right' },
+        5: { cellWidth: 58, halign: 'right' },
+        6: { cellWidth: 100, halign: 'center' },
       },
       alternateRowStyles: { fillColor: TABLE_THEME.zebraBg },
       didParseCell: (data) => {
@@ -125,20 +146,7 @@ export const drawComplianceMatrixTable = (
           if ([2, 3, 4, 5].includes(data.column.index)) data.cell.styles.halign = 'right';
         }
         if (data.section === 'body' && data.column.index === 6) {
-          const val = String(data.cell.raw);
-          if (val === 'Fully Compliant') {
-            data.cell.styles.fillColor = [220, 252, 231]; // Emerald 100
-            data.cell.styles.textColor = [21, 128, 61];   // Emerald 700
-            data.cell.styles.fontStyle = 'bold';
-          } else if (val === 'Substantial') {
-            data.cell.styles.fillColor = [224, 242, 254]; // Sky 100
-            data.cell.styles.textColor = [3, 105, 161];   // Sky 700
-            data.cell.styles.fontStyle = 'bold';
-          } else {
-            data.cell.styles.fillColor = [255, 228, 230]; // Rose 100
-            data.cell.styles.textColor = [190, 18, 60];   // Rose 700
-            data.cell.styles.fontStyle = 'bold';
-          }
+          applyStatusPillStyle(data, String(data.cell.raw));
         }
       },
     });
@@ -155,6 +163,7 @@ export const drawComplianceMatrixTable = (
     autoTable(doc, {
       startY,
       margin: { left: marginLeft, right: marginLeft },
+      tableWidth: printableWidth,
       head,
       body,
       theme: 'grid',
@@ -162,47 +171,34 @@ export const drawComplianceMatrixTable = (
         fillColor: TABLE_THEME.headerBg,
         textColor: TABLE_THEME.headerText,
         fontStyle: 'bold',
-        fontSize: 7.5,
-        cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
+        fontSize: 9,
+        cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
       },
       styles: {
-        fontSize: 7.2,
-        cellPadding: { top: 3, bottom: 3, left: 5, right: 5 },
+        fontSize: 8.5,
+        cellPadding: { top: 4.5, bottom: 4.5, left: 6, right: 6 },
         overflow: 'linebreak',
         lineColor: TABLE_THEME.borderColor,
-        lineWidth: 0.3,
-        textColor: [30, 41, 59],
+        lineWidth: 0.4,
+        textColor: TABLE_THEME.textDark,
       },
       columnStyles: {
-        0: { cellWidth: 160 },
-        1: { cellWidth: 'auto' },
+        0: { cellWidth: 170 },
+        1: { cellWidth: 'auto', fontStyle: 'bold' },
         2: { cellWidth: 110, halign: 'center' },
         3: { cellWidth: 100, halign: 'center' },
       },
       alternateRowStyles: { fillColor: TABLE_THEME.zebraBg },
       didParseCell: (data) => {
         if (data.section === 'body' && data.column.index === 3) {
-          const val = String(data.cell.raw);
-          if (val === 'APPROVED') {
-            data.cell.styles.fillColor = [220, 252, 231];
-            data.cell.styles.textColor = [21, 128, 61];
-            data.cell.styles.fontStyle = 'bold';
-          } else if (val === 'PENDING') {
-            data.cell.styles.fillColor = [254, 243, 199];
-            data.cell.styles.textColor = [180, 83, 9];
-            data.cell.styles.fontStyle = 'bold';
-          } else {
-            data.cell.styles.fillColor = [255, 228, 230];
-            data.cell.styles.textColor = [190, 18, 60];
-            data.cell.styles.fontStyle = 'bold';
-          }
+          applyStatusPillStyle(data, String(data.cell.raw));
         }
       },
     });
   }
 
   const lastTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
-  return (lastTable?.finalY ?? startY) + 14;
+  return (lastTable?.finalY ?? startY) + 16;
 };
 
 /** Draws Denial Reasons Breakdown Table */
@@ -217,20 +213,20 @@ export const drawDenialBreakdownTable = (
   if (totalDenied === 0 || denialShares.length === 0) {
     doc.setFillColor(240, 253, 244);
     doc.setDrawColor(187, 247, 208);
-    doc.roundedRect(marginLeft, startY, tableWidth || 360, 28, 3, 3, 'FD');
+    doc.roundedRect(marginLeft, startY, tableWidth || 480, 32, 4, 4, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(9.5);
     doc.setTextColor(21, 128, 61);
-    doc.text('✓ 100% Submission Acceptance (Zero Rejections)', marginLeft + 10, startY + 14);
+    doc.text('✓ 100% Submission Acceptance (Zero Rejections)', marginLeft + 12, startY + 14);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setTextColor(74, 222, 128);
-    doc.text('No document filings have been denied for this scope and period.', marginLeft + 10, startY + 22);
-    return startY + 36;
+    doc.text('All evaluated document filings for this scope and calendar period met statutory standards.', marginLeft + 12, startY + 24);
+    return startY + 40;
   }
 
-  const head = [['Denial Reason / Category', 'Count', 'Share (%)', 'Impact Level']];
+  const head = [['Denial Reason / Statutory Deficiency', 'Count', 'Share (%)', 'Impact Level']];
   const body = denialShares.map((d) => [
     d.label,
     String(d.count),
@@ -249,22 +245,22 @@ export const drawDenialBreakdownTable = (
       fillColor: TABLE_THEME.headerBg,
       textColor: TABLE_THEME.headerText,
       fontStyle: 'bold',
-      fontSize: 7.2,
-      cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
+      fontSize: 8.5,
+      cellPadding: { top: 4.5, bottom: 4.5, left: 5, right: 5 },
     },
     styles: {
-      fontSize: 6.8,
-      cellPadding: { top: 2.8, bottom: 2.8, left: 4, right: 4 },
+      fontSize: 8,
+      cellPadding: { top: 4, bottom: 4, left: 5, right: 5 },
       overflow: 'linebreak',
       lineColor: TABLE_THEME.borderColor,
-      lineWidth: 0.3,
-      textColor: [30, 41, 59],
+      lineWidth: 0.35,
+      textColor: TABLE_THEME.textDark,
     },
     columnStyles: {
       0: { cellWidth: 'auto' },
-      1: { cellWidth: 40, halign: 'right', fontStyle: 'bold' },
-      2: { cellWidth: 50, halign: 'right', fontStyle: 'bold' },
-      3: { cellWidth: 70, halign: 'center' },
+      1: { cellWidth: 50, halign: 'right', fontStyle: 'bold' },
+      2: { cellWidth: 65, halign: 'right', fontStyle: 'bold' },
+      3: { cellWidth: 85, halign: 'center' },
     },
     alternateRowStyles: { fillColor: TABLE_THEME.zebraBg },
     didParseCell: (data) => {
@@ -273,24 +269,13 @@ export const drawDenialBreakdownTable = (
         if (data.column.index === 3) data.cell.styles.halign = 'center';
       }
       if (data.section === 'body' && data.column.index === 3) {
-        const val = String(data.cell.raw);
-        if (val === 'Primary Factor') {
-          data.cell.styles.fillColor = [255, 228, 230];
-          data.cell.styles.textColor = [190, 18, 60];
-          data.cell.styles.fontStyle = 'bold';
-        } else if (val === 'Moderate') {
-          data.cell.styles.fillColor = [254, 243, 199];
-          data.cell.styles.textColor = [180, 83, 9];
-        } else {
-          data.cell.styles.fillColor = [241, 245, 249];
-          data.cell.styles.textColor = [71, 85, 105];
-        }
+        applyStatusPillStyle(data, String(data.cell.raw));
       }
     },
   });
 
   const lastTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
-  return (lastTable?.finalY ?? startY) + 12;
+  return (lastTable?.finalY ?? startY) + 14;
 };
 
 /** Draws Youth Development Accomplishments Breakdown Table */
@@ -301,7 +286,7 @@ export const drawAccomplishmentsSummaryTable = (
   marginLeft: number,
   tableWidth?: number
 ): number => {
-  const head = [['Youth Priority Area', 'Submitted', 'Approved', 'Denied', 'Approval %']];
+  const head = [['Youth Priority Area (10 Statutory Areas)', 'Submitted', 'Approved', 'Denied', 'Approval %']];
   const body = items.map((cat) => {
     const rate = cat.submitted > 0 ? Math.round((cat.approved / cat.submitted) * 100) : 0;
     return [
@@ -324,23 +309,23 @@ export const drawAccomplishmentsSummaryTable = (
       fillColor: TABLE_THEME.headerBg,
       textColor: TABLE_THEME.headerText,
       fontStyle: 'bold',
-      fontSize: 7.2,
-      cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
+      fontSize: 8.5,
+      cellPadding: { top: 4.5, bottom: 4.5, left: 5, right: 5 },
     },
     styles: {
-      fontSize: 6.8,
-      cellPadding: { top: 2.2, bottom: 2.2, left: 4, right: 4 },
+      fontSize: 8,
+      cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
       overflow: 'linebreak',
       lineColor: TABLE_THEME.borderColor,
-      lineWidth: 0.3,
-      textColor: [30, 41, 59],
+      lineWidth: 0.35,
+      textColor: TABLE_THEME.textDark,
     },
     columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 46, halign: 'right' },
-      2: { cellWidth: 46, halign: 'right' },
-      3: { cellWidth: 42, halign: 'right' },
-      4: { cellWidth: 55, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 'auto', fontStyle: 'bold' },
+      1: { cellWidth: 55, halign: 'right' },
+      2: { cellWidth: 55, halign: 'right' },
+      3: { cellWidth: 50, halign: 'right' },
+      4: { cellWidth: 65, halign: 'right', fontStyle: 'bold' },
     },
     alternateRowStyles: { fillColor: TABLE_THEME.zebraBg },
     didParseCell: (data) => {
@@ -351,10 +336,10 @@ export const drawAccomplishmentsSummaryTable = (
   });
 
   const lastTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
-  return (lastTable?.finalY ?? startY) + 12;
+  return (lastTable?.finalY ?? startY) + 14;
 };
 
-/** Draws Detailed Submissions Audit Table with Row Capping & CSV referral callout */
+/** Draws Detailed Submissions Audit Table with Row Capping & Pagination */
 export const drawSubmissionsAuditTable = (
   doc: jsPDF,
   startY: number,
@@ -365,10 +350,10 @@ export const drawSubmissionsAuditTable = (
 ): number => {
   if (submissions.length === 0) {
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
-    doc.text('No submission records match the selected filter criteria.', marginLeft, startY + 12);
-    return startY + 28;
+    doc.text('No submission records match the selected filter criteria.', marginLeft, startY + 14);
+    return startY + 30;
   }
 
   const cappedList = submissions.slice(0, limit);
@@ -381,10 +366,8 @@ export const drawSubmissionsAuditTable = (
       : hist.reviewNotes || '—';
     const note = sanitizeRemarks(rawNote);
 
-    const shortId = `#${idx + 1}`;
-
     return [
-      shortId,
+      `#${idx + 1}`,
       s.barangay || '—',
       s.fullName || '—',
       s.documentLabel || s.documentType || '—',
@@ -398,6 +381,7 @@ export const drawSubmissionsAuditTable = (
   autoTable(doc, {
     startY,
     margin: { left: marginLeft, right: marginLeft },
+    tableWidth: printableWidth,
     head,
     body,
     theme: 'grid',
@@ -405,23 +389,23 @@ export const drawSubmissionsAuditTable = (
       fillColor: TABLE_THEME.headerBg,
       textColor: TABLE_THEME.headerText,
       fontStyle: 'bold',
-      fontSize: 7.2,
-      cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
+      fontSize: 8.5,
+      cellPadding: { top: 4.5, bottom: 4.5, left: 4, right: 4 },
     },
     styles: {
-      fontSize: 6.8,
-      cellPadding: { top: 2.8, bottom: 2.8, left: 4, right: 4 },
+      fontSize: 7.8,
+      cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
       overflow: 'linebreak',
       lineColor: TABLE_THEME.borderColor,
-      lineWidth: 0.3,
-      textColor: [30, 41, 59],
+      lineWidth: 0.35,
+      textColor: TABLE_THEME.textDark,
     },
     columnStyles: {
       0: { cellWidth: 32, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 80 },
-      2: { cellWidth: 85 },
+      1: { cellWidth: 78, fontStyle: 'bold' },
+      2: { cellWidth: 82 },
       3: { cellWidth: 105 },
-      4: { cellWidth: 46, halign: 'center' },
+      4: { cellWidth: 44, halign: 'center' },
       5: { cellWidth: 64, halign: 'center' },
       6: { cellWidth: 55, halign: 'center' },
       7: { cellWidth: 'auto' },
@@ -432,44 +416,29 @@ export const drawSubmissionsAuditTable = (
         if ([0, 4, 5, 6].includes(data.column.index)) data.cell.styles.halign = 'center';
       }
       if (data.section === 'body' && data.column.index === 5) {
-        const val = String(data.cell.raw);
-        if (val === 'APPROVED') {
-          data.cell.styles.fillColor = [220, 252, 231];
-          data.cell.styles.textColor = [21, 128, 61];
-          data.cell.styles.fontStyle = 'bold';
-        } else if (val === 'PENDING') {
-          data.cell.styles.fillColor = [254, 243, 199];
-          data.cell.styles.textColor = [180, 83, 9];
-          data.cell.styles.fontStyle = 'bold';
-        } else {
-          data.cell.styles.fillColor = [255, 228, 230];
-          data.cell.styles.textColor = [190, 18, 60];
-          data.cell.styles.fontStyle = 'bold';
-        }
+        applyStatusPillStyle(data, String(data.cell.raw));
       }
     },
   });
 
   const lastTable = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
-  let finalY = (lastTable?.finalY ?? startY) + 8;
+  let finalY = (lastTable?.finalY ?? startY) + 10;
 
   // Render Capped Submissions Notice Callout
   if (submissions.length > limit) {
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(marginLeft, finalY, printableWidth, 22, 3, 3, 'FD');
+    doc.roundedRect(marginLeft, finalY, printableWidth, 24, 3, 3, 'FD');
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.2);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105);
     doc.text(
       `Displaying most recent ${limit} of ${submissions.length} submission filings. Please export the companion Submissions CSV for exhaustive history.`,
       marginLeft + 10,
-      finalY + 14
+      finalY + 15
     );
-    finalY += 28;
-  } else {
-    finalY += 8;
+    finalY += 30;
   }
 
   return finalY;
