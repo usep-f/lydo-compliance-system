@@ -722,6 +722,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
         pendingSubmissions={pending}
         historySubmissions={history}
         currentYear={currentYear}
+        initialBarangay={selectedBarangay}
       />
     </>
   );

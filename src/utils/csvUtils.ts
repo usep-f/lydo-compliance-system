@@ -92,7 +92,10 @@ const buildAllBarangaysRows = (
     escapeCsv(`CALENDAR YEAR: ${year}`),
     escapeCsv(`OVERALL COMPLIANCE RATE: ${compliance.overallRate}%`),
     escapeCsv(`FULLY COMPLIANT BARANGAYS: ${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`),
+    escapeCsv(`OVERDUE SUBMISSIONS: ${compliance.overdueCount}`),
+    escapeCsv(`PENDING REVIEW: ${compliance.pendingReviewCount}`),
     '',
+    escapeCsv('--- BARANGAY COMPLIANCE RANKINGS & PERENNIAL SUMMARY ---'),
     [
       'Barangay',
       'Compliance Rate',
@@ -109,6 +112,55 @@ const buildAllBarangaysRows = (
     rows.push(buildBarangaySummaryRow(b, compliance.barangayPerennialSummary));
   });
 
+  // Municipal Full Compliance Matrix Register
+  if (compliance.matrixData && compliance.matrixData.length > 0) {
+    rows.push(
+      '',
+      escapeCsv('--- MUNICIPAL COMPLIANCE MATRIX REGISTER (ALL BARANGAYS) ---'),
+      ['Category', 'Barangay', 'Document Type', 'Period', 'Status'].map(escapeCsv).join(',')
+    );
+
+    compliance.matrixData.forEach((cell) => {
+      const category = cell.period === 'ASAP' ? 'ASAP' : 'Scheduled';
+      rows.push(
+        [category, cell.barangay, getDocLabel(cell.docType), cell.period, cell.status]
+          .map(escapeCsv)
+          .join(',')
+      );
+    });
+  }
+
+  // Municipal Perennial Totals
+  if (compliance.overallPerennialSummary) {
+    const overall = compliance.overallPerennialSummary;
+    rows.push(
+      '',
+      escapeCsv('--- MUNICIPAL PERENNIAL CATEGORY TOTALS ---'),
+      ['Category / Document', 'Approved', 'Pending', 'Denied', 'Total Submitted'].map(escapeCsv).join(','),
+      [
+        'Resolutions',
+        String(overall.totalResolutionsApproved ?? overall.totalResolutions ?? 0),
+        String(overall.totalResolutionsPending ?? 0),
+        String(overall.totalResolutionsDenied ?? 0),
+        String(overall.totalResolutions ?? 0),
+      ].map(escapeCsv).join(',')
+    );
+
+    overall.items?.forEach((item) => {
+      rows.push(
+        [
+          item.label,
+          String(item.approved ?? 0),
+          String(item.pending ?? 0),
+          String(item.denied ?? 0),
+          String(item.submitted ?? item.total ?? 0),
+        ]
+          .map(escapeCsv)
+          .join(',')
+      );
+    });
+  }
+
   return rows;
 };
 
@@ -118,31 +170,59 @@ const buildSingleBarangayRows = (
   year: number,
   compliance: ComplianceData
 ): string[] => {
-  const bData = compliance.barangayRanking.find((b) => b.barangay === barangay);
+  const bData = compliance.barangayRanking.find(
+    (b) => b.barangay.trim().toLowerCase() === barangay.trim().toLowerCase()
+  );
   const rows: string[] = [
     escapeCsv(`BARANGAY COMPLIANCE PROFILE: ${barangay.toUpperCase()}`),
     escapeCsv(`CALENDAR YEAR: ${year}`),
     escapeCsv(`COMPLIANCE RATE: ${bData?.rate ?? 0}%`),
+    escapeCsv(`APPROVED SCHEDULED DOCS: ${bData?.approved ?? 0} / ${bData?.expected ?? 0}`),
     '',
     escapeCsv('--- SCHEDULED & ASAP DOCUMENTS ---'),
     ['Category', 'Document Type', 'Period', 'Status'].map(escapeCsv).join(','),
   ];
 
   compliance.matrixData
-    .filter((c) => c.barangay === barangay)
+    .filter((c) => c.barangay.trim().toLowerCase() === barangay.trim().toLowerCase())
     .forEach((cell) => {
       const category = cell.period === 'ASAP' ? 'ASAP' : 'Scheduled';
       rows.push([category, getDocLabel(cell.docType), cell.period, cell.status].map(escapeCsv).join(','));
     });
 
-  rows.push('', escapeCsv('--- PERENNIAL COUNTS & CATEGORY BREAKDOWN ---'), ['Metric / Category', 'Count'].map(escapeCsv).join(','));
+  rows.push(
+    '',
+    escapeCsv('--- PERENNIAL COUNTS & CATEGORY BREAKDOWN ---'),
+    ['Metric / Category', 'Approved', 'Pending', 'Denied', 'Total Submitted'].map(escapeCsv).join(',')
+  );
 
-  const summary = compliance.barangayPerennialSummary.find((s) => s.barangay === barangay);
+  const summary = compliance.barangayPerennialSummary.find(
+    (s) => s.barangay.trim().toLowerCase() === barangay.trim().toLowerCase()
+  );
   if (summary) {
-    rows.push(['Total Resolutions', String(summary.resolutions)].map(escapeCsv).join(','));
-    rows.push(['Total Accomplishment Reports', String(summary.accomplishmentsTotal)].map(escapeCsv).join(','));
+    rows.push([
+      'Resolutions',
+      String(summary.resolutions ?? 0),
+      String(summary.resolutionsPending ?? 0),
+      String(summary.resolutionsDenied ?? 0),
+      String(summary.resolutionsTotal ?? 0),
+    ].map(escapeCsv).join(','));
+    rows.push([
+      'Total Accomplishment Reports',
+      String(summary.accomplishmentsTotal ?? 0),
+      String(summary.accomplishmentsPending ?? 0),
+      String(summary.accomplishmentsDenied ?? 0),
+      String(summary.accomplishmentsGrandTotal ?? 0),
+    ].map(escapeCsv).join(','));
+
     summary.categoryData.forEach((cat) => {
-      rows.push([cat.label, String(cat.count)].map(escapeCsv).join(','));
+      rows.push([
+        cat.label,
+        String(cat.approved ?? cat.count ?? 0),
+        String(cat.pending ?? 0),
+        String(cat.denied ?? 0),
+        String(cat.submitted ?? cat.total ?? 0),
+      ].map(escapeCsv).join(','));
     });
   }
 
@@ -229,8 +309,13 @@ export const exportBarangayProfileToCsv = (
   barangay: string,
   year: number,
   matrixData: MatrixCell[],
-  summaries: BarangayPerennialSummary[]
+  summaries: BarangayPerennialSummary[],
+  compliance?: ComplianceData
 ): void => {
+  if (compliance) {
+    exportAnalyticsSummaryCsv(year, barangay || 'all', compliance);
+    return;
+  }
   const dummyCompliance: ComplianceData = {
     overallRate: 0,
     fullyCompliantCount: 0,

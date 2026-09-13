@@ -161,7 +161,7 @@ export async function recomputePublicAnalytics(db: admin.firestore.Firestore): P
  * This is crucial because `getElapsedPeriods` changes dynamically as time passes,
  * so compliance rates can drop if a new deadline passes and items become 'missing'.
  */
-export const refreshPublicAnalyticsCron = onSchedule('every 30 minutes', async (event) => {
+export const refreshPublicAnalyticsCron = onSchedule('every 30 minutes', async () => {
   const db = admin.firestore();
   await recomputePublicAnalytics(db);
 });
@@ -177,7 +177,7 @@ export const triggerAnalyticsSync = functions.https.onCall(
     timeoutSeconds: 120,
     memory: '256MiB',
   },
-  async (request) => {
+  async () => {
     const db = admin.firestore();
     await recomputePublicAnalytics(db);
     return { success: true, message: 'Public analytics synced.' };

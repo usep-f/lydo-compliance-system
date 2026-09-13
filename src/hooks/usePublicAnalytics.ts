@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
@@ -20,7 +20,7 @@ export interface PublicAnalytics {
   totalSubmissionsCount: number;
   barangayRanking: BarangayCompliance[];
   barangayBreakdown: Record<string, BarangayCompliance>; // Keyed by barangay name
-  updatedAt: any;
+  updatedAt: Timestamp | { toDate: () => Date } | null;
 }
 
 /**

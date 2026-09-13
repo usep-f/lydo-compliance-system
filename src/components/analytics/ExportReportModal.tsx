@@ -5,7 +5,7 @@ import {
   type HistoricalSubmission,
   type PendingSubmission,
 } from '../../constants/submissionTypes';
-import type { ComplianceData } from '../../hooks/useComplianceData';
+import { useComplianceData, type ComplianceData } from '../../hooks/useComplianceData';
 import {
   generateFormalPdfReport,
   type ReportProfileType,
@@ -22,10 +22,11 @@ interface ExportReportModalProps {
   show: boolean;
   onHide: () => void;
   adminName: string;
-  compliance: ComplianceData;
+  compliance?: ComplianceData;
   pendingSubmissions: PendingSubmission[];
   historySubmissions: HistoricalSubmission[];
   currentYear: number;
+  initialBarangay?: string;
 }
 
 interface SectionItem {
@@ -409,21 +410,37 @@ export default function ExportReportModal({
   show,
   onHide,
   adminName,
-  compliance,
+  compliance: passedCompliance,
   pendingSubmissions,
   historySubmissions,
   currentYear,
+  initialBarangay = '',
 }: ExportReportModalProps) {
   const { addToast } = useToast();
 
   // Profile State (Default to Dossier for rich multi-page panoramic landscape)
   const [selectedProfile, setSelectedProfile] = useState<ReportProfileType>('dossier');
 
-  // Scope, Year & Paper Format States
-  const [selectedBarangay, setSelectedBarangay] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  // Scope, Year & Paper Format States with clean props-to-state derivation
+  const [overrideBarangay, setOverrideBarangay] = useState<string | null>(null);
+  const [overrideYear, setOverrideYear] = useState<number | null>(null);
   const [selectedPaperSize, setSelectedPaperSize] = useState<PaperSizeType>('legal');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const selectedBarangay = overrideBarangay !== null
+    ? overrideBarangay
+    : (initialBarangay && initialBarangay.trim() !== '' ? initialBarangay : 'all');
+  const selectedYear = overrideYear !== null ? overrideYear : currentYear;
+
+  const setSelectedBarangay = (b: string) => setOverrideBarangay(b);
+  const setSelectedYear = (y: number) => setOverrideYear(y);
+
+  const handleClose = () => {
+    setOverrideBarangay(null);
+    setOverrideYear(null);
+    setStatusFilter('all');
+    onHide();
+  };
 
   // Modular Section Toggles
   const [sections, setSections] = useState({
@@ -451,12 +468,47 @@ export default function ExportReportModal({
     }
   };
 
+  // Extract approved and denied historical submissions
+  const approved = useMemo(
+    () => historySubmissions.filter((s) => s.status === 'approved' || (!s.status && s.approvedAt)),
+    [historySubmissions]
+  );
+  const denied = useMemo(
+    () => historySubmissions.filter((s) => s.status === 'denied'),
+    [historySubmissions]
+  );
+
+  // Active barangays for compliance calculation
+  const activeBarangays = useMemo(
+    () => (selectedBarangay && selectedBarangay !== 'all' ? [selectedBarangay] : BARANGAYS),
+    [selectedBarangay]
+  );
+
+  const filteredPendingForCompliance = useMemo(
+    () => (selectedBarangay && selectedBarangay !== 'all'
+      ? pendingSubmissions.filter((s) => s.barangay?.trim() === selectedBarangay.trim())
+      : pendingSubmissions),
+    [pendingSubmissions, selectedBarangay]
+  );
+
+  // Dynamically compute compliance data for selected year and scope
+  const modalCompliance = useComplianceData(
+    selectedYear,
+    filteredPendingForCompliance,
+    approved,
+    activeBarangays,
+    'year',
+    denied
+  );
+
+  const activeCompliance = modalCompliance || passedCompliance;
+
   // Filtered submissions list
   const filteredSubmissions = useMemo(() => {
     const all = [...pendingSubmissions, ...historySubmissions];
     return all.filter((s) => {
-      const matchBrgy = selectedBarangay === 'all' || s.barangay === selectedBarangay;
-      const matchYear = !s.year || s.year === selectedYear;
+      const matchBrgy = selectedBarangay === 'all' || s.barangay?.trim() === selectedBarangay.trim();
+      const matchYear = !s.year || Number(s.year) === selectedYear;
       const anySub = s as unknown as { status?: string; approvedAt?: unknown; deniedAt?: unknown };
       const computedStatus = anySub.status || (anySub.approvedAt ? 'approved' : anySub.deniedAt ? 'denied' : 'pending');
       const matchStatus = statusFilter === 'all' || computedStatus === statusFilter;
@@ -481,7 +533,7 @@ export default function ExportReportModal({
         orientation: 'landscape',
         adminName,
         sections,
-        compliance,
+        compliance: activeCompliance,
         submissions: filteredSubmissions,
       });
 
@@ -496,7 +548,7 @@ export default function ExportReportModal({
 
   const handleExportAnalyticsCsv = () => {
     try {
-      exportAnalyticsSummaryCsv(selectedYear, selectedBarangay, compliance);
+      exportAnalyticsSummaryCsv(selectedYear, selectedBarangay, activeCompliance);
       addToast('Analytics summary CSV downloaded successfully.', 'success');
     } catch (err) {
       console.error('Error exporting analytics CSV:', err);
@@ -518,7 +570,7 @@ export default function ExportReportModal({
   return (
     <Modal
       show={show}
-      onHide={onHide}
+      onHide={handleClose}
       size="lg"
       centered
       backdrop="static"
@@ -575,7 +627,7 @@ export default function ExportReportModal({
 
           <Button
             variant="link"
-            onClick={onHide}
+            onClick={handleClose}
             className="p-1 text-white text-decoration-none d-flex align-items-center justify-content-center"
             style={{
               borderRadius: '50%',
@@ -667,7 +719,7 @@ export default function ExportReportModal({
             <Button
               variant="light"
               size="sm"
-              onClick={onHide}
+              onClick={handleClose}
               className="border"
               style={{ borderRadius: '8px', fontSize: '12.5px', fontWeight: 500, color: '#334155' }}
             >

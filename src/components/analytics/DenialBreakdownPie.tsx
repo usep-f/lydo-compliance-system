@@ -3,7 +3,7 @@ import UnifiedGaugeChart, { type GaugeSlice } from './UnifiedGaugeChart';
 import type { DenialShare } from '../../hooks/useComplianceData';
 import type { DenialCategory } from '../../constants/submissionTypes';
 
-export const DENIAL_COLOR_MAP: Record<DenialCategory, string> = {
+const DENIAL_COLOR_MAP: Record<DenialCategory, string> = {
   'Missing Signatures / Endorsements': '#EF4444',
   'Incomplete Content / Missing Attachments': '#F59E0B',
   'Non-compliant with Official Template / Format': '#6366F1',

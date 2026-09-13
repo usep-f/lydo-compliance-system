@@ -357,7 +357,7 @@ export default function UserSettings() {
 
       if (nameChanged || emailChanged || passwordChanged || designChanged || contactChanged || addressChanged || socialChanged || avatarChanged) {
         const updateOwnProfile = httpsCallable(functions, 'updateOwnProfile');
-        const payload: any = { passwordChanged };
+        const payload: Record<string, unknown> = { passwordChanged };
         
         if (nameChanged) payload.fullName = fullName;
         if (emailChanged) payload.email = email;
