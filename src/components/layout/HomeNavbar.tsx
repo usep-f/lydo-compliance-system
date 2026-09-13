@@ -39,13 +39,20 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, av
 
   const handleNavClick = (targetId: string) => {
     setShowDrawer(false);
+    const scrollToTarget = () => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        const navHeight = 64;
+        const targetY = el.getBoundingClientRect().top + window.pageYOffset - navHeight;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }
+    };
+
     if (location.pathname !== '/') {
       navigate('/');
-      setTimeout(() => {
-        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
-      }, 120);
+      setTimeout(scrollToTarget, 120);
     } else {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+      scrollToTarget();
     }
   };
 

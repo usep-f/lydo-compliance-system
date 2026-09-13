@@ -119,10 +119,11 @@ export const HomeNews: React.FC = () => {
       {/* 1. Subtle Masked Texture Overlay */}
       <div className="section-masked-texture-light" />
 
-      {/* 2. Fluid Organic Morphing Blobs */}
-      <div className="organic-blob organic-blob-blue" style={{ width: '420px', height: '420px', top: '-10%', left: '-5%', opacity: 0.28 }} />
-      <div className="organic-blob organic-blob-amber" style={{ width: '380px', height: '380px', bottom: '-10%', right: '-5%', opacity: 0.24 }} />
-      <div className="organic-blob organic-blob-green" style={{ width: '320px', height: '320px', top: '40%', right: '20%', opacity: 0.2 }} />
+      {/* 2. Fluid Organic Morphing Blobs (Contrasted for Light Background) */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '500px', height: '500px', top: '-12%', left: '-6%' }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '450px', height: '450px', bottom: '-10%', right: '-6%' }} />
+      <div className="organic-blob organic-blob-green" style={{ width: '380px', height: '380px', top: '35%', right: '18%' }} />
+      <div className="organic-blob organic-blob-purple" style={{ width: '340px', height: '340px', bottom: '25%', left: '15%' }} />
 
       {/* 3. Floating Decorative Spline Lines */}
       <svg className="floating-deco-lines" viewBox="0 0 1440 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -166,11 +167,11 @@ export const HomeNews: React.FC = () => {
         ) : (
           <>
             {/* Section Header */}
-            <div className={`text-center mb-4 sr-heading${visible ? ' visible' : ''}`}>
+            <div className={`text-center mb-3 pb-1 sr-heading${visible ? ' visible' : ''}`}>
               <div className="home-section-overline" style={{ justifyContent: 'center' }}>
                 Office Advisories
               </div>
-              <h2 className="home-section-title mb-3">Latest Bulletins & Advisories</h2>
+              <h2 className="home-section-title mb-2">Latest Bulletins & Advisories</h2>
               <p className="home-section-subtitle">
                 Stay informed with the latest directives, compliance circulars, and system notices released by the Local Youth Development Office.
               </p>
@@ -178,7 +179,7 @@ export const HomeNews: React.FC = () => {
 
             {/* Slider Wrapper Centered */}
             <div 
-              className={`slider-wrapper position-relative mx-auto mt-4 sr-item${visible ? ' visible' : ''}`} 
+              className={`slider-wrapper position-relative mx-auto mt-3 sr-item${visible ? ' visible' : ''}`} 
               style={{ maxWidth: '1000px' }}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
@@ -219,17 +220,17 @@ export const HomeNews: React.FC = () => {
                         <div className="premium-announcement-card d-flex flex-column justify-content-between h-100" style={{ minHeight: '260px' }}>
                           <div>
                             {/* Meta info header */}
-                            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-light">
-                              <div className="d-flex align-items-center gap-1.5 text-muted small fw-semibold">
-                                <span className="material-symbols-outlined text-secondary" style={{ fontSize: '16px' }}>calendar_month</span>
-                                <span>{dateStr}</span>
+                            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-light gap-2">
+                              <div className="d-flex align-items-center gap-1.5 text-muted small fw-semibold text-nowrap flex-shrink-0" style={{ whiteSpace: 'nowrap' }}>
+                                <span className="material-symbols-outlined text-secondary flex-shrink-0" style={{ fontSize: '16px' }}>calendar_month</span>
+                                <span className="text-nowrap" style={{ whiteSpace: 'nowrap' }}>{dateStr}</span>
                               </div>
-                              <div className="d-flex align-items-center gap-1">
-                                <Badge className={`px-2.5 py-1 text-capitalize ${item.tagColor} border`} style={{ fontSize: '10px' }}>
+                              <div className="d-flex align-items-center gap-1 flex-shrink-0">
+                                <Badge className={`px-2.5 py-1 text-capitalize ${item.tagColor} border text-nowrap`} style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
                                   {item.tag}
                                 </Badge>
                                 {item.eventKey && (
-                                  <Badge bg="secondary" className="px-1.5 py-0.5 border" style={{ fontSize: '8px', opacity: 0.8 }} title="Automated alert">
+                                  <Badge bg="secondary" className="px-1.5 py-0.5 border text-nowrap" style={{ fontSize: '8px', opacity: 0.8, whiteSpace: 'nowrap' }} title="Automated alert">
                                     Auto
                                   </Badge>
                                 )}

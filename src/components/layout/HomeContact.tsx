@@ -51,11 +51,11 @@ export const HomeContact: React.FC = () => {
 
       <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-4 sr-heading">
+        <div className="text-center mb-3 pb-1 sr-heading">
           <div className="home-section-overline" style={{ justifyContent: 'center', color: '#FBA100' }}>
             Get In Touch
           </div>
-          <h2 className="home-section-title home-section-title-white mb-3">Helpdesk & Support</h2>
+          <h2 className="home-section-title home-section-title-white mb-2">Helpdesk & Support</h2>
           <p className="home-section-subtitle home-section-subtitle-muted">
             Have questions about compliance rules or need login support? Send our compliance officers a message.
           </p>

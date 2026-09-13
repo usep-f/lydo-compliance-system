@@ -26,10 +26,11 @@ export const HomeFAQ: React.FC = () => {
       {/* 1. Subtle Masked Texture Overlay */}
       <div className="section-masked-texture-light" />
 
-      {/* 2. Fluid Organic Morphing Blobs */}
-      <div className="organic-blob organic-blob-blue" style={{ width: '400px', height: '400px', top: '-8%', right: '-5%', opacity: 0.25 }} />
-      <div className="organic-blob organic-blob-amber" style={{ width: '360px', height: '360px', bottom: '-8%', left: '-5%', opacity: 0.22 }} />
-      <div className="organic-blob organic-blob-cyan" style={{ width: '300px', height: '300px', top: '35%', left: '15%', opacity: 0.18 }} />
+      {/* 2. Fluid Organic Morphing Blobs (Contrasted for Light Background) */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '480px', height: '480px', top: '-10%', right: '-6%' }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '440px', height: '440px', bottom: '-10%', left: '-6%' }} />
+      <div className="organic-blob organic-blob-cyan" style={{ width: '380px', height: '380px', top: '30%', left: '12%' }} />
+      <div className="organic-blob organic-blob-gold" style={{ width: '320px', height: '320px', bottom: '20%', right: '18%' }} />
 
       {/* 3. Floating Decorative Spline Lines */}
       <svg className="floating-deco-lines" viewBox="0 0 1440 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -58,11 +59,11 @@ export const HomeFAQ: React.FC = () => {
 
       <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-4 sr-heading">
+        <div className="text-center mb-3 pb-1 sr-heading">
           <div className="home-section-overline" style={{ justifyContent: 'center' }}>
             Frequently Asked Questions
           </div>
-          <h2 className="home-section-title mb-3">Compliance FAQ</h2>
+          <h2 className="home-section-title mb-2">Compliance FAQ</h2>
           <p className="home-section-subtitle">
             Need help navigating the portal requirements? Review the responses below or get in touch with our helpdesk.
           </p>

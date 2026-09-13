@@ -49,11 +49,11 @@ export const HomeTimeline: React.FC = () => {
 
       <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-4 sr-heading">
+        <div className="text-center mb-3 pb-1 sr-heading">
           <div className="home-section-overline" style={{ justifyContent: 'center', color: '#5CB8FF' }}>
             Portal Onboarding
           </div>
-          <h2 className="home-section-title home-section-title-white mb-3">SK Official Registration Journey</h2>
+          <h2 className="home-section-title home-section-title-white mb-2">SK Official Registration Journey</h2>
           <p className="home-section-subtitle home-section-subtitle-muted">
             A guide to setting up your account. Read below to understand how validation documents are reviewed and approved.
           </p>

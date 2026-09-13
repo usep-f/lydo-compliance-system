@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import type { User } from 'firebase/auth';
 import lydoLogo from '../../assets/lydo-logo.webp';
+import heroImage from '../../assets/hero-image.webp';
 
 interface HomeHeroProps {
   onLoginClick: () => void;
@@ -44,10 +45,15 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
 
   return (
     <section className="home-hero-section kinetic-section position-relative overflow-hidden">
-      {/* 1. Subtle Masked Texture Overlay */}
-      <div className="section-masked-texture-hero" />
+      {/* 0. Subtle Photo Background Layer & Gradient Overlay */}
+      <div 
+        className="hero-bg-photo-layer" 
+        style={{ backgroundImage: `url(${heroImage})` }} 
+        aria-hidden="true" 
+      />
+      <div className="hero-bg-gradient-overlay" aria-hidden="true" />
 
-      {/* 2. Fluid Organic Morphing Blobs */}
+      {/* 1. Fluid Organic Morphing Blobs */}
       <div className="organic-blob organic-blob-blue" style={{ width: '550px', height: '550px', top: '-15%', left: '-10%', opacity: 0.45 }} />
       <div className="organic-blob organic-blob-gold" style={{ width: '480px', height: '480px', bottom: '-15%', right: '-8%', opacity: 0.38 }} />
       <div className="organic-blob organic-blob-cyan" style={{ width: '380px', height: '380px', top: '35%', left: '30%', opacity: 0.25 }} />

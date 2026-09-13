@@ -126,11 +126,11 @@ export const HomeStats: React.FC<HomeStatsProps> = ({ analytics, loading }) => {
 
       <Container className="position-relative" style={{ zIndex: 4 }}>
         {/* Section Header */}
-        <div className={`text-center mb-4 sr-heading${visible ? ' visible' : ''}`}>
+        <div className={`text-center mb-3 pb-1 sr-heading${visible ? ' visible' : ''}`}>
           <div className="home-section-overline" style={{ justifyContent: 'center', color: 'rgba(92,184,255,0.8)' }}>
             Compliance Overview
           </div>
-          <h2 className="home-section-title home-section-title-white mb-3">System Compliance Status</h2>
+          <h2 className="home-section-title home-section-title-white mb-2">System Compliance Status</h2>
           <p className="home-section-subtitle home-section-subtitle-muted">
             Public real-time tracking of submission status and overall administrative progress across all Sangguniang Kabataan branches.
           </p>

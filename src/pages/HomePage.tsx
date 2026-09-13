@@ -202,7 +202,7 @@ export default function HomePage() {
         <Button
           variant="primary"
           onClick={() => setShowAuthModal(true)}
-          className="mobile-fab-cta d-flex align-items-center gap-2"
+          className="mobile-fab-cta d-lg-none d-flex align-items-center gap-2"
         >
           <span className="material-symbols-outlined fs-5">login</span>
           <span>Access Portal</span>

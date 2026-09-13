@@ -160,18 +160,18 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
 
       <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-4 sr-heading">
+        <div className="text-center mb-3 pb-1 sr-heading">
           <div className="home-section-overline" style={{ justifyContent: 'center', color: '#FBA100' }}>
             Civic Transparency
           </div>
-          <h2 className="home-section-title home-section-title-white mb-3">Barangay Compliance Leaderboard</h2>
+          <h2 className="home-section-title home-section-title-white mb-2">Barangay Compliance Leaderboard</h2>
           <p className="home-section-subtitle home-section-subtitle-muted">
             Search and examine the active compliance rankings and submission checklists of individual Barangay SK branches.
           </p>
         </div>
 
         {/* Directory Filters */}
-        <Row className="mb-4 align-items-center justify-content-between g-3 sr-item">
+        <Row className="mb-3 pb-1 align-items-center justify-content-between g-3 sr-item">
           <Col md={6} lg={5}>
             <div className="d-flex flex-column gap-2">
               <div className="home-search-pill">
