@@ -20,11 +20,20 @@ export const HomeNews: React.FC = () => {
     setCurrentIndex(0);
   }
 
-  // Handle window resize
+  // Throttled window resize handler for smooth responsive calculations
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    let rAFId: number;
+    const handleResize = () => {
+      cancelAnimationFrame(rAFId);
+      rAFId = requestAnimationFrame(() => {
+        setWindowWidth(window.innerWidth);
+      });
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(rAFId);
+    };
   }, []);
 
   const currentItemsToShow = windowWidth < 768 ? 1 : windowWidth < 992 ? 2 : 3;

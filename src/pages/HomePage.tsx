@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -7,7 +7,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { Button } from 'react-bootstrap';
 
 import HomeNavbar from '../components/layout/HomeNavbar';
-import AuthModal from '../components/auth/AuthModal';
 import HomeHero from '../components/layout/HomeHero';
 import HomeStats from '../components/layout/HomeStats';
 import HomeLeaderboard from '../components/layout/HomeLeaderboard';
@@ -17,6 +16,8 @@ import HomeNews from '../components/layout/HomeNews';
 import HomeFAQ from '../components/layout/HomeFAQ';
 import HomeContact from '../components/layout/HomeContact';
 import HomeFooter from '../components/layout/HomeFooter';
+
+const AuthModal = lazy(() => import('../components/auth/AuthModal'));
 
 import { usePublicAnalytics } from '../hooks/usePublicAnalytics';
 
@@ -208,11 +209,15 @@ export default function HomePage() {
         </Button>
       )}
 
-      {/* Auth Modal Component */}
-      <AuthModal
-        show={showAuthModal}
-        onHide={() => setShowAuthModal(false)}
-      />
+      {/* Auth Modal Component (Lazy Loaded & Mounted on demand) */}
+      {showAuthModal && (
+        <Suspense fallback={null}>
+          <AuthModal
+            show={showAuthModal}
+            onHide={() => setShowAuthModal(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

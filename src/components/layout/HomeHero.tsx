@@ -70,14 +70,14 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
         <path d="M-80,480 C400,600 750,180 1150,450 C1350,560 1550,300 1700,380" className="line-glow-amber" style={{ stroke: 'url(#hero-grad-amber)' }} />
       </svg>
 
-      {/* 4. Floating Geometric Elements */}
-      <div className="floating-geo-shape geo-concentric-ring geo-concentric-amber" style={{ top: '12%', right: '12%', width: '80px', height: '80px' }} />
-      <div className="floating-geo-shape-alt geo-diamond geo-diamond-blue" style={{ bottom: '20%', left: '5%' }} />
-      <div className="floating-geo-drift geo-cross geo-cross-amber" style={{ top: '25%', left: '8%' }} />
-      <div className="floating-geo-drift geo-square-wire geo-square-wire-blue" style={{ bottom: '15%', right: '18%' }} />
-      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ top: '18%', left: '42%' }} />
-      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-cyan" style={{ bottom: '28%', right: '35%' }} />
-      <div className="floating-geo-shape-alt geo-dots-cluster text-info" style={{ top: '65%', left: '3%' }}>
+      {/* 4. Floating Geometric Elements (Responsive hidden on small screens to prevent layout overflow) */}
+      <div className="floating-geo-shape geo-concentric-ring geo-concentric-amber d-none d-lg-block" style={{ top: '12%', right: '12%', width: '80px', height: '80px' }} />
+      <div className="floating-geo-shape-alt geo-diamond geo-diamond-blue d-none d-md-block" style={{ bottom: '20%', left: '5%' }} />
+      <div className="floating-geo-drift geo-cross geo-cross-amber d-none d-md-block" style={{ top: '25%', left: '8%' }} />
+      <div className="floating-geo-drift geo-square-wire geo-square-wire-blue d-none d-lg-block" style={{ bottom: '15%', right: '18%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber d-none d-sm-block" style={{ top: '18%', left: '42%' }} />
+      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-cyan d-none d-sm-block" style={{ bottom: '28%', right: '35%' }} />
+      <div className="floating-geo-shape-alt geo-dots-cluster text-info d-none d-xl-block" style={{ top: '65%', left: '3%' }}>
         {[...Array(16)].map((_, i) => (
           <div key={i} className="geo-dot" />
         ))}
@@ -97,9 +97,9 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
       <div className="hero-grid" />
 
       <Container className="hero-content position-relative" style={{ zIndex: 4 }}>
-        <Row className="align-items-center gy-5 justify-content-between">
-          {/* Left: Text */}
-          <Col lg={7} xl={7} className="text-center text-lg-start order-2 order-lg-1">
+        <Row className="align-items-center gy-4 gy-lg-0">
+          {/* Left: Text Column */}
+          <Col lg={6} xl={6} className="d-flex flex-column align-items-center align-items-lg-start text-center text-lg-start order-2 order-lg-1">
             {/* Headline */}
             <h1 className="hero-headline hero-animate hero-anim-1">
               Empowering Youth.
@@ -113,10 +113,10 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
             </p>
 
             {/* CTAs */}
-            <div className="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start align-items-center gap-3 hero-animate hero-anim-3">
+            <div className="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start align-items-center gap-3 hero-animate hero-anim-3 w-100 w-lg-auto">
               {user ? (
                 <Button
-                  className="hero-cta-primary d-flex align-items-center gap-2"
+                  className="hero-cta-primary d-flex align-items-center justify-content-center gap-2"
                   onClick={handleDashboardRedirect}
                   id="hero-cta-dashboard"
                 >
@@ -125,7 +125,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
                 </Button>
               ) : (
                 <Button
-                  className="hero-cta-primary d-flex align-items-center gap-2"
+                  className="hero-cta-primary d-flex align-items-center justify-content-center gap-2"
                   onClick={onLoginClick}
                   id="hero-cta-login"
                 >
@@ -135,7 +135,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
               )}
 
               <Button
-                className="hero-cta-secondary d-flex align-items-center gap-2"
+                className="hero-cta-secondary d-flex align-items-center justify-content-center gap-2"
                 id="hero-cta-learnmore"
                 onClick={() => {
                   const el = document.getElementById('stats');
@@ -170,8 +170,8 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
             </div>
           </Col>
 
-          {/* Right: Glowing LYDO Logo */}
-          <Col lg={5} xl={5} className="d-flex justify-content-center align-items-center order-1 order-lg-2">
+          {/* Right: Glowing LYDO Logo Column */}
+          <Col lg={6} xl={6} className="d-flex justify-content-center align-items-center order-1 order-lg-2">
             <div className="hero-logo-container">
               <div className="hero-logo-glow" />
               <div className="hero-logo-circle">
