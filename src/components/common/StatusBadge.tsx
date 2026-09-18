@@ -13,12 +13,14 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   let dot = '#A1A1AA';
   let label = status;
 
-  if (s === 'approved') {
-    bg = '#F0FDF4'; color = '#16A34A'; border = '#BBF7D0'; dot = '#22C55E'; label = 'Approved';
+  if (s === 'approved' || s === 'verified') {
+    bg = '#F0FDF4'; color = '#16A34A'; border = '#BBF7D0'; dot = '#22C55E'; label = s === 'verified' ? 'Verified / Scheduled' : 'Approved';
   } else if (s === 'pending') {
     bg = '#FFF7ED'; color = '#EA580C'; border = '#FED7AA'; dot = '#F97316'; label = 'Pending';
-  } else if (s === 'denied' || s === 'rejected') {
-    bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA'; dot = '#EF4444'; label = 'Denied';
+  } else if (s === 'revision_requested' || s === 'revision') {
+    bg = '#EFF6FF'; color = '#2563EB'; border = '#BFDBFE'; dot = '#3B82F6'; label = 'Revision Requested';
+  } else if (s === 'denied' || s === 'rejected' || s === 'disapproved') {
+    bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA'; dot = '#EF4444'; label = s === 'disapproved' ? 'Disapproved' : 'Denied';
   }
 
   return (

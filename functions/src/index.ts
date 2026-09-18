@@ -59,3 +59,10 @@ export {
   refreshPublicAnalyticsCron,
   triggerAnalyticsSync
 } from './analytics';
+
+export {
+  verifyAndScheduleAccreditation,
+  requestAccreditationRevision,
+  disapproveAccreditation
+} from './accreditations';
+

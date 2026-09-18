@@ -31,6 +31,30 @@ service cloud.firestore {
       allow update: if false; // Applications cannot be tampered with after submission
     }
 
+    // Accreditation Applications: Youth organizations submit for accreditation
+    match /accreditation_applications/{applicationId} {
+      // Unauthenticated public can submit accreditation application with strict schema validation
+      allow create: if request.resource.data.keys().hasOnly([
+                        'id', 'orgName', 'classification', 'barangay', 
+                        'contactPerson', 'contactEmail', 'contactPhone', 
+                        'documents', 'status', 'submittedAt', 'updatedAt'
+                      ])
+                    && request.resource.data.id is string
+                    && request.resource.data.orgName is string
+                    && request.resource.data.classification in ['Community-Based', 'School-Based', 'Faith-Based', 'Special Interest']
+                    && request.resource.data.barangay is string
+                    && request.resource.data.contactPerson is string
+                    && request.resource.data.contactEmail is string
+                    && request.resource.data.contactPhone is string
+                    && request.resource.data.documents is map
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.submittedAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+
+      allow read, delete: if isAdmin();
+      allow update: if false; // Status changes handled exclusively via Cloud Functions
+    }
+
     // Approved Users: All authenticated users can read profile data for directory modal
     match /users/{userId} {
       allow read: if request.auth != null;

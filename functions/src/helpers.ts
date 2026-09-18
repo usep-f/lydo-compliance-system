@@ -7,7 +7,7 @@ import * as admin from 'firebase-admin';
 // ---------------------------------------------------------------------------
 
 /** Only files under these prefixes are eligible for deletion. */
-export const ALLOWED_STORAGE_PREFIXES = ['temp_proofs/', 'submission_files/'];
+export const ALLOWED_STORAGE_PREFIXES = ['temp_proofs/', 'submission_files/', 'accreditation_docs/'];
 
 /** Maximum allowed length for a denial reason string. */
 export const MAX_REASON_LENGTH = 1000;

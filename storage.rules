@@ -27,6 +27,21 @@ service firebase.storage {
       allow read, delete: if request.auth != null && isAdmin();
     }
 
+    // ── Youth Org Accreditation Documents ──
+    match /accreditation_docs/{applicationId}/{docKey} {
+      // Allow unauthenticated uploads for youth org accreditation:
+      // - Strict 15 MB file size limit
+      // - Only PDF format accepted
+      allow create: if request.resource.size < 15 * 1024 * 1024
+                    && request.resource.contentType == 'application/pdf';
+
+      // Prevent tampering/modification of documents once submitted
+      allow update: if false;
+
+      // Secured: Only authenticated admins can read or delete accreditation files
+      allow read, delete: if request.auth != null && isAdmin();
+    }
+
     // ── User Avatars ──
     match /avatars/{userId}/{allPaths=**} {
       allow create: if request.auth != null

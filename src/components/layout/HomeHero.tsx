@@ -6,6 +6,7 @@ import heroImage from '../../assets/hero-image.webp';
 
 interface HomeHeroProps {
   onLoginClick: () => void;
+  onAccreditationClick?: () => void;
   user: User | null;
   handleDashboardRedirect: () => void;
   activeBarangaysCount: number;
@@ -33,6 +34,7 @@ function useCountUp(target: number, duration = 1000): number {
 
 export const HomeHero: React.FC<HomeHeroProps> = ({ 
   onLoginClick, 
+  onAccreditationClick,
   user, 
   handleDashboardRedirect,
   activeBarangaysCount,
@@ -130,14 +132,28 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
                   Go to Dashboard
                 </Button>
               ) : (
-                <Button
-                  className="hero-cta-primary d-flex align-items-center justify-content-center gap-2"
-                  onClick={onLoginClick}
-                  id="hero-cta-login"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>login</span>
-                  Access Portal · Apply
-                </Button>
+                <>
+                  <Button
+                    className="hero-cta-primary d-flex align-items-center justify-content-center gap-2"
+                    onClick={onLoginClick}
+                    id="hero-cta-login"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>login</span>
+                    Access Portal · Apply
+                  </Button>
+
+                  {onAccreditationClick && (
+                    <Button
+                      variant="outline-light"
+                      className="hero-cta-secondary d-flex align-items-center justify-content-center gap-2"
+                      onClick={onAccreditationClick}
+                      id="hero-cta-accreditation"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '19px' }}>verified</span>
+                      Accredit Youth Org
+                    </Button>
+                  )}
+                </>
               )}
 
               <Button

@@ -18,6 +18,7 @@ import HomeContact from '../components/layout/HomeContact';
 import HomeFooter from '../components/layout/HomeFooter';
 
 const AuthModal = lazy(() => import('../components/auth/AuthModal'));
+const AccreditationModal = lazy(() => import('../components/submissions/AccreditationModal'));
 
 import { usePublicAnalytics } from '../hooks/usePublicAnalytics';
 
@@ -28,6 +29,7 @@ export default function HomePage() {
   const [barangay, setBarangay] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAccreditationModal, setShowAccreditationModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -139,11 +141,13 @@ export default function HomePage() {
         userName={userName}
         avatarUrl={avatarUrl}
         onLoginClick={() => setShowAuthModal(true)}
+        onAccreditationClick={() => setShowAccreditationModal(true)}
       />
 
       {/* 2. Public Hero Block */}
       <HomeHero
         onLoginClick={() => setShowAuthModal(true)}
+        onAccreditationClick={() => setShowAccreditationModal(true)}
         user={user}
         handleDashboardRedirect={handleDashboardRedirect}
         activeBarangaysCount={activeBarangaysCount}
@@ -199,14 +203,25 @@ export default function HomePage() {
 
       {/* Mobile Floating Action Button */}
       {!user && (
-        <Button
-          variant="primary"
-          onClick={() => setShowAuthModal(true)}
-          className="mobile-fab-cta d-lg-none d-flex align-items-center gap-2"
-        >
-          <span className="material-symbols-outlined fs-5">login</span>
-          <span>Access Portal</span>
-        </Button>
+        <div className="d-flex flex-column gap-2 position-fixed bottom-0 end-0 m-3 d-lg-none" style={{ zIndex: 1040 }}>
+          <Button
+            variant="light"
+            onClick={() => setShowAccreditationModal(true)}
+            className="shadow d-flex align-items-center gap-2 rounded-pill px-3 py-2 fw-semibold"
+            style={{ fontSize: '13px', background: 'rgba(255,255,255,0.95)', border: '1px solid #E2E8F0' }}
+          >
+            <span className="material-symbols-outlined text-primary fs-5">verified</span>
+            <span>Accredit Org</span>
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setShowAuthModal(true)}
+            className="mobile-fab-cta d-flex align-items-center gap-2 rounded-pill px-3 py-2"
+          >
+            <span className="material-symbols-outlined fs-5">login</span>
+            <span>Access Portal</span>
+          </Button>
+        </div>
       )}
 
       {/* Auth Modal Component (Lazy Loaded & Mounted on demand) */}
@@ -215,6 +230,16 @@ export default function HomePage() {
           <AuthModal
             show={showAuthModal}
             onHide={() => setShowAuthModal(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Youth Organization Accreditation Modal (Lazy Loaded & Mounted on demand) */}
+      {showAccreditationModal && (
+        <Suspense fallback={null}>
+          <AccreditationModal
+            show={showAccreditationModal}
+            onHide={() => setShowAccreditationModal(false)}
           />
         </Suspense>
       )}

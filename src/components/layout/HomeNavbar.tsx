@@ -13,9 +13,17 @@ interface HomeNavbarProps {
   userName: string | null;
   avatarUrl?: string | null;
   onLoginClick: () => void;
+  onAccreditationClick?: () => void;
 }
 
-export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, avatarUrl, onLoginClick }) => {
+export const HomeNavbar: React.FC<HomeNavbarProps> = ({ 
+  user, 
+  role, 
+  userName, 
+  avatarUrl, 
+  onLoginClick,
+  onAccreditationClick 
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -188,15 +196,37 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, av
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    className="hero-cta-primary d-flex align-items-center gap-2"
-                    onClick={onLoginClick}
-                    style={{ height: '40px', padding: '0 20px', fontSize: '14px' }}
-                    id="navbar-access-portal"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>login</span>
-                    Access Portal
-                  </Button>
+                  <div className="d-flex align-items-center gap-2">
+                    {onAccreditationClick && (
+                      <Button
+                        variant="outline-light"
+                        className="d-flex align-items-center gap-1"
+                        onClick={onAccreditationClick}
+                        style={{
+                          height: '40px',
+                          padding: '0 16px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          borderRadius: '9999px',
+                          borderColor: 'rgba(255,255,255,0.3)',
+                          backdropFilter: 'blur(8px)',
+                          background: 'rgba(255,255,255,0.06)'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>verified</span>
+                        Accredit Org
+                      </Button>
+                    )}
+                    <Button
+                      className="hero-cta-primary d-flex align-items-center gap-2"
+                      onClick={onLoginClick}
+                      style={{ height: '40px', padding: '0 20px', fontSize: '14px' }}
+                      id="navbar-access-portal"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>login</span>
+                      Access Portal
+                    </Button>
+                  </div>
                 )}
               </div>
             </Nav>
@@ -308,13 +338,25 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ user, role, userName, av
                 </button>
               </div>
             ) : (
-              <Button
-                className="hero-cta-primary d-flex align-items-center justify-content-center gap-2 w-100"
-                onClick={() => { setShowDrawer(false); onLoginClick(); }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>login</span>
-                Access Portal · Apply
-              </Button>
+              <div className="d-flex flex-column gap-2">
+                {onAccreditationClick && (
+                  <Button
+                    variant="outline-light"
+                    className="d-flex align-items-center justify-content-center gap-2 w-100 py-2 rounded-pill"
+                    onClick={() => { setShowDrawer(false); onAccreditationClick(); }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>verified</span>
+                    Accredit Youth Org
+                  </Button>
+                )}
+                <Button
+                  className="hero-cta-primary d-flex align-items-center justify-content-center gap-2 w-100"
+                  onClick={() => { setShowDrawer(false); onLoginClick(); }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>login</span>
+                  Access Portal · Apply
+                </Button>
+              </div>
             )}
           </div>
         </Offcanvas.Body>
