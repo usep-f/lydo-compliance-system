@@ -184,5 +184,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // ── Educational Materials ──
+    // Authenticated users can read; only admins can create, update, or delete
+    match /educational_materials/{materialId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
   }
 }

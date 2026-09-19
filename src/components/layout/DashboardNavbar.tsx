@@ -29,6 +29,7 @@ const DEFAULT_SECTIONS: NavigationSection[] = [
   { id: 'history',        label: 'History',            isImplemented: true,  icon: 'history' },
   { id: 'analytics',      label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
   { id: 'matrix',         label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
+  { id: 'educational',    label: 'Educational Hub',    isImplemented: true,  icon: 'school' },
   { id: 'cms',            label: 'CMS Portal',         isImplemented: true,  icon: 'campaign' },
   { id: 'settings',       label: 'User Settings',      isImplemented: true,  icon: 'settings' },
 ];

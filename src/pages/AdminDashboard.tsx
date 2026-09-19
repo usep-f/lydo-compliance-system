@@ -25,6 +25,9 @@ import UnifiedGaugeChart from '../components/analytics/UnifiedGaugeChart';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useComplianceData } from '../hooks/useComplianceData';
 import { useAccreditations } from '../hooks/useAccreditations';
+import { useEducationalMaterials, type EducationalMaterial, type MaterialFormData } from '../hooks/useEducationalMaterials';
+import EducationalMaterialsSection from '../components/common/EducationalMaterialsSection';
+import EducationalMaterialModal from '../components/common/EducationalMaterialModal';
 import AccreditationReviewModal from '../components/submissions/AccreditationReviewModal';
 import StatusBadge from '../components/common/StatusBadge';
 import { 
@@ -63,6 +66,7 @@ const ADMIN_SECTIONS: NavigationSection[] = [
   { id: 'history',        label: 'History',            isImplemented: true,  icon: 'history' },
   { id: 'analytics',      label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
   { id: 'matrix',         label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
+  { id: 'educational',    label: 'Educational Hub',    isImplemented: true,  icon: 'school' },
   { id: 'cms',            label: 'CMS Portal',         isImplemented: true,  icon: 'campaign' },
   { id: 'settings',       label: 'User Settings',      isImplemented: true,  icon: 'settings' },
 ];
@@ -76,6 +80,29 @@ export default function AdminDashboard() {
   const [submissionsSearch, setSubmissionsSearch] = useState('');
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+
+  // Educational materials state & handlers
+  const educationalHook = useEducationalMaterials();
+  const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<EducationalMaterial | null>(null);
+  const [deletingMaterial, setDeletingMaterial] = useState<EducationalMaterial | null>(null);
+  const [showDeleteMaterialConfirm, setShowDeleteMaterialConfirm] = useState(false);
+  const [isDeletingMaterial, setIsDeletingMaterial] = useState(false);
+
+  const handleOpenUploadModal = useCallback(() => {
+    setEditingMaterial(null);
+    setShowMaterialModal(true);
+  }, []);
+
+  const handleEditMaterial = useCallback((material: EducationalMaterial) => {
+    setEditingMaterial(material);
+    setShowMaterialModal(true);
+  }, []);
+
+  const handleDeleteMaterial = useCallback((material: EducationalMaterial) => {
+    setDeletingMaterial(material);
+    setShowDeleteMaterialConfirm(true);
+  }, []);
 
   const currentYear = new Date().getFullYear();
   const { pending: pendingSubs = [], history: historySubs = [], loadingPending, loadingHistory, fetchHistory } = useSubmissions(undefined, true);
@@ -187,7 +214,38 @@ export default function AdminDashboard() {
 
   const { addToast } = useToast();
 
+  const handleSaveMaterial = useCallback(
+    async (
+      data: MaterialFormData,
+      existingId?: string,
+      existingStoragePath?: string
+    ) => {
+      if (existingId) {
+        await educationalHook.updateMaterial(existingId, data, existingStoragePath);
+        addToast('Educational material updated successfully.', 'success');
+      } else {
+        await educationalHook.addMaterial(data, adminName || 'Admin');
+        addToast('Educational material published successfully.', 'success');
+      }
+    },
+    [educationalHook, adminName, addToast]
+  );
 
+  const handleConfirmDeleteMaterial = useCallback(async () => {
+    if (!deletingMaterial) return;
+    try {
+      setIsDeletingMaterial(true);
+      await educationalHook.deleteMaterial(deletingMaterial.id, deletingMaterial.storagePath);
+      addToast('Educational material deleted successfully.', 'success');
+      setShowDeleteMaterialConfirm(false);
+      setDeletingMaterial(null);
+    } catch (err) {
+      console.error('Failed to delete material:', err);
+      addToast('Failed to delete educational material.', 'error');
+    } finally {
+      setIsDeletingMaterial(false);
+    }
+  }, [deletingMaterial, educationalHook, addToast]);
 
   const fetchApprovedUsers = useCallback(async () => {
     try {
@@ -1630,6 +1688,53 @@ export default function AdminDashboard() {
           pending={pendingSubs}
           history={historySubs}
         />
+      ) : activeSection === 'educational' ? (
+        <>
+          <EducationalMaterialsSection
+            materialsHook={educationalHook}
+            isAdmin={true}
+            onOpenUploadModal={handleOpenUploadModal}
+            onEditMaterial={handleEditMaterial}
+            onDeleteMaterial={handleDeleteMaterial}
+          />
+          <EducationalMaterialModal
+            show={showMaterialModal}
+            onHide={() => setShowMaterialModal(false)}
+            onSave={handleSaveMaterial}
+            editingMaterial={editingMaterial}
+          />
+          <ConfirmDialog
+            show={showDeleteMaterialConfirm}
+            onCancel={() => {
+              if (!isDeletingMaterial) {
+                setShowDeleteMaterialConfirm(false);
+                setDeletingMaterial(null);
+              }
+            }}
+            onConfirm={handleConfirmDeleteMaterial}
+            title="Delete Educational Material"
+            message={`Are you sure you want to delete "${deletingMaterial?.title}"?`}
+            detail={
+              deletingMaterial && (
+                <div>
+                  <div className="fw-semibold text-dark mb-1">{deletingMaterial.title}</div>
+                  <div className="text-muted small">
+                    Category: <strong>{deletingMaterial.category}</strong> • Format: <strong>{deletingMaterial.resourceType.toUpperCase()}</strong>
+                  </div>
+                  {deletingMaterial.fileName && (
+                    <div className="text-muted small mt-1">
+                      File: <code>{deletingMaterial.fileName}</code>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            warning={<>This will permanently delete this material from the database{deletingMaterial?.storagePath ? ' and remove the attached file from Cloud Storage' : ''}. This action cannot be undone.</>}
+            confirmLabel="Delete Material"
+            confirmVariant="danger"
+            loading={isDeletingMaterial}
+          />
+        </>
       ) : activeSection === 'settings' ? (
         <UserSettings />
       ) : activeSection === 'cms' ? (

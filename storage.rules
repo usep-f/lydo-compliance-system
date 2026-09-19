@@ -77,6 +77,16 @@ service firebase.storage {
       allow delete: if request.auth != null && isAdmin();
     }
 
+    // ── Educational Materials ──
+    // Direct document uploads by Admins (PDF, Office files up to 20MB)
+    match /educational_materials/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+                           && isAdmin()
+                           && request.resource.size < 20 * 1024 * 1024;
+      allow delete: if request.auth != null && isAdmin();
+    }
+
     // All other storage paths are denied by default.
     // No wildcard rule — unlisted paths are implicitly blocked.
   }

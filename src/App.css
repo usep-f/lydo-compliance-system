@@ -264,6 +264,8 @@
 .sidebar-icon-history     { color: var(--icon-history) !important; }
 .sidebar-icon-analytics   { color: var(--icon-analytics) !important; }
 .sidebar-icon-matrix      { color: var(--icon-matrix) !important; }
+.sidebar-icon-educational { color: var(--icon-educational, #818CF8) !important; }
+.sidebar-icon-cms         { color: var(--icon-cms, #F472B6) !important; }
 .sidebar-icon-reports     { color: var(--icon-reports) !important; }
 .sidebar-icon-settings    { color: var(--icon-settings) !important; }
 
