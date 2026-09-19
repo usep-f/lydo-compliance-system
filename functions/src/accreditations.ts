@@ -9,6 +9,7 @@ import {
   safeDeleteStorageFile, 
   escapeHtml 
 } from './helpers';
+import { renderEmailLayout } from './emailTemplates';
 import { writeNotificationToAdmins } from './notifications';
 
 // ---------------------------------------------------------------------------
@@ -82,62 +83,36 @@ export const verifyAndScheduleAccreditation = functions.https.onCall(
       const venueSafe = escapeHtml(venue);
       const instructionsSafe = escapeHtml(instructions || 'Please bring 1 set of original signed hard copies of the 5 submitted PDF documents.');
 
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #001b2e 0%, #003b6d 100%); color: #ffffff; padding: 28px 24px; text-align: center;">
-            <h2 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">LOCAL YOUTH DEVELOPMENT OFFICE</h2>
-            <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px;">Youth Organization Accreditation Program (YORP)</p>
+      const emailHtml = renderEmailLayout({
+        headerSubtitle: 'Youth Organization Accreditation (YORP)',
+        recipientName: contactPersonSafe,
+        bodyHtml: `
+          <p>We are pleased to inform you that the accreditation documents submitted on behalf of <strong>${orgNameSafe}</strong> have been <strong>verified and approved for official deliberation</strong>.</p>
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin: 18px 0;">
+            <div style="font-weight: 700; color: #0f172a; margin-bottom: 8px; font-size: 13px;">What to Bring on Deliberation Day:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #334155; line-height: 1.6;">
+              <li>Printed, original signed copy of your <strong>Letter of Intent</strong></li>
+              <li>Printed, accomplished <strong>Application Form</strong></li>
+              <li>Printed <strong>Directory of Officers</strong> with valid IDs</li>
+              <li>Printed <strong>Roster of Members</strong></li>
+              <li>Official copy of your <strong>Constitution &amp; By-Laws (CBL)</strong></li>
+            </ul>
           </div>
-          
-          <div style="padding: 28px 24px;">
-            <p style="font-size: 15px; margin-top: 0;">Dear <strong>${contactPersonSafe}</strong>,</p>
-            <p style="font-size: 14px;">
-              We are pleased to inform you that the accreditation documents submitted on behalf of <strong>${orgNameSafe}</strong> have been <strong>verified and approved for deliberation</strong>.
-            </p>
-            
-            <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 6px; padding: 18px 20px; margin: 24px 0;">
-              <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #166534;">Official Deliberation &amp; Orientation Call-in Schedule</h3>
-              <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 4px 0; color: #475569; width: 30%;"><strong>Date:</strong></td>
-                  <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${dateSafe}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 4px 0; color: #475569;"><strong>Time:</strong></td>
-                  <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${timeSafe}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 4px 0; color: #475569;"><strong>Venue:</strong></td>
-                  <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${venueSafe}</td>
-                </tr>
-              </table>
-              <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #bbf7d0; font-size: 13px; color: #166534;">
-                <strong>Special Instructions:</strong><br/>
-                ${instructionsSafe}
-              </div>
-            </div>
-
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-              <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #0f172a;">What to Bring on Deliberation Day:</h4>
-              <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #334155;">
-                <li>Printed, original signed copy of your <strong>Letter of Intent</strong></li>
-                <li>Printed, accomplished <strong>Application Form</strong></li>
-                <li>Printed <strong>Directory of Officers</strong> with valid IDs</li>
-                <li>Printed <strong>Roster of Members</strong></li>
-                <li>Official copy of your <strong>Constitution &amp; By-Laws (CBL)</strong></li>
-              </ul>
-            </div>
-
-            <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
-              If you have any questions or need to reschedule, please visit the Local Youth Development Office during regular government business hours.
-            </p>
-          </div>
-
-          <div style="background-color: #f1f5f9; padding: 16px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0;">
-            This is an automated notification from the Local Youth Development Office (LYDO) Compliance System.
-          </div>
-        </div>
-      `;
+          <p style="font-size: 13px; color: #64748b;">If you have any questions or need to request a schedule adjustment, please visit the Lucena Youth Development Office during regular government business hours.</p>
+        `,
+        detailsTable: [
+          { label: 'Organization', value: orgNameSafe },
+          { label: 'Date', value: dateSafe },
+          { label: 'Time', value: timeSafe },
+          { label: 'Venue', value: venueSafe },
+          { label: 'Special Instructions', value: instructionsSafe },
+        ],
+        alertBox: {
+          variant: 'success',
+          title: 'Official Deliberation & Orientation Call-in Schedule',
+          message: `Scheduled for <strong>${dateSafe}</strong> at <strong>${timeSafe}</strong> (${venueSafe}).`,
+        },
+      });
 
       await sendEmailViaBrevo(
         appData.contactEmail,
@@ -199,30 +174,19 @@ export const requestAccreditationRevision = functions.https.onCall(
       const orgNameSafe = escapeHtml(appData.orgName || 'Youth Organization');
       const remarksSafe = escapeHtml(remarks);
 
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-          <div style="background: #001b2e; color: #ffffff; padding: 24px; text-align: center;">
-            <h2 style="margin: 0; font-size: 20px;">LOCAL YOUTH DEVELOPMENT OFFICE</h2>
-            <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.8;">Accreditation Document Revision Required</p>
-          </div>
-          
-          <div style="padding: 24px;">
-            <p style="margin-top: 0;">Dear <strong>${escapeHtml(appData.contactPerson || 'Representative')}</strong>,</p>
-            <p>
-              Your accreditation application for <strong>${orgNameSafe}</strong> has been reviewed by the LYDO evaluation team. Before proceeding with official deliberation, revisions are required for your documents.
-            </p>
-            
-            <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; padding: 16px; margin: 20px 0;">
-              <h4 style="margin: 0 0 8px 0; color: #1e40af;">Findings / Revision Instructions:</h4>
-              <p style="margin: 0; color: #1e293b; font-size: 14px;">${remarksSafe}</p>
-            </div>
-
-            <p style="font-size: 13px; color: #64748b;">
-              Please coordinate directly with the LYDO staff to submit the corrected documents.
-            </p>
-          </div>
-        </div>
-      `;
+      const emailHtml = renderEmailLayout({
+        headerSubtitle: 'Accreditation Document Revision Required',
+        recipientName: escapeHtml(appData.contactPerson || 'Representative'),
+        bodyHtml: `
+          <p>Your accreditation application for <strong>${orgNameSafe}</strong> has been evaluated by the LYDO review committee. Before proceeding with deliberation, revisions are required for your submitted requirements.</p>
+          <p style="font-size: 13px; color: #64748b;">Please coordinate directly with the LYDO staff to submit the corrected documents.</p>
+        `,
+        alertBox: {
+          variant: 'info',
+          title: 'Findings / Revision Instructions',
+          message: remarksSafe,
+        },
+      });
 
       await sendEmailViaBrevo(
         appData.contactEmail,
@@ -294,30 +258,19 @@ export const disapproveAccreditation = functions.https.onCall(
       const orgNameSafe = escapeHtml(appData.orgName || 'Youth Organization');
       const reasonSafe = escapeHtml(reason);
 
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-          <div style="background: #001b2e; color: #ffffff; padding: 24px; text-align: center;">
-            <h2 style="margin: 0; font-size: 20px;">LOCAL YOUTH DEVELOPMENT OFFICE</h2>
-            <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.8;">Accreditation Application Notice</p>
-          </div>
-          
-          <div style="padding: 24px;">
-            <p style="margin-top: 0;">Dear <strong>${escapeHtml(appData.contactPerson || 'Representative')}</strong>,</p>
-            <p>
-              We regret to inform you that your accreditation application for <strong>${orgNameSafe}</strong> has been disapproved following review.
-            </p>
-            
-            <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px; padding: 16px; margin: 20px 0;">
-              <h4 style="margin: 0 0 8px 0; color: #991b1b;">Grounds for Disapproval:</h4>
-              <p style="margin: 0; color: #1e293b; font-size: 14px;">${reasonSafe}</p>
-            </div>
-
-            <p style="font-size: 13px; color: #64748b;">
-              For further clarification or to re-apply in future accreditation cycles, you may visit the Local Youth Development Office.
-            </p>
-          </div>
-        </div>
-      `;
+      const emailHtml = renderEmailLayout({
+        headerSubtitle: 'Accreditation Application Notice',
+        recipientName: escapeHtml(appData.contactPerson || 'Representative'),
+        bodyHtml: `
+          <p>We regret to inform you that your accreditation application for <strong>${orgNameSafe}</strong> has been <strong>disapproved</strong> following review.</p>
+          <p style="font-size: 13px; color: #64748b;">For further clarification or to re-apply in future accreditation cycles, you may visit the Lucena Youth Development Office during regular government business hours.</p>
+        `,
+        alertBox: {
+          variant: 'danger',
+          title: 'Grounds for Disapproval',
+          message: reasonSafe,
+        },
+      });
 
       await sendEmailViaBrevo(
         appData.contactEmail,
