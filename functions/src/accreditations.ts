@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { 
   validateApplicationId, 
   validateReason, 
@@ -8,6 +9,7 @@ import {
   safeDeleteStorageFile, 
   escapeHtml 
 } from './helpers';
+import { writeNotificationToAdmins } from './notifications';
 
 // ---------------------------------------------------------------------------
 // verifyAndScheduleAccreditation
@@ -328,3 +330,35 @@ export const disapproveAccreditation = functions.https.onCall(
     return { success: true, message: 'Application marked as disapproved and files pruned.' };
   }
 );
+
+// ---------------------------------------------------------------------------
+// onAccreditationCreated (Document trigger)
+// ---------------------------------------------------------------------------
+export const onAccreditationCreated = onDocumentCreated(
+  'accreditation_applications/{applicationId}',
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const appData = snapshot.data();
+    if (!appData) return;
+
+    const orgName = appData.orgName ?? 'Unknown Organization';
+    const barangay = appData.barangay ?? 'Unknown Barangay';
+    const applicationId = event.params.applicationId;
+
+    await writeNotificationToAdmins({
+      type: 'new_accreditation',
+      title: 'New Youth Org Accreditation',
+      body: `${orgName} (${barangay}) submitted accreditation requirements.`,
+      metadata: {
+        applicationId,
+        orgName,
+        barangay,
+        classification: appData.classification ?? '',
+        contactPerson: appData.contactPerson ?? '',
+      },
+    });
+  }
+);
+

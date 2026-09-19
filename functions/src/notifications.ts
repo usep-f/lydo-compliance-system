@@ -19,15 +19,20 @@ export type NotificationType =
   // Admin-facing
   | 'new_application'
   | 'new_submission'
+  | 'new_accreditation'
   | 'user_deleted';
 
 export interface NotificationMetadata {
   submissionId?: string;
+  applicationId?: string;
   documentLabel?: string;
   period?: string;
   reason?: string;
   barangay?: string;
   applicantName?: string;
+  orgName?: string;
+  classification?: string;
+  contactPerson?: string;
   [key: string]: string | undefined; // allow future metadata fields
 }
 

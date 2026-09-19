@@ -63,6 +63,7 @@ export {
 export {
   verifyAndScheduleAccreditation,
   requestAccreditationRevision,
-  disapproveAccreditation
+  disapproveAccreditation,
+  onAccreditationCreated
 } from './accreditations';
 
