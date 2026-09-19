@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import * as crypto from 'crypto';
 import { sendEmailViaBrevo } from './helpers';
+import { renderEmailLayout } from './emailTemplates';
 
 // Helpers
 function generateOTP(): string {
@@ -91,16 +92,25 @@ export const initiateLogin = functions.https.onCall(async (request) => {
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
   
-  const htmlContent = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: auto;">
-      <h2>LYDO Compliance System</h2>
-      <p>Your login verification code is:</p>
-      <h1 style="font-size: 32px; letter-spacing: 4px; color: #4F46E5;">${code}</h1>
-      <p>This code is valid for 5 minutes. Never share this code with anyone.</p>
-    </div>
-  `;
+  const safeName = userData?.fullName || 'User';
+  const htmlContent = renderEmailLayout({
+    headerSubtitle: 'Account Security Verification',
+    recipientName: safeName,
+    bodyHtml: `
+      <p>A sign-in request was initiated for your LYDO Compliance System account. Please use the verification code below to complete your login.</p>
+    `,
+    otpCode: {
+      code,
+      validityMinutes: 5,
+    },
+    alertBox: {
+      variant: 'warning',
+      title: 'Security Advisory',
+      message: 'If you did not initiate this login attempt, someone may have your password. Please reset your password immediately.',
+    },
+  });
   
-  await sendEmailViaBrevo(email, userData?.fullName || 'User', 'Your Login Verification Code', htmlContent);
+  await sendEmailViaBrevo(email, safeName, 'Your Login Verification Code', htmlContent);
   
   return { status: 'MFA_REQUIRED', challengeId: challengeRef.id, maskedEmail: maskEmail(email) };
 });
@@ -223,14 +233,23 @@ export const requestTwoFactorEnrollment = functions.https.onCall(async (request)
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
   
-  const htmlContent = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: auto;">
-      <h2>LYDO Compliance System</h2>
-      <p>Your verification code to <strong>enable Two-Factor Authentication</strong> is:</p>
-      <h1 style="font-size: 32px; letter-spacing: 4px; color: #4F46E5;">${code}</h1>
-      <p>This code is valid for 5 minutes.</p>
-    </div>
-  `;
+  const htmlContent = renderEmailLayout({
+    headerSubtitle: 'Two-Factor Authentication Setup',
+    recipientName: fullName,
+    bodyHtml: `
+      <p>You requested to enable <strong>Two-Factor Authentication (2FA)</strong> for your LYDO Compliance System account.</p>
+      <p>Please enter the 6-digit confirmation code below to verify your device and complete enrollment.</p>
+    `,
+    otpCode: {
+      code,
+      validityMinutes: 5,
+    },
+    alertBox: {
+      variant: 'info',
+      title: 'Setup Confirmation',
+      message: 'This verification code is required to protect your account with two-step login.',
+    },
+  });
   
   await sendEmailViaBrevo(email, fullName, 'Enable Two-Factor Authentication', htmlContent);
   

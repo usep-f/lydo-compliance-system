@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from 'react-bootstrap';
 import { auth, db, functions } from './firebase';
@@ -8,14 +8,24 @@ import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
 import HomePage from './pages/HomePage';
-import UserDashboard from './pages/UserDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import SetupPasswordPage from './pages/SetupPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import RegistrationSuccessPage from './pages/RegistrationSuccessPage';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { UserProfileModalProvider } from './context/UserProfileModalContext';
 import './App.css';
+
+// Code-split authenticated and auxiliary pages to reduce initial landing bundle size
+const UserDashboard = lazy(() => import('./pages/UserDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const SetupPasswordPage = lazy(() => import('./pages/SetupPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const RegistrationSuccessPage = lazy(() => import('./pages/RegistrationSuccessPage'));
+
+function PageLoader() {
+  return (
+    <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light">
+      <Spinner animation="border" variant="primary" />
+    </div>
+  );
+}
 
 function AppInner() {
   const [user, setUser] = useState<User | null>(null);
@@ -92,6 +102,7 @@ function AppInner() {
   }
 
   return (
+    <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route 
           path="/" 
@@ -129,6 +140,7 @@ function AppInner() {
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+    </Suspense>
   );
 }
 

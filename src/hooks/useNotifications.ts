@@ -38,16 +38,21 @@ export type NotificationType =
   | 'profile_updated'
   | 'new_application'
   | 'new_submission'
+  | 'new_accreditation'
   | 'submission_open'
   | 'submission_overdue';
 
 export interface NotificationMetadata {
   submissionId?: string;
+  applicationId?: string;
   documentLabel?: string;
   period?: string;
   reason?: string;
   barangay?: string;
   applicantName?: string;
+  orgName?: string;
+  classification?: string;
+  contactPerson?: string;
   [key: string]: string | undefined;
 }
 

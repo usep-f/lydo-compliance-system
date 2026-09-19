@@ -13,6 +13,8 @@ import StatCard from '../components/common/StatCard';
 import StatusBadge from '../components/common/StatusBadge';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useUserAnalytics } from '../hooks/useUserAnalytics';
+import { useEducationalMaterials } from '../hooks/useEducationalMaterials';
+import EducationalMaterialsSection from '../components/common/EducationalMaterialsSection';
 import { formatPeriodLabel } from '../utils/periodUtils';
 import UserSettings from '../components/settings/UserSettings';
 import type { SubmissionTypeDefinition } from '../constants/submissionTypes';
@@ -25,6 +27,7 @@ const USER_SECTIONS = [
   { id: 'home', label: 'Home', isImplemented: true, icon: 'home' },
   { id: 'submissions', label: 'Submissions', isImplemented: true, icon: 'upload_file' },
   { id: 'history', label: 'History', isImplemented: true, icon: 'history' },
+  { id: 'educational', label: 'Educational Hub', isImplemented: true, icon: 'school' },
   { id: 'settings', label: 'User Settings', isImplemented: true, icon: 'settings' },
 ];
 
@@ -174,6 +177,9 @@ export default function UserDashboard() {
   // Real-time submissions for this barangay (wide data query)
   const { pending = [], history = [], fetchHistory } = useSubmissions(userInfo?.barangay, false);
 
+  // Educational materials real-time data & filter hook
+  const educationalHook = useEducationalMaterials();
+
   // Show submissions for the entire barangay instead of filtering to just the active user
   const barangayPending = pending;
   const barangayHistory = history;
@@ -196,15 +202,15 @@ export default function UserDashboard() {
 
   const handleSectionSelect = (section: string) => {
     setActiveSection(section);
-    if (section !== 'submissions') {
-      setPrefilledDocType('');
-      setPrefilledPeriod('');
-    }
+    setPrefilledDocType('');
+    setPrefilledPeriod('');
   };
 
   const handleUploadSuccess = () => {
     setShowConfirmModal(false);
     setPendingUpload(null);
+    setPrefilledDocType('');
+    setPrefilledPeriod('');
     setActiveSection('history');
   };
 
@@ -621,6 +627,11 @@ export default function UserDashboard() {
       {/* ====== HISTORY SECTION ====== */}
       {activeSection === 'history' && (
         <UserSubmissionHistory history={barangayHistory} />
+      )}
+
+      {/* ====== EDUCATIONAL MATERIALS SECTION ====== */}
+      {activeSection === 'educational' && (
+        <EducationalMaterialsSection materialsHook={educationalHook} />
       )}
 
       {/* ====== SETTINGS SECTION ====== */}

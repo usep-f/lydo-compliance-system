@@ -189,7 +189,19 @@ export interface HistoricalSubmission {
   deniedAt?: Timestamp;          // Firestore Timestamp (if denied)
   deniedBy?: string;             // Admin's UID (if denied)
   reviewNotes?: string;          // Reason for denial
+  denialCategory?: DenialCategory; // Categorical reason for denial
 }
+
+export const DENIAL_CATEGORIES = [
+  'Missing Signatures / Endorsements',
+  'Incomplete Content / Missing Attachments',
+  'Non-compliant with Official Template / Format',
+  'Invalid or Incorrect Period / Year',
+  'Content Inaccuracies / Data Discrepancies',
+  'Other / Specific Discrepancy',
+] as const;
+
+export type DenialCategory = typeof DENIAL_CATEGORIES[number];
 
 export interface AccomplishmentReports {
   activeCitizenship: number;
@@ -227,3 +239,104 @@ export const EMPTY_ACCOMPLISHMENT_REPORTS: AccomplishmentReports = {
   peaceBuildingAndSecurity: 0,
   socialInclusionAndEquity: 0,
 };
+
+// ---------------------------------------------------------------------------
+// Youth Organization Accreditation Types & Constants
+// ---------------------------------------------------------------------------
+
+export const ACCREDITATION_CLASSIFICATIONS = [
+  'Community-Based',
+  'School-Based',
+  'Faith-Based',
+  'Special Interest',
+] as const;
+
+export type AccreditationClassification = typeof ACCREDITATION_CLASSIFICATIONS[number];
+
+export const ACCREDITATION_DOC_TYPES = [
+  'letterOfIntent',
+  'applicationForm',
+  'listOfficers',
+  'listMembers',
+  'constitutionAndBylaws',
+] as const;
+
+export type AccreditationDocType = typeof ACCREDITATION_DOC_TYPES[number];
+
+export interface AccreditationDocRequirement {
+  id: AccreditationDocType;
+  label: string;
+  description: string;
+  icon: string;
+}
+
+export const ACCREDITATION_DOC_REQUIREMENTS: AccreditationDocRequirement[] = [
+  {
+    id: 'letterOfIntent',
+    label: 'Letter of Intent',
+    description: 'Formal letter addressed to LYDO expressing intent to register and accredit the youth organization.',
+    icon: 'mail',
+  },
+  {
+    id: 'applicationForm',
+    label: 'Official Application Form',
+    description: 'Accomplished Youth Organization Registration / Accreditation application form.',
+    icon: 'assignment',
+  },
+  {
+    id: 'listOfficers',
+    label: 'Directory of Officers',
+    description: 'Complete list of elected/appointed officers with designations and contact details.',
+    icon: 'badge',
+  },
+  {
+    id: 'listMembers',
+    label: 'Roster of Members',
+    description: 'Official list of registered youth members residing or studying in the locality.',
+    icon: 'groups',
+  },
+  {
+    id: 'constitutionAndBylaws',
+    label: 'Constitution & By-Laws (CBL)',
+    description: 'Governing constitution, mission, vision, and internal operating rules of the organization.',
+    icon: 'gavel',
+  },
+];
+
+export interface AccreditationDocMeta {
+  storagePath: string;
+  fileName: string;
+  fileSize: number;
+  pageCount?: number;
+  fileUrl?: string | null;
+}
+
+export interface DeliberationSchedule {
+  date: string;                      // e.g. "2026-10-15"
+  time: string;                      // e.g. "09:30 AM"
+  venue: string;                     // e.g. "LYDO Session Hall, 2nd Floor"
+  instructions?: string;             // Custom instructions or documents to bring
+  scheduledBy: string;               // Admin UID
+  scheduledAt: Timestamp;
+}
+
+export type AccreditationStatus = 'pending' | 'verified' | 'revision_requested' | 'disapproved';
+
+export interface AccreditationApplication {
+  id: string;
+  orgName: string;
+  classification: AccreditationClassification;
+  barangay: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  documents: Record<AccreditationDocType, AccreditationDocMeta>;
+  status: AccreditationStatus;
+  deliberationSchedule?: DeliberationSchedule;
+  rejectionReason?: string;
+  revisionRemarks?: string;
+  flaggedDocs?: AccreditationDocType[];
+  submittedAt: Timestamp;
+  updatedAt: Timestamp;
+}
+

@@ -10,7 +10,7 @@ import {
 } from '../../constants/submissionTypes';
 import { useComplianceData } from '../../hooks/useComplianceData';
 import { formatPeriodLabel } from '../../utils/periodUtils';
-import { exportBarangayProfileToCsv } from '../../utils/csvUtils';
+import { exportAnalyticsSummaryCsv } from '../../utils/csvUtils';
 import YearEndReports from './YearEndReports';
 
 /* ─────────────────────────────────────────────
@@ -110,12 +110,11 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
             <button
               type="button"
               className="bfc-btn-export"
-              onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
-              disabled={!selectedBarangay}
-              title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+              onClick={() => exportAnalyticsSummaryCsv(currentYear, selectedBarangay || 'all', compliance)}
+              title={selectedBarangay ? `Export ${selectedBarangay} Profile CSV` : "Export Municipal Compliance & Matrix CSV for All Barangays"}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-              Export Barangay Profile CSV
+              {selectedBarangay ? 'Export Barangay Profile CSV' : 'Export All Barangays CSV'}
             </button>
           </div>
         </div>
@@ -157,12 +156,11 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
             <button
               type="button"
               className="bfc-btn-export"
-              onClick={() => selectedBarangay && exportBarangayProfileToCsv(selectedBarangay, currentYear, compliance.matrixData, compliance.barangayPerennialSummary)}
-              disabled={!selectedBarangay}
-              title={!selectedBarangay ? "Select a barangay to export its profile" : ""}
+              onClick={() => exportAnalyticsSummaryCsv(currentYear, selectedBarangay || 'all', compliance)}
+              title={selectedBarangay ? `Export ${selectedBarangay} Profile CSV` : "Export Municipal Compliance & Matrix CSV for All Barangays"}
             >
               <span className="material-symbols-outlined">download</span>
-              Export Barangay Profile CSV
+              {selectedBarangay ? 'Export Barangay Profile CSV' : 'Export All Barangays CSV'}
             </button>
           </div>
         </div>

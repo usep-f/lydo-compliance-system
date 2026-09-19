@@ -10,6 +10,7 @@ import {
   escapeHtml,
   validatePasswordStrength
 } from './helpers';
+import { renderEmailLayout } from './emailTemplates';
 import { writeNotification, writeNotificationToAdmins, deleteUserNotifications } from './notifications';
 import { recomputePublicAnalytics } from './analytics';
 
@@ -188,14 +189,27 @@ export const approveUser = functions.https.onCall(
       await safeDeleteStorageFile(applicantData.proofStoragePath);
 
       // 10. Send approval email — escape user-supplied values before embedding in HTML
+      const safeApplicantName = escapeHtml(applicantData.fullName ?? 'SK Official');
+      const approvalEmailHtml = renderEmailLayout({
+        headerSubtitle: 'Account Activation',
+        recipientName: safeApplicantName,
+        bodyHtml: `
+          <p>We are pleased to inform you that your Sangguniang Kabataan (SK) Official registration application has been reviewed and <strong>approved</strong>.</p>
+          <p>To finalize your registration and access the system dashboard, please <a href="${customResetLink}" style="color: #0284c7; font-weight: 600; text-decoration: underline;">click here to set your secure password</a>.</p>
+          <p style="font-size: 13px; color: #64748b; margin-top: 14px;">This setup link is unique to your account and should not be shared with others.</p>
+        `,
+        alertBox: {
+          variant: 'success',
+          title: 'Registration Approved',
+          message: `Official Account for <strong>${escapeHtml(applicantData.barangay ?? 'Barangay')}</strong> is now active.`,
+        },
+      });
+
       await sendEmailViaBrevo(
         applicantData.email,
-        escapeHtml(applicantData.fullName ?? ''),
+        safeApplicantName,
         'Application Approved - Set Your Password',
-        `<h1>Welcome to Lydo Compliance System</h1>
-         <p>Dear ${escapeHtml(applicantData.fullName ?? 'SK Official')},</p>
-         <p>Your SK Official application has been approved.</p>
-         <p>Please <a href="${customResetLink}">click here to set your password</a>.</p>`
+        approvalEmailHtml
       );
 
       // 11. Write in-app notification to the newly created user
@@ -278,14 +292,26 @@ export const denyUser = functions.https.onCall(
 
       // 7. Send rejection email — escape all user-supplied values before embedding in HTML
       if (applicantData?.email) {
+        const safeApplicantName = escapeHtml(applicantData.fullName ?? 'SK Official');
+        const denialEmailHtml = renderEmailLayout({
+          headerSubtitle: 'Application Status Update',
+          recipientName: safeApplicantName,
+          bodyHtml: `
+            <p>Thank you for your interest. Following evaluation by the Lucena Youth Development Office, we regret to inform you that your SK Official registration application was not approved.</p>
+            <p style="font-size: 13px; color: #64748b;">If you believe this is an error or require further assistance, please coordinate directly with the LYDO administrator.</p>
+          `,
+          alertBox: {
+            variant: 'danger',
+            title: 'Reason for Denial',
+            message: escapeHtml(reason),
+          },
+        });
+
         await sendEmailViaBrevo(
           applicantData.email,
-          escapeHtml(applicantData.fullName ?? 'SK Official'),
+          safeApplicantName,
           'Application Denied - Lydo Compliance System',
-          `<h1>Application Status Update</h1>
-           <p>Dear ${escapeHtml(applicantData.fullName ?? 'SK Official')},</p>
-           <p>We regret to inform you that your application has been denied.</p>
-           <p><strong>Reason:</strong> ${escapeHtml(reason)}</p>`
+          denialEmailHtml
         );
       }
 
@@ -598,15 +624,27 @@ export const updateOwnProfile = functions.https.onCall(
             );
 
             const safeName = fullName || userDoc.data()?.fullName || 'SK Official';
+            const safeEscapedName = escapeHtml(safeName);
+            const verifyEmailHtml = renderEmailLayout({
+              headerSubtitle: 'Email Change Verification',
+              recipientName: safeEscapedName,
+              bodyHtml: `
+                <p>You recently requested to update your registered email address for the LYDO Compliance System to this address (<strong>${escapeHtml(cleanEmail)}</strong>).</p>
+                <p>To confirm and complete this change, please <a href="${link}" style="color: #0284c7; font-weight: 600; text-decoration: underline;">click here to verify your new email address</a>.</p>
+                <p style="font-size: 13px; color: #64748b; margin-top: 14px;">If you did not initiate this request, you can safely ignore this message and your current email will remain unchanged.</p>
+              `,
+              alertBox: {
+                variant: 'info',
+                title: 'Security Verification Required',
+                message: 'Your email address will not be updated until you confirm the verification link above.',
+              },
+            });
+
             await sendEmailViaBrevo(
               cleanEmail,
-              escapeHtml(safeName),
+              safeEscapedName,
               'Verify Your New Email Address',
-              `<h1>Email Change Verification</h1>
-               <p>Dear ${escapeHtml(safeName)},</p>
-               <p>You requested to change your email address for the LYDO Compliance System.</p>
-               <p>Please <a href="${link}">click here to verify your new email address</a>.</p>
-               <p>If you did not request this change, please ignore this email.</p>`
+              verifyEmailHtml
             );
             emailVerificationSent = true;
           }
@@ -668,18 +706,33 @@ export const updateOwnProfile = functions.https.onCall(
         // 4. Notify User via Brevo Email
         const targetEmail = updateData.email || userDoc.data()?.email;
         if (targetEmail) {
-          const changeListHtml = changes.map(c => `<li>${escapeHtml(c)}</li>`).join('');
+          const safeEscapedName = escapeHtml(safeName);
+          const changeListHtml = changes.map((c) => `<li style="margin-bottom: 4px;">${escapeHtml(c)}</li>`).join('');
+          const profileUpdatedHtml = renderEmailLayout({
+            headerSubtitle: 'Account Security Alert',
+            recipientName: safeEscapedName,
+            bodyHtml: `
+              <p>This is a confirmation that your LYDO Compliance System account profile details were recently updated.</p>
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 18px; margin: 16px 0;">
+                <div style="font-weight: 600; color: #0f172a; margin-bottom: 6px; font-size: 13px;">Modified Account Fields:</div>
+                <ul style="margin: 0; padding-left: 20px; color: #334155; font-size: 13px;">
+                  ${changeListHtml}
+                </ul>
+              </div>
+              <p style="font-size: 13px; color: #64748b;">If you did not authorize these modifications, please contact the LYDO system administrator immediately.</p>
+            `,
+            alertBox: {
+              variant: 'warning',
+              title: 'Account Details Modified',
+              message: 'Your profile settings have been successfully updated in our database.',
+            },
+          });
+
           await sendEmailViaBrevo(
             targetEmail,
-            escapeHtml(safeName),
+            safeEscapedName,
             'Your Profile Has Been Updated',
-            `<h1>Profile Update Alert</h1>
-             <p>Dear ${escapeHtml(safeName)},</p>
-             <p>Your LYDO Compliance System account profile was recently updated. The following information was changed:</p>
-             <ul>
-               ${changeListHtml}
-             </ul>
-             <p>If you did not make these changes, please contact the administrator immediately.</p>`
+            profileUpdatedHtml
           );
         }
       }
@@ -753,15 +806,27 @@ export const deleteOwnAccount = functions.https.onCall(
       // 5. Notify the User via Brevo Email
       const userEmail = request.auth.token.email || userData?.email;
       if (userEmail) {
+        const safeEscapedName = escapeHtml(safeName);
+        const deletionEmailHtml = renderEmailLayout({
+          headerSubtitle: 'Account Deletion Notice',
+          recipientName: safeEscapedName,
+          bodyHtml: `
+            <p>Your LYDO Compliance System user account has been permanently deleted as requested.</p>
+            <p>Please note that in accordance with municipal regulations and administrative auditing protocols, all historical compliance documents previously submitted under your barangay will remain archived in the official records.</p>
+            <p>Thank you for your service and participation in the compliance program.</p>
+          `,
+          alertBox: {
+            variant: 'info',
+            title: 'Account Deactivated',
+            message: 'Your login credentials have been removed from the authentication registry.',
+          },
+        });
+
         await sendEmailViaBrevo(
           userEmail,
-          escapeHtml(safeName),
+          safeEscapedName,
           'Account Successfully Deleted',
-          `<h1>Account Deletion Confirmed</h1>
-           <p>Dear ${escapeHtml(safeName)},</p>
-           <p>Your LYDO Compliance System account has been permanently deleted as requested.</p>
-           <p>Please note that for administrative auditing and compliance purposes, any past submissions you made will be retained in our records.</p>
-           <p>Thank you for using our system.</p>`
+          deletionEmailHtml
         );
       }
 
@@ -773,17 +838,31 @@ export const deleteOwnAccount = functions.https.onCall(
         if (data.email) adminEmails.push(data.email);
       });
 
+      const adminDeletionHtml = renderEmailLayout({
+        headerSubtitle: 'Administrative Audit Alert',
+        recipientName: 'LYDO Administrator',
+        bodyHtml: `
+          <p>A registered user has permanently deleted their account from the system.</p>
+        `,
+        detailsTable: [
+          { label: 'Official Name', value: escapeHtml(safeName) },
+          { label: 'Barangay', value: escapeHtml(barangay) },
+          { label: 'Audit Status', value: 'Historical submissions and metadata retained' },
+        ],
+        alertBox: {
+          variant: 'warning',
+          title: 'Account Deleted',
+          message: `User <strong>${escapeHtml(safeName)}</strong> (${escapeHtml(barangay)}) deleted their account.`,
+        },
+      });
+
       await Promise.allSettled(
         adminEmails.map(adminEmail => 
           sendEmailViaBrevo(
             adminEmail,
             'Admin',
             `User Account Deleted - ${safeName}`,
-            `<h1>User Account Deleted</h1>
-             <p>A user account has been permanently deleted from the LYDO Compliance System.</p>
-             <p><strong>Name:</strong> ${escapeHtml(safeName)}</p>
-             <p><strong>Barangay:</strong> ${escapeHtml(barangay)}</p>
-             <p>Their historical submissions and uploaded files have been retained in the system for auditing purposes.</p>`
+            adminDeletionHtml
           )
         )
       );
@@ -838,15 +917,27 @@ export const requestPasswordReset = functions.https.onCall(
         const customResetLink = `https://lydo-compliance-system-ce8c3.firebaseapp.com/reset-password${urlParts.search}`;
 
         // 3. Send email via Brevo
+        const safeUserName = escapeHtml(userData.fullName ?? 'User');
+        const resetPasswordHtml = renderEmailLayout({
+          headerSubtitle: 'Password Reset Request',
+          recipientName: safeUserName,
+          bodyHtml: `
+            <p>We received a request to reset the password associated with your LYDO Compliance System account.</p>
+            <p>To proceed and choose a new password, please <a href="${customResetLink}" style="color: #0284c7; font-weight: 600; text-decoration: underline;">click here to reset your password</a>.</p>
+            <p style="font-size: 13px; color: #64748b; margin-top: 14px;">If you did not request a password reset, you can safely ignore this email — your account remains secure and your password will not change.</p>
+          `,
+          alertBox: {
+            variant: 'info',
+            title: 'Security Notice',
+            message: 'This password reset link is valid for a limited time and can only be used once.',
+          },
+        });
+
         await sendEmailViaBrevo(
           cleanEmail,
-          escapeHtml(userData.fullName ?? 'User'),
+          safeUserName,
           'Password Reset Request',
-          `<h1>Password Reset Request</h1>
-           <p>Dear ${escapeHtml(userData.fullName ?? 'User')},</p>
-           <p>We received a request to reset your password for the LYDO Compliance System.</p>
-           <p>Please <a href="${customResetLink}">click here to set a new password</a>.</p>
-           <p>If you did not request this, you can safely ignore this email.</p>`
+          resetPasswordHtml
         );
 
         return { success: true, message: 'Password reset link sent to your email.' };
@@ -913,17 +1004,31 @@ export const onApplicationCreated = onDocumentCreated('pending_users/{applicatio
       if (data.email) adminEmails.push(data.email);
     });
 
+    const adminAppHtml = renderEmailLayout({
+      headerSubtitle: 'New Applicant Notification',
+      recipientName: 'LYDO Administrator',
+      bodyHtml: `
+        <p>A new SK Official has submitted a registration application and is currently awaiting your administrative review.</p>
+      `,
+      detailsTable: [
+        { label: 'Applicant Name', value: escapeHtml(fullName) },
+        { label: 'Barangay', value: escapeHtml(barangay) },
+        { label: 'Status', value: 'Pending Approval' },
+      ],
+      alertBox: {
+        variant: 'info',
+        title: 'Action Required',
+        message: 'Please log in to the administrative portal to verify applicant proof documents and approve their account.',
+      },
+    });
+
     await Promise.allSettled(
       adminEmails.map(adminEmail => 
         sendEmailViaBrevo(
           adminEmail,
           'Admin',
           'New Registration Application',
-          `<h1>New Registration Application</h1>
-           <p>A new user has submitted a registration application and is awaiting your review.</p>
-           <p><strong>Name:</strong> ${escapeHtml(fullName)}</p>
-           <p><strong>Barangay:</strong> ${escapeHtml(barangay)}</p>
-           <p>Please log in to the admin dashboard to review and approve their account.</p>`
+          adminAppHtml
         )
       )
     );

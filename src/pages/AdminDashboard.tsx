@@ -24,6 +24,16 @@ import AdminCMSSection from '../components/settings/AdminCMSSection';
 import UnifiedGaugeChart from '../components/analytics/UnifiedGaugeChart';
 import { useSubmissions } from '../hooks/useSubmissions';
 import { useComplianceData } from '../hooks/useComplianceData';
+import { useAccreditations } from '../hooks/useAccreditations';
+import { useEducationalMaterials, type EducationalMaterial, type MaterialFormData } from '../hooks/useEducationalMaterials';
+import EducationalMaterialsSection from '../components/common/EducationalMaterialsSection';
+import EducationalMaterialModal from '../components/common/EducationalMaterialModal';
+import AccreditationReviewModal from '../components/submissions/AccreditationReviewModal';
+import StatusBadge from '../components/common/StatusBadge';
+import { 
+  ACCREDITATION_CLASSIFICATIONS, 
+  type AccreditationApplication,
+} from '../constants/submissionTypes';
 import { formatPeriodLabel } from '../utils/periodUtils';
 import { validatePassword } from '../utils/passwordValidation';
 import UserProfileTrigger from '../components/common/UserProfileTrigger';
@@ -48,15 +58,17 @@ interface ApprovedUser {
 }
 
 const ADMIN_SECTIONS: NavigationSection[] = [
-  { id: 'home',        label: 'Home',               isImplemented: true,  icon: 'home' },
-  { id: 'applicants',  label: 'Applicants',         isImplemented: true,  icon: 'badge' },
-  { id: 'users',       label: 'Users',              isImplemented: true,  icon: 'group' },
-  { id: 'submissions', label: 'Submissions',        isImplemented: true,  icon: 'description' },
-  { id: 'history',     label: 'History',            isImplemented: true,  icon: 'history' },
-  { id: 'analytics',   label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
-  { id: 'matrix',      label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
-  { id: 'cms',         label: 'CMS Portal',         isImplemented: true,  icon: 'campaign' },
-  { id: 'settings',    label: 'User Settings',      isImplemented: true,  icon: 'settings' },
+  { id: 'home',           label: 'Home',               isImplemented: true,  icon: 'home' },
+  { id: 'applicants',     label: 'Applicants',         isImplemented: true,  icon: 'badge' },
+  { id: 'accreditations', label: 'Accreditations',     isImplemented: true,  icon: 'verified' },
+  { id: 'users',          label: 'Users',              isImplemented: true,  icon: 'group' },
+  { id: 'submissions',    label: 'Submissions',        isImplemented: true,  icon: 'description' },
+  { id: 'history',        label: 'History',            isImplemented: true,  icon: 'history' },
+  { id: 'analytics',      label: 'Analytics',          isImplemented: true,  icon: 'bar_chart' },
+  { id: 'matrix',         label: 'Compliance Matrix',  isImplemented: true,  icon: 'grid_on' },
+  { id: 'educational',    label: 'Educational Hub',    isImplemented: true,  icon: 'school' },
+  { id: 'cms',            label: 'CMS Portal',         isImplemented: true,  icon: 'campaign' },
+  { id: 'settings',       label: 'User Settings',      isImplemented: true,  icon: 'settings' },
 ];
 
 export default function AdminDashboard() {
@@ -68,6 +80,29 @@ export default function AdminDashboard() {
   const [submissionsSearch, setSubmissionsSearch] = useState('');
   const [submissionsBarangay, setSubmissionsBarangay] = useState('');
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+
+  // Educational materials state & handlers
+  const educationalHook = useEducationalMaterials();
+  const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<EducationalMaterial | null>(null);
+  const [deletingMaterial, setDeletingMaterial] = useState<EducationalMaterial | null>(null);
+  const [showDeleteMaterialConfirm, setShowDeleteMaterialConfirm] = useState(false);
+  const [isDeletingMaterial, setIsDeletingMaterial] = useState(false);
+
+  const handleOpenUploadModal = useCallback(() => {
+    setEditingMaterial(null);
+    setShowMaterialModal(true);
+  }, []);
+
+  const handleEditMaterial = useCallback((material: EducationalMaterial) => {
+    setEditingMaterial(material);
+    setShowMaterialModal(true);
+  }, []);
+
+  const handleDeleteMaterial = useCallback((material: EducationalMaterial) => {
+    setDeletingMaterial(material);
+    setShowDeleteMaterialConfirm(true);
+  }, []);
 
   const currentYear = new Date().getFullYear();
   const { pending: pendingSubs = [], history: historySubs = [], loadingPending, loadingHistory, fetchHistory } = useSubmissions(undefined, true);
@@ -123,17 +158,20 @@ export default function AdminDashboard() {
   const adminGaugeSlices = useMemo(() => {
     const totalExpected = compliance.barangayRanking.reduce((s, b) => s + b.expected, 0);
     const pendingPct = Math.round((pendingSubs.length / Math.max(1, totalExpected)) * 100);
+    const deniedCount = historySubs.filter((s) => s.status === 'denied' && s.year === currentYear).length;
+    const deniedPct = Math.round((deniedCount / Math.max(1, totalExpected)) * 100);
     return [
       { label: 'Approved',       value: compliance.overallRate, color: '#16A34A' },
       { label: 'Pending Review', value: pendingPct,              color: '#F59E0B' },
       {
         label: 'Missing/Overdue',
-        value: Math.max(0, 100 - compliance.overallRate - pendingPct),
+        value: Math.max(0, 100 - compliance.overallRate - pendingPct - deniedPct),
         color: '#EF4444',
         isStriped: true,
       },
+      { label: 'Denied',         value: deniedPct,              color: '#18181B' },
     ];
-  }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length]);
+  }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length, historySubs, currentYear]);
 
   // ── Welcome Banner Dynamic Description ─────────────────────────────────────
   const bannerDescription = useMemo(() => {
@@ -176,7 +214,38 @@ export default function AdminDashboard() {
 
   const { addToast } = useToast();
 
+  const handleSaveMaterial = useCallback(
+    async (
+      data: MaterialFormData,
+      existingId?: string,
+      existingStoragePath?: string
+    ) => {
+      if (existingId) {
+        await educationalHook.updateMaterial(existingId, data, existingStoragePath);
+        addToast('Educational material updated successfully.', 'success');
+      } else {
+        await educationalHook.addMaterial(data, adminName || 'Admin');
+        addToast('Educational material published successfully.', 'success');
+      }
+    },
+    [educationalHook, adminName, addToast]
+  );
 
+  const handleConfirmDeleteMaterial = useCallback(async () => {
+    if (!deletingMaterial) return;
+    try {
+      setIsDeletingMaterial(true);
+      await educationalHook.deleteMaterial(deletingMaterial.id, deletingMaterial.storagePath);
+      addToast('Educational material deleted successfully.', 'success');
+      setShowDeleteMaterialConfirm(false);
+      setDeletingMaterial(null);
+    } catch (err) {
+      console.error('Failed to delete material:', err);
+      addToast('Failed to delete educational material.', 'error');
+    } finally {
+      setIsDeletingMaterial(false);
+    }
+  }, [deletingMaterial, educationalHook, addToast]);
 
   const fetchApprovedUsers = useCallback(async () => {
     try {
@@ -504,6 +573,115 @@ export default function AdminDashboard() {
     }
   ];
 
+  // ── Youth Organization Accreditations ──
+  const {
+    applications: accredApps,
+    counts: accredCounts,
+    verifyAndSchedule,
+    requestRevision,
+    disapprove,
+  } = useAccreditations();
+
+  const [accredSearch, setAccredSearch] = useState('');
+  const [accredFilterClassification, setAccredFilterClassification] = useState('');
+  const [accredFilterStatus, setAccredFilterStatus] = useState('');
+  const [selectedAccred, setSelectedAccred] = useState<AccreditationApplication | null>(null);
+  const [showAccredModal, setShowAccredModal] = useState(false);
+
+  const filteredAccreds = useMemo(() => {
+    return accredApps.filter((app) => {
+      const q = accredSearch.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        app.orgName.toLowerCase().includes(q) ||
+        app.contactPerson.toLowerCase().includes(q) ||
+        app.contactEmail.toLowerCase().includes(q) ||
+        app.barangay.toLowerCase().includes(q);
+
+      const matchesClassification =
+        !accredFilterClassification || app.classification === accredFilterClassification;
+
+      const matchesStatus = !accredFilterStatus || app.status === accredFilterStatus;
+
+      return matchesSearch && matchesClassification && matchesStatus;
+    });
+  }, [accredApps, accredSearch, accredFilterClassification, accredFilterStatus]);
+
+  const accredColumns: Column<AccreditationApplication>[] = useMemo(
+    () => [
+      {
+        header: 'Organization Name',
+        accessor: 'orgName',
+        sortable: true,
+        render: (app) => (
+          <div>
+            <div className="fw-bold text-dark">{app.orgName}</div>
+            <span className="badge bg-primary-subtle text-primary mt-1" style={{ fontSize: '11px' }}>
+              {app.classification}
+            </span>
+          </div>
+        ),
+      },
+      {
+        header: 'Barangay / Scope',
+        accessor: 'barangay',
+        sortable: true,
+        render: (app) => <span className="fw-medium text-secondary">{app.barangay}</span>,
+      },
+      {
+        header: 'Contact Person',
+        accessor: 'contactPerson',
+        sortable: true,
+        render: (app) => (
+          <div>
+            <div className="fw-semibold text-dark">{app.contactPerson}</div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>{app.contactEmail}</div>
+            <div className="text-muted" style={{ fontSize: '11px' }}>{app.contactPhone}</div>
+          </div>
+        ),
+      },
+      {
+        header: 'Submitted Date',
+        accessor: 'submittedAt',
+        sortable: true,
+        render: (app: AccreditationApplication) => (
+          <span className="text-muted small">
+            {app.submittedAt?.toDate
+              ? app.submittedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'N/A'}
+          </span>
+        ),
+      },
+      {
+        header: 'Status',
+        accessor: 'status',
+        sortable: true,
+        render: (app) => <StatusBadge status={app.status} />,
+      },
+      {
+        header: 'Actions',
+        accessor: 'id',
+        className: 'text-end',
+        render: (app) => (
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={() => {
+              setSelectedAccred(app);
+              setShowAccredModal(true);
+            }}
+            className="d-inline-flex align-items-center gap-1"
+            style={{ fontSize: '12px', padding: '4px 10px' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>visibility</span>
+            Review &amp; Deliberation
+          </Button>
+        ),
+      },
+    ],
+    []
+  );
+
   // ── Section page header config ──
   const sectionHeaders: Record<string, { title: string; subtitle: string; icon?: string; variant?: 'slate' | 'purple' }> = useMemo(() => ({
     home: {
@@ -516,6 +694,11 @@ export default function AdminDashboard() {
       title: 'Pending Applications',
       subtitle: 'Review and manage incoming SK Official registration requests',
       icon: 'badge',
+    },
+    accreditations: {
+      title: 'Youth Organization Accreditations',
+      subtitle: 'Review submissions and manage deliberation call-in schedules for local youth organizations',
+      icon: 'verified',
     },
     users: {
       title: 'Registered SK Officials',
@@ -649,6 +832,7 @@ export default function AdminDashboard() {
                   slices={adminGaugeSlices}
                   centerValue={`${compliance.overallRate}%`}
                   centerLabel="Compliant"
+                  valueSuffix="%"
                   emptyMessage="No compliance data available."
                 />
               </div>
@@ -1218,6 +1402,114 @@ export default function AdminDashboard() {
             loading={isProcessing}
           />
         </>
+      ) : activeSection === 'accreditations' ? (
+        <>
+          <Row className="mb-4 g-2 g-sm-3">
+            <Col xs={6} sm={6} md={3} className="kpi-animate">
+              <StatCard
+                title="Pending Applications"
+                value={accredCounts.pending}
+                variant="warning"
+                icon="pending_actions"
+              />
+            </Col>
+            <Col xs={6} sm={6} md={3} className="kpi-animate" style={{ animationDelay: '50ms' }}>
+              <StatCard
+                title="Verified / Scheduled"
+                value={accredCounts.verified}
+                variant="success"
+                icon="event_available"
+              />
+            </Col>
+            <Col xs={6} sm={6} md={3} className="kpi-animate" style={{ animationDelay: '100ms' }}>
+              <StatCard
+                title="Revision Requested"
+                value={accredCounts.revision_requested}
+                variant="primary"
+                icon="rate_review"
+              />
+            </Col>
+            <Col xs={6} sm={6} md={3} className="kpi-animate" style={{ animationDelay: '150ms' }}>
+              <StatCard
+                title="Total Submissions"
+                value={accredCounts.total}
+                variant="info"
+                icon="folder_special"
+              />
+            </Col>
+          </Row>
+
+          <Card className="border-0 shadow-sm mb-4">
+            <Card.Body className="p-3 p-md-4">
+              <div className="row g-2 g-md-3">
+                <div className="col-12 col-md-4">
+                  <Form.Control
+                    type="text"
+                    placeholder="Search organization, contact, email..."
+                    value={accredSearch}
+                    onChange={(e) => setAccredSearch(e.target.value)}
+                    className="sfc-input w-100"
+                  />
+                </div>
+                <div className="col-6 col-md-4">
+                  <Form.Select
+                    value={accredFilterClassification}
+                    onChange={(e) => setAccredFilterClassification(e.target.value)}
+                    className="sfc-select w-100"
+                  >
+                    <option value="">All Classifications</option>
+                    {ACCREDITATION_CLASSIFICATIONS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Form.Select>
+                </div>
+                <div className="col-6 col-md-4">
+                  <Form.Select
+                    value={accredFilterStatus}
+                    onChange={(e) => setAccredFilterStatus(e.target.value)}
+                    className="sfc-select w-100"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="verified">Verified / Scheduled</option>
+                    <option value="revision_requested">Revision Requested</option>
+                    <option value="disapproved">Disapproved</option>
+                  </Form.Select>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+
+          <DataTable
+            data={filteredAccreds}
+            columns={accredColumns}
+            pageSize={8}
+            emptyMessage="No youth organization accreditation applications found."
+          />
+
+          {showAccredModal && selectedAccred && (
+            <AccreditationReviewModal
+              show={showAccredModal}
+              onHide={() => {
+                setShowAccredModal(false);
+                setSelectedAccred(null);
+              }}
+              application={selectedAccred}
+              onVerifyAndSchedule={async (appId, sched) => {
+                await verifyAndSchedule(appId, sched);
+                addToast('Accreditation verified and deliberation schedule sent!', 'success');
+              }}
+              onRequestRevision={async (appId, flagged, remarks) => {
+                await requestRevision(appId, flagged, remarks);
+                addToast('Revision notice sent to organization email.', 'info');
+              }}
+              onDisapprove={async (appId, reason) => {
+                await disapprove(appId, reason);
+                addToast('Application disapproved.', 'warning');
+              }}
+            />
+          )}
+        </>
       ) : activeSection === 'users' ? (
         <>
           <Card className="border-0 shadow-sm mb-4">
@@ -1396,6 +1688,53 @@ export default function AdminDashboard() {
           pending={pendingSubs}
           history={historySubs}
         />
+      ) : activeSection === 'educational' ? (
+        <>
+          <EducationalMaterialsSection
+            materialsHook={educationalHook}
+            isAdmin={true}
+            onOpenUploadModal={handleOpenUploadModal}
+            onEditMaterial={handleEditMaterial}
+            onDeleteMaterial={handleDeleteMaterial}
+          />
+          <EducationalMaterialModal
+            show={showMaterialModal}
+            onHide={() => setShowMaterialModal(false)}
+            onSave={handleSaveMaterial}
+            editingMaterial={editingMaterial}
+          />
+          <ConfirmDialog
+            show={showDeleteMaterialConfirm}
+            onCancel={() => {
+              if (!isDeletingMaterial) {
+                setShowDeleteMaterialConfirm(false);
+                setDeletingMaterial(null);
+              }
+            }}
+            onConfirm={handleConfirmDeleteMaterial}
+            title="Delete Educational Material"
+            message={`Are you sure you want to delete "${deletingMaterial?.title}"?`}
+            detail={
+              deletingMaterial && (
+                <div>
+                  <div className="fw-semibold text-dark mb-1">{deletingMaterial.title}</div>
+                  <div className="text-muted small">
+                    Category: <strong>{deletingMaterial.category}</strong> • Format: <strong>{deletingMaterial.resourceType.toUpperCase()}</strong>
+                  </div>
+                  {deletingMaterial.fileName && (
+                    <div className="text-muted small mt-1">
+                      File: <code>{deletingMaterial.fileName}</code>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            warning={<>This will permanently delete this material from the database{deletingMaterial?.storagePath ? ' and remove the attached file from Cloud Storage' : ''}. This action cannot be undone.</>}
+            confirmLabel="Delete Material"
+            confirmVariant="danger"
+            loading={isDeletingMaterial}
+          />
+        </>
       ) : activeSection === 'settings' ? (
         <UserSettings />
       ) : activeSection === 'cms' ? (

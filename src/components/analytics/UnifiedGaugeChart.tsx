@@ -22,8 +22,18 @@ interface UnifiedGaugeChartProps {
   centerValue: string | number;
   /** Small label beneath the centre value */
   centerLabel: string;
+  /** Suffix to append to hover slice values (e.g. "%") */
+  valueSuffix?: string;
+  /** Custom formatter function for displayed hover value */
+  formatValue?: (value: number | string) => string;
   /** Empty-state message when all values are 0 */
   emptyMessage?: string;
+  /** Header background class (default: chart-header-primary) */
+  headerClass?: string;
+  /** Header icon name (default: donut_large) */
+  icon?: string;
+  /** Header icon CSS class (default: icon-primary) */
+  iconClass?: string;
   /** Total height of the chart canvas in px */
   // height prop reserved for future use
 }
@@ -161,7 +171,12 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
   slices,
   centerValue,
   centerLabel,
+  valueSuffix = '',
+  formatValue,
   emptyMessage = 'No data available.',
+  headerClass = 'chart-header-primary',
+  icon = 'donut_large',
+  iconClass = 'icon-primary',
 }) => {
   const uid = useId();
   const hatchPatternId = `gaugeHatch-${uid.replace(/:/g, '')}`;
@@ -174,7 +189,7 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
   // Build arc segments with separation gaps between slices
   const activeCount = slices.filter((s) => s.value > 0).length;
   // Account for strokeLinecap="round" cap extensions (2 * ~6.37° = 12.74°) plus 5° visible gap
-  const GAP_DEG = activeCount > 1 ? 18 : 0;
+  const GAP_DEG = activeCount > 1 ? (activeCount > 4 ? 14 : 18) : 0;
   const totalGapsAngle = activeCount > 1 ? (activeCount - 1) * GAP_DEG : 0;
   const availableSweep = Math.max(0, SWEEP_ANGLE - totalGapsAngle);
 
@@ -213,7 +228,9 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
 
   // Resolve what the centre displays (changes on hover)
   const displayValue = hoveredIndex !== null
-    ? slices[hoveredIndex].value
+    ? (formatValue
+        ? formatValue(slices[hoveredIndex].value)
+        : `${slices[hoveredIndex].value}${valueSuffix}`)
     : centerValue;
   const displayLabel = hoveredIndex !== null
     ? slices[hoveredIndex].label
@@ -230,13 +247,13 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
     >
       {/* Card header strip */}
       {(title || subtitle) && (
-        <div className="chart-card-header chart-header-primary">
+        <div className={`chart-card-header ${headerClass}`}>
           <p className="chart-card-title">
             <span
-              className="material-symbols-outlined icon-primary"
+              className={`material-symbols-outlined ${iconClass}`}
               style={{ fontSize: '18px', fontVariationSettings: "'FILL' 1" }}
             >
-              donut_large
+              {icon}
             </span>
             {title}
           </p>
@@ -329,7 +346,9 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
                       }}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
-                    />
+                    >
+                      <title>{`${slice.label}: ${formatValue ? formatValue(slice.value) : `${slice.value}${valueSuffix}`}`}</title>
+                    </path>
                   );
                 })}
               </svg>
@@ -356,9 +375,7 @@ const UnifiedGaugeChart: React.FC<UnifiedGaugeChartProps> = ({
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  {typeof displayValue === 'number' && !String(displayValue).includes('%')
-                    ? `${displayValue}`
-                    : displayValue}
+                  {displayValue}
                 </div>
                 <div
                   style={{

@@ -280,11 +280,22 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
               </div>
             </div>
 
-            {selectedSub?.status === 'denied' && selectedSub.reviewNotes && (
+            {selectedSub?.status === 'denied' && (selectedSub.reviewNotes || selectedSub.denialCategory) && (
               <div className="mb-3">
-                <div className="overline-text text-danger mb-1">Denial Reason</div>
-                <div className="body-text text-dark p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-25">
-                  {selectedSub.reviewNotes}
+                <div className="overline-text text-danger mb-1">Denial Reason &amp; Feedback</div>
+                <div className="p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-25">
+                  {selectedSub.denialCategory && (
+                    <div className="mb-1">
+                      <span className="badge bg-danger text-white px-2 py-1" style={{ fontSize: '11px', fontWeight: 600 }}>
+                        {selectedSub.denialCategory}
+                      </span>
+                    </div>
+                  )}
+                  {selectedSub.reviewNotes && (
+                    <div className="body-text text-dark" style={{ whiteSpace: 'pre-wrap', fontSize: '13px' }}>
+                      {selectedSub.reviewNotes}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

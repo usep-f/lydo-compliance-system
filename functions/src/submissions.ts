@@ -9,9 +9,11 @@ import {
   safeDeleteStorageFile, 
   escapeHtml 
 } from './helpers';
+import { renderEmailLayout } from './emailTemplates';
 import { writeNotification, writeNotificationToAdmins } from './notifications';
 import { verifyPdfBuffer } from './pdfScreening';
 import { recomputePublicAnalytics } from './analytics';
+import { DENIAL_CATEGORIES, DenialCategory } from './constants/submissionTypes';
 
 // ---------------------------------------------------------------------------
 // approveSubmission
@@ -90,14 +92,31 @@ export const approveSubmission = functions.https.onCall(
           const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
           const safePeriod = escapeHtml(submissionData.period ?? '');
 
+          const approvalEmailHtml = renderEmailLayout({
+            headerSubtitle: 'Compliance Review Notification',
+            recipientName: safeName,
+            bodyHtml: `
+              <p>Great news! Your compliance submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been formally evaluated and <strong>approved</strong>.</p>
+              <p>Your barangay's compliance records and analytics have been updated accordingly in the system dashboard.</p>
+              <p style="font-size: 13px; color: #64748b; margin-top: 14px;">Thank you for maintaining timely compliance with municipal governance reporting standards.</p>
+            `,
+            detailsTable: [
+              { label: 'Document Type', value: safeDocLabel },
+              ...(safePeriod ? [{ label: 'Period', value: safePeriod }] : []),
+              { label: 'Review Status', value: 'Approved' },
+            ],
+            alertBox: {
+              variant: 'success',
+              title: 'Submission Approved',
+              message: `The report for <strong>${safeDocLabel}</strong> meets all verification standards.`,
+            },
+          });
+
           await sendEmailViaBrevo(
             userEmail,
             safeName,
             `Submission Approved — ${submissionData.documentLabel ?? 'Document'}`,
-            `<h1>Submission Approved</h1>
-             <p>Dear ${safeName},</p>
-             <p>Great news! Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been reviewed and <strong>approved</strong>.</p>
-             <p>Thank you for ensuring timely compliance. You can view your updated records on the LYDO Compliance System dashboard.</p>`
+            approvalEmailHtml
           );
         }
 
@@ -153,9 +172,13 @@ export const denySubmission = functions.https.onCall(
     }
 
     // 3. Input validation
-    const { submissionId, reason } = request.data;
+    const { submissionId, reason, category } = request.data;
     validateApplicationId(submissionId);
     validateReason(reason);
+
+    const safeCategory: DenialCategory = DENIAL_CATEGORIES.includes(category as DenialCategory)
+      ? (category as DenialCategory)
+      : 'Other / Specific Discrepancy';
 
     // 4. Fetch and lock the pending submission via Transaction
     const pendingRef = db.collection('pending_submissions').doc(submissionId);
@@ -184,6 +207,7 @@ export const denySubmission = functions.https.onCall(
           deniedAt: admin.firestore.FieldValue.serverTimestamp(),
           deniedBy: request.auth?.uid,
           reviewNotes: reason,
+          denialCategory: safeCategory,
         });
 
         // Delete the pending document within transaction
@@ -213,16 +237,32 @@ export const denySubmission = functions.https.onCall(
           const safeDocLabel = escapeHtml(submissionData.documentLabel ?? 'Document');
           const safePeriod = escapeHtml(submissionData.period ?? '');
           const safeReason = escapeHtml(reason);
+          const safeCategoryLabel = escapeHtml(safeCategory);
+
+          const denialEmailHtml = renderEmailLayout({
+            headerSubtitle: 'Compliance Review Notification',
+            recipientName: safeName,
+            bodyHtml: `
+              <p>Following evaluation by the LYDO administration, your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} was <strong>denied</strong> due to discrepancies.</p>
+              <p>Please review the administrative remarks below, make the necessary corrections to your document, and re-upload the corrected PDF through the portal dashboard.</p>
+            `,
+            detailsTable: [
+              { label: 'Document Type', value: safeDocLabel },
+              ...(safePeriod ? [{ label: 'Period', value: safePeriod }] : []),
+              { label: 'Discrepancy Type', value: safeCategoryLabel },
+            ],
+            alertBox: {
+              variant: 'danger',
+              title: `Denial Remarks (${safeCategoryLabel})`,
+              message: safeReason,
+            },
+          });
 
           await sendEmailViaBrevo(
             userEmail,
             safeName,
             `Submission Denied — ${submissionData.documentLabel ?? 'Document'}`,
-            `<h1>Submission Denied</h1>
-             <p>Dear ${safeName},</p>
-             <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been denied.</p>
-             <p><strong>Reason:</strong> ${safeReason}</p>
-             <p>Please review the feedback and submit a corrected document through the LYDO Compliance System.</p>`
+            denialEmailHtml
           );
         }
 
@@ -232,11 +272,12 @@ export const denySubmission = functions.https.onCall(
         await writeNotification(submissionData.userId, {
           type: 'submission_denied',
           title: 'Submission Denied',
-          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was denied. Reason: ${reason}`,
+          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was denied for "${safeCategory}". Remarks: ${reason}`,
           metadata: {
             submissionId: request.data.submissionId,
             documentLabel: docLabel,
             period,
+            category: safeCategory,
             reason,
           },
         });
@@ -326,15 +367,25 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
       const safePeriod = escapeHtml(period ?? '');
       const safeReason = escapeHtml(verificationError);
 
+      const autoRejectHtml = renderEmailLayout({
+        headerSubtitle: 'Automated Document Verification',
+        recipientName: safeName,
+        bodyHtml: `
+          <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} could not be processed and has been <strong>automatically rejected</strong> by the system screening engine.</p>
+          <p>Please inspect your source document, verify that it is an intact, uncorrupted PDF file that conforms to page specifications, and re-upload through the portal.</p>
+        `,
+        alertBox: {
+          variant: 'danger',
+          title: 'Automated Screening Error',
+          message: safeReason,
+        },
+      });
+
       await sendEmailViaBrevo(
         userEmail,
         safeName,
         `Submission Rejected — ${documentLabel ?? 'Document'}`,
-        `<h1>Submission Verification Failed</h1>
-         <p>Dear ${safeName},</p>
-         <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been <strong>automatically rejected</strong> by the system.</p>
-         <p><strong>Reason:</strong> ${safeReason}</p>
-         <p>Please review your file, ensure it is a valid, uncorrupted PDF document, and try uploading again.</p>`
+        autoRejectHtml
       );
     }
 
@@ -362,15 +413,30 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
     const safeDocLabel = escapeHtml(documentLabel ?? 'Document');
     const safePeriod = escapeHtml(period ?? '');
 
+    const receiptHtml = renderEmailLayout({
+      headerSubtitle: 'Document Submission Receipt',
+      recipientName: safeName,
+      bodyHtml: `
+        <p>This automated receipt confirms that your compliance report for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} has been successfully uploaded and screened.</p>
+        <p>Your document has entered the <strong>Pending Review</strong> queue and is awaiting evaluation by LYDO administrators. You will receive an email update once your submission has been reviewed.</p>
+      `,
+      detailsTable: [
+        { label: 'Document Type', value: safeDocLabel },
+        ...(safePeriod ? [{ label: 'Reporting Period', value: safePeriod }] : []),
+        { label: 'Queue Status', value: 'Pending Review' },
+      ],
+      alertBox: {
+        variant: 'info',
+        title: 'Submission Queued',
+        message: 'Your upload passed file integrity verification and is safely recorded.',
+      },
+    });
+
     await sendEmailViaBrevo(
       userEmail,
       safeName,
       `Submission Received — ${documentLabel ?? 'Document'}`,
-      `<h1>Submission Received</h1>
-       <p>Dear ${safeName},</p>
-       <p>This is to confirm that we have successfully received your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''}.</p>
-       <p>Your document is now <strong>Pending Review</strong> by the administration. You will receive another email once it has been processed.</p>
-       <p>Thank you.</p>`
+      receiptHtml
     );
   }
 
