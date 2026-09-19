@@ -7,6 +7,7 @@ import { httpsCallable } from 'firebase/functions';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import FormField from '../common/FormField';
 import LoadingButton from '../common/LoadingButton';
+import ConfirmDialog from '../common/ConfirmDialog';
 import { validatePassword } from '../../utils/passwordValidation';
 import { compressImage } from '../../utils/imageCompression';
 
@@ -15,6 +16,8 @@ export default function UserSettings() {
   const [initLoading, setInitLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+  const [revokeLoading, setRevokeLoading] = useState(false);
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -274,15 +277,23 @@ export default function UserSettings() {
     }
   };
 
-  const handleRevokeDevices = async () => {
-    if (!window.confirm("Are you sure you want to revoke all trusted devices? You will be asked for an OTP on your next login from any device.")) return;
+  const handleRevokeDevices = () => {
+    setShowRevokeConfirm(true);
+  };
+
+  const handleConfirmRevoke = async () => {
+    setRevokeLoading(true);
     try {
       const revoke = httpsCallable(functions, 'revokeTrustedDevices');
       await revoke();
       setSuccess('All trusted devices have been revoked.');
+      setShowRevokeConfirm(false);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else setError(String(err));
+      setShowRevokeConfirm(false);
+    } finally {
+      setRevokeLoading(false);
     }
   };
 
@@ -1033,6 +1044,20 @@ export default function UserSettings() {
           </Form>
         </Modal.Body>
       </Modal>
+
+      {/* Revoke Trusted Devices Confirmation Dialog */}
+      <ConfirmDialog
+        show={showRevokeConfirm}
+        onCancel={() => !revokeLoading && setShowRevokeConfirm(false)}
+        onConfirm={handleConfirmRevoke}
+        title="Revoke All Trusted Devices"
+        message="Are you sure you want to revoke all trusted devices?"
+        detail="You will be required to provide a 2FA One-Time Password (OTP) verification on your next login from any browser or device."
+        warning="All active browser trust sessions for this account will be invalidated."
+        confirmLabel="Revoke Trusted Devices"
+        confirmVariant="danger"
+        loading={revokeLoading}
+      />
     </div>
   );
 }
