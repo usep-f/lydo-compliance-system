@@ -21,6 +21,8 @@ const TYPE_CONFIG: Record<NotificationType, TypeConfig> = {
   new_application:     { icon: 'badge',           color: '#4F46E5', bg: '#EEF2FF' },
   new_submission:      { icon: 'description',     color: '#0284C7', bg: '#F0F9FF' },
   new_accreditation:   { icon: 'verified',        color: '#7C3AED', bg: '#F5F3FF' },
+  new_account_created: { icon: 'person_add',      color: '#0284C7', bg: '#F0F9FF' },
+  user_deleted:        { icon: 'person_remove',   color: '#DC2626', bg: '#FEF2F2' },
   submission_open:     { icon: 'calendar_today',  color: '#2563EB', bg: '#EFF6FF' },
   submission_overdue:  { icon: 'warning',         color: '#EF4444', bg: '#FEF2F2' },
 };

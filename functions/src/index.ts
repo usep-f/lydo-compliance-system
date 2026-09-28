@@ -24,7 +24,8 @@ export {
   updateOwnProfile,
   deleteOwnAccount,
   onApplicationCreated,
-  requestPasswordReset
+  requestPasswordReset,
+  createDirectUser
 } from './users';
 
 export { 
