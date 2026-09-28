@@ -14,6 +14,7 @@ import DocumentReviewModal from '../common/DocumentReviewModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import StatusBadge from '../common/StatusBadge';
 import UserProfileTrigger from '../common/UserProfileTrigger';
+import AdminDirectUploadModal from './AdminDirectUploadModal';
 import { useToast } from '../../context/ToastContext';
 import type { HistoricalSubmission, PendingSubmission, DenialCategory } from '../../constants/submissionTypes';
 import { DENIAL_CATEGORIES } from '../../constants/submissionTypes';
@@ -71,6 +72,9 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
   const [showDenyConfirm, setShowDenyConfirm] = useState(false);
   const [denyReason, setDenyReason] = useState('');
   const [denyCategory, setDenyCategory] = useState<DenialCategory | ''>('');
+
+  // Direct upload modal state
+  const [showDirectUploadModal, setShowDirectUploadModal] = useState(false);
 
 
 
@@ -242,15 +246,26 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
       {/* Filters */}
       <Card className="border-0 shadow-sm mb-4">
         <Card.Body className="p-3 p-md-4">
-          {/* Row 1: Search input goes all the way across */}
-          <div className="mb-3">
+          {/* Row 1: Search input + Direct Upload Button */}
+          <div className="d-flex flex-column flex-sm-row gap-2 mb-3">
             <Form.Control
               type="text"
               placeholder="Search by name or document..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="sfc-input w-100"
+              className="sfc-input flex-grow-1"
             />
+            <Button
+              variant="primary"
+              onClick={() => setShowDirectUploadModal(true)}
+              className="d-inline-flex align-items-center justify-content-center gap-2 fw-semibold text-nowrap px-3 shadow-sm"
+              style={{ borderRadius: '8px', minHeight: '42px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '19px' }}>
+                post_add
+              </span>
+              <span>Direct Upload for Barangay</span>
+            </Button>
           </div>
 
           {/* Row 2: Barangays & Document Types dropdowns side-by-side */}
@@ -518,6 +533,15 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
         confirmLabel="Confirm Deny"
         confirmVariant="danger"
         loading={isProcessing}
+      />
+
+      {/* Admin Direct Upload / Physical Intake Modal */}
+      <AdminDirectUploadModal
+        show={showDirectUploadModal}
+        onHide={() => setShowDirectUploadModal(false)}
+        onSuccess={() => {
+          refreshHistory();
+        }}
       />
     </>
   );

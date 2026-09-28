@@ -34,6 +34,10 @@ export {
   onSubmissionCreated 
 } from './submissions';
 
+export {
+  adminDirectUpload
+} from './adminSubmissions';
+
 export { 
   pruneExpiredNotifications 
 } from './notifications';
