@@ -3399,7 +3399,8 @@ textarea.form-control {
   color: #FFFFFF;
 }
 
-.leaderboard-table-card {
+.leaderboard-table-card,
+.directory-table-card {
   background: #FFFFFF;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -3407,12 +3408,48 @@ textarea.form-control {
   overflow: hidden;
 }
 
-.leaderboard-table-header {
+.directory-scroll-container {
+  max-height: 440px;
+  overflow-y: auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F8FAFC;
+}
+
+.directory-scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.directory-scroll-container::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+.directory-scroll-container::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+.directory-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.leaderboard-table-header,
+.directory-table-header {
   background: #F1F5F9;
   border-bottom: 2px solid #E2E8F0;
 }
 
-.leaderboard-table-header th {
+.directory-table-header th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #F1F5F9 !important;
+  box-shadow: inset 0 -2px 0 #E2E8F0;
+}
+
+.leaderboard-table-header th,
+.directory-table-header th {
   padding: 16px 20px !important;
   font-family: var(--font-headline) !important;
   font-size: 11.5px !important;
@@ -3423,17 +3460,47 @@ textarea.form-control {
   border-bottom: none !important;
 }
 
-.leaderboard-table-row {
+.directory-sortable-th {
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.directory-sortable-th:hover {
+  background-color: #E2E8F0 !important;
+  color: #006EB7 !important;
+}
+
+.directory-th-sort-icon {
+  font-size: 18px !important;
+  vertical-align: middle;
+  color: #64748B;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.directory-sortable-th:hover .directory-th-sort-icon {
+  color: #006EB7;
+}
+
+.leaderboard-table-row,
+.directory-table-row {
   border-bottom: 1px solid #F1F5F9;
   transition: all 0.2s ease;
 }
 
-.leaderboard-table-row:hover {
+.leaderboard-table-row:hover,
+.directory-table-row:hover {
   background-color: rgba(0, 110, 183, 0.04) !important;
 }
 
-.leaderboard-table-row td {
+.leaderboard-table-row td,
+.directory-table-row td {
   padding: 16px 20px !important;
+}
+
+.btn-segmented.active-preset {
+  background-color: #006EB7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 110, 183, 0.35);
 }
 
 .rank-badge-standard {
