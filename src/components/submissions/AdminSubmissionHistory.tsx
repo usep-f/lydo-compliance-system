@@ -117,7 +117,7 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
         const computedStatus = sub.status || (sub.approvedAt ? 'approved' : 'denied');
         return (
           <Badge bg={computedStatus === 'approved' ? 'success' : 'danger'} text="white" className="px-2 py-1">
-            {computedStatus.toUpperCase()}
+            {computedStatus === 'approved' ? 'APPROVED' : 'DISAPPROVED'}
           </Badge>
         );
       },
@@ -269,7 +269,7 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
 
             <div className="mb-3">
               <div className="overline-text text-muted mb-1">
-                {selectedSub?.status === 'approved' ? 'Date Approved' : 'Date Denied'}
+                {selectedSub?.status === 'approved' ? 'Date Approved' : 'Date Disapproved'}
               </div>
               <div className="body-text text-dark fw-semibold">
                 {selectedSub?.status === 'approved' && selectedSub?.approvedAt?.toDate
@@ -282,7 +282,7 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
 
             {selectedSub?.status === 'denied' && (selectedSub.reviewNotes || selectedSub.denialCategory) && (
               <div className="mb-3">
-                <div className="overline-text text-danger mb-1">Denial Reason &amp; Feedback</div>
+                <div className="overline-text text-danger mb-1">Disapproval Remarks &amp; Resubmission Feedback</div>
                 <div className="p-2 bg-danger bg-opacity-10 rounded border border-danger border-opacity-25">
                   {selectedSub.denialCategory && (
                     <div className="mb-1">
@@ -312,7 +312,7 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
                 </div>
                 {selectedSub?.status === 'denied' && (
                   <div className="text-danger mt-1 fst-italic">
-                    File was deleted to save space.
+                    Original file was removed. Please prepare a corrected document for resubmission.
                   </div>
                 )}
               </div>

@@ -183,7 +183,7 @@ export const renderComplianceRadialGauge = (
       pct: Math.min(100, Math.round((overdueCount / Math.max(1, totalExpected)) * 100)),
     },
     {
-      label: 'Returned / Denied for Correction',
+      label: 'Disapproved / For Resubmission',
       count: `${deniedCount} Filings`,
       share: 'Deficiencies logged; action required by SK officials',
       color: '#64748B',
@@ -560,7 +560,7 @@ export const renderDenialInfographic = (
     ctx.fillText('100%', donutCenterX, donutCenterY - 16);
     ctx.fillStyle = CHART_THEME.slate700;
     ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('ZERO REJECTIONS', donutCenterX, donutCenterY + 32);
+    ctx.fillText('ZERO DISAPPROVALS', donutCenterX, donutCenterY + 32);
   } else {
     // Draw Segmented Arcs
     let currentAngle = -Math.PI / 2;
@@ -590,7 +590,7 @@ export const renderDenialInfographic = (
 
     ctx.fillStyle = '#BE123C';
     ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('DENIAL AUDIT', donutCenterX, pillY + pillH / 2 + 1);
+    ctx.fillText('DISAPPROVAL AUDIT', donutCenterX, pillY + pillH / 2 + 1);
   }
 
   // Right Side Deficiency Meters

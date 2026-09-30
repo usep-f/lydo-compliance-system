@@ -142,15 +142,15 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
     }
   };
 
-  // Deny handler
+  // Disapprove handler
   const handleDeny = async () => {
     if (!selectedSub) return;
     if (!denyCategory) {
-      addToast('Please select a denial category.', 'warning');
+      addToast('Please select a disapproval category.', 'warning');
       return;
     }
     if (!denyReason.trim()) {
-      addToast('Please provide an explanation for denial.', 'warning');
+      addToast('Please provide an explanation for disapproval.', 'warning');
       return;
     }
     setIsProcessing(true);
@@ -161,13 +161,13 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
         reason: denyReason.trim(),
         category: denyCategory,
       });
-      addToast('Submission denied and notification sent.', 'info');
+      addToast('Submission disapproved and notification sent.', 'info');
       await refreshHistory();
       setShowDenyConfirm(false);
       closeReview();
     } catch (error: unknown) {
       console.error(error);
-      addToast(`Denial failed: ${(error as Error).message}`, 'error');
+      addToast(`Disapproval failed: ${(error as Error).message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -398,13 +398,13 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
                 <span className="material-symbols-outlined text-danger" style={{ fontSize: '20px' }}>
                   cancel
                 </span>
-                <h6 className="text-danger fw-bold mb-0">Denial Details</h6>
+                <h6 className="text-danger fw-bold mb-0">Disapproval Details</h6>
               </div>
 
-              {/* Standardized Denial Reason Category */}
+              {/* Standardized Disapproval Reason Category */}
               <div className="mb-3">
                 <label className="form-label small fw-bold text-muted text-uppercase mb-1" style={{ letterSpacing: '0.04em', fontSize: '11px' }}>
-                  Reason Category <span className="text-danger">*</span>
+                  Disapproval Category <span className="text-danger">*</span>
                 </label>
                 <Form.Select
                   value={denyCategory}
@@ -412,7 +412,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
                   className="form-select-sm"
                   style={{ borderRadius: '8px', fontSize: '13px' }}
                 >
-                  <option value="">-- Select a Reason Category --</option>
+                  <option value="">-- Select a Disapproval Category --</option>
                   {DENIAL_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -453,18 +453,18 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
                   className="flex-fill d-inline-flex align-items-center justify-content-center gap-1"
                   onClick={() => {
                     if (!denyCategory) {
-                      addToast('Please select a denial category.', 'warning');
+                      addToast('Please select a disapproval category.', 'warning');
                       return;
                     }
                     if (!denyReason.trim()) {
-                      addToast('Please provide an explanation for the denial.', 'warning');
+                      addToast('Please provide an explanation for the disapproval.', 'warning');
                       return;
                     }
                     setShowDenyConfirm(true);
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check</span>
-                  Proceed with Denial
+                  Proceed with Disapproval
                 </Button>
               </div>
             </div>
@@ -502,15 +502,15 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
         loading={isProcessing}
       />
 
-      {/* Deny Confirmation */}
+      {/* Disapprove Confirmation */}
       <ConfirmDialog
         show={showDenyConfirm}
         onCancel={() => setShowDenyConfirm(false)}
         onConfirm={handleDeny}
-        title="Deny Submission"
+        title="Disapprove Submission"
         message={
           <>
-            You are about to deny <strong>{selectedSub?.fullName}</strong>'s submission.
+            You are about to disapprove <strong>{selectedSub?.fullName}</strong>'s submission.
           </>
         }
         detail={
@@ -529,8 +529,8 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
             </div>
           </>
         }
-        warning="This will mark the submission as denied, safely delete the file, and notify the official via email and in-app alert."
-        confirmLabel="Confirm Deny"
+        warning="This will mark the submission as disapproved, safely remove the preliminary file, and notify the official to resubmit."
+        confirmLabel="Confirm Disapproval"
         confirmVariant="danger"
         loading={isProcessing}
       />

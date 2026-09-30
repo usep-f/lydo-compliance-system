@@ -298,7 +298,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
       color: '#EF4444',
       isStriped: true,
     },
-    { label: 'Denied',         value: deniedPct,              color: '#18181B' },
+    { label: 'Disapproved',     value: deniedPct,              color: '#18181B' },
   ], [compliance.overallRate, pendingPct, deniedPct]);
 
   // Sorted ranking list controlled by the sort direction toggle

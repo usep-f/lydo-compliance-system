@@ -289,7 +289,7 @@ const ScopeFilterCard: React.FC<{
               <option value="all">All Statuses</option>
               <option value="approved">Approved Only</option>
               <option value="pending">Pending Only</option>
-              <option value="denied">Denied Only</option>
+              <option value="denied">Disapproved Only</option>
             </Form.Select>
           </Form.Group>
         </Col>

@@ -22,7 +22,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
 
   // Compute directory dataset across all 33 barangays with search & sorting
   const processedDataset = useMemo(() => {
-    let dataset: { barangay: string; rate: number }[] = [];
+    let dataset: { barangay: string; rate: number }[];
 
     if (analytics && analytics.barangayRanking && analytics.barangayRanking.length > 0) {
       dataset = analytics.barangayRanking.map(b => ({

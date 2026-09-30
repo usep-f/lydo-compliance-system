@@ -136,7 +136,7 @@ const buildAllBarangaysRows = (
     rows.push(
       '',
       escapeCsv('--- MUNICIPAL PERENNIAL CATEGORY TOTALS ---'),
-      ['Category / Document', 'Approved', 'Pending', 'Denied', 'Total Submitted'].map(escapeCsv).join(','),
+      ['Category / Document', 'Approved', 'Pending', 'Disapproved', 'Total Submitted'].map(escapeCsv).join(','),
       [
         'Resolutions',
         String(overall.totalResolutionsApproved ?? overall.totalResolutions ?? 0),
@@ -193,7 +193,7 @@ const buildSingleBarangayRows = (
   rows.push(
     '',
     escapeCsv('--- PERENNIAL COUNTS & CATEGORY BREAKDOWN ---'),
-    ['Metric / Category', 'Approved', 'Pending', 'Denied', 'Total Submitted'].map(escapeCsv).join(',')
+    ['Metric / Category', 'Approved', 'Pending', 'Disapproved', 'Total Submitted'].map(escapeCsv).join(',')
   );
 
   const summary = compliance.barangayPerennialSummary.find(
@@ -258,7 +258,8 @@ const buildSubmissionCsvRow = (
   const reviewNotes = hist?.reviewNotes || '';
 
   const anySub = s as unknown as { status?: string; approvedAt?: unknown; deniedAt?: unknown };
-  const rawStatus = anySub.status || (anySub.approvedAt ? 'approved' : anySub.deniedAt ? 'denied' : 'pending');
+  const rawStatus = anySub.status || (anySub.approvedAt ? 'approved' : anySub.deniedAt ? 'disapproved' : 'pending');
+  const statusDisplay = rawStatus === 'denied' ? 'disapproved' : rawStatus;
 
   return [
     s.id,
@@ -267,7 +268,7 @@ const buildSubmissionCsvRow = (
     s.documentLabel,
     s.period,
     String(s.year),
-    rawStatus,
+    statusDisplay,
     submittedAt,
     processedAt,
     processedBy,
@@ -292,8 +293,8 @@ export const exportFilteredSubmissionsCsv = (
     'Submitted At',
     'Processed At',
     'Processed By',
-    'Denial Category',
-    'Review Notes / Denial Reason',
+    'Disapproval Category',
+    'Review Notes / Disapproval Reason',
   ].map(escapeCsv).join(',');
 
   const rows = [headers, ...submissions.map(buildSubmissionCsvRow)];

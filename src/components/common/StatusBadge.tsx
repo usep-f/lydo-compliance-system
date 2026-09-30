@@ -20,7 +20,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   } else if (s === 'revision_requested' || s === 'revision') {
     bg = '#EFF6FF'; color = '#2563EB'; border = '#BFDBFE'; dot = '#3B82F6'; label = 'Revision Requested';
   } else if (s === 'denied' || s === 'rejected' || s === 'disapproved') {
-    bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA'; dot = '#EF4444'; label = s === 'disapproved' ? 'Disapproved' : 'Denied';
+    bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA'; dot = '#EF4444'; label = 'Disapproved';
   }
 
   return (

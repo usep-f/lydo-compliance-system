@@ -155,9 +155,9 @@ export const generateFormalPdfReport = async (options: PdfReportOptions): Promis
       heightPt: 270,
     });
 
-    // 4. Categorical Denial & Deficiency Audit Infographic
+    // 4. Categorical Disapproval & Deficiency Audit Infographic
     figures.push({
-      title: 'Categorical Denial Reason Share',
+      title: 'Categorical Disapproval Reason Share',
       dataUrl: renderDenialInfographic(options.compliance.denialReasonShare, totalDenied),
       heightPt: 270,
     });

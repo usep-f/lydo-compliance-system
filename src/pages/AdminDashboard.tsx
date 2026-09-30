@@ -169,7 +169,7 @@ export default function AdminDashboard() {
         color: '#EF4444',
         isStriped: true,
       },
-      { label: 'Denied',         value: deniedPct,              color: '#18181B' },
+      { label: 'Disapproved',     value: deniedPct,              color: '#18181B' },
     ];
   }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length, historySubs, currentYear]);
 
@@ -1238,7 +1238,7 @@ export default function AdminDashboard() {
                             ) : item.status === 'approved' ? (
                               <span className="matrix-chip matrix-chip-compliant">Approved</span>
                             ) : (
-                              <span className="matrix-chip matrix-chip-missing">Denied</span>
+                              <span className="matrix-chip matrix-chip-missing">Disapproved</span>
                             )}
                             <button
                               type="button"
