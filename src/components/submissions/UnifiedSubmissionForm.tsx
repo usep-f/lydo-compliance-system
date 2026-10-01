@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import {
-  SCHEDULED_TYPES,
-  ASAP_TYPES,
+  BASE_DOCUMENT_TYPES,
   ACCOMPLISHMENT_CATEGORIES,
   ALL_UPLOAD_TYPES,
 } from '../../constants/submissionTypes';
@@ -29,14 +28,6 @@ interface UnifiedSubmissionFormProps {
     screening: PdfScreeningResult;
   }) => void;
 }
-
-// Generate the high-level document types for the first dropdown
-const BASE_DOCUMENT_TYPES = [
-  ...SCHEDULED_TYPES,
-  ...ASAP_TYPES,
-  { id: 'resolutions', label: 'Resolutions', category: 'perennial' as const },
-  { id: 'accomplishment_report', label: 'Accomplishment Report', category: 'perennial' as const },
-];
 
 const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({ 
   currentYear, 

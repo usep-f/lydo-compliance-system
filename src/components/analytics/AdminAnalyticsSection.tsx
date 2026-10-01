@@ -298,7 +298,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
       color: '#EF4444',
       isStriped: true,
     },
-    { label: 'Denied',         value: deniedPct,              color: '#18181B' },
+    { label: 'Disapproved',     value: deniedPct,              color: '#18181B' },
   ], [compliance.overallRate, pendingPct, deniedPct]);
 
   // Sorted ranking list controlled by the sort direction toggle
@@ -651,7 +651,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           <DenialBreakdownPie
             shares={compliance.denialReasonShare}
             totalDenied={deniedCount}
-            subtitle={selectedBarangay ? `Distribution — ${selectedBarangay}` : "Municipal distribution across all barangays"}
+            subtitle={selectedBarangay ? `Distribution — ${selectedBarangay}` : "City-wide distribution across all barangays"}
           />
         </Col>
       </Row>
@@ -683,7 +683,7 @@ const AdminAnalyticsSection: React.FC<AdminAnalyticsSectionProps> = ({
           <AccomplishmentBreakdownPie
             shares={compliance.accomplishmentApprovalShare}
             totalApproved={totalAccApproved}
-            subtitle={selectedBarangay ? `${selectedBarangay}` : 'Municipal Distribution'}
+            subtitle={selectedBarangay ? `${selectedBarangay}` : 'City-wide Distribution'}
           />
         </Col>
       </Row>

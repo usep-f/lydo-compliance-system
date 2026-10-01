@@ -7,7 +7,7 @@ export default function RegistrationSuccessPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "LYDO | Registration Success";
+    document.title = "Lucena LYDO | Registration Success";
   }, []);
 
   return (
@@ -23,7 +23,7 @@ export default function RegistrationSuccessPage() {
                 className="transition-all"
               />
               <h2 className="text-primary fw-bold headline-text" style={{ letterSpacing: '-0.02em' }}>
-                Lydo Compliance
+                Lucena LYDO
               </h2>
             </div>
 

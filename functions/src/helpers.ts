@@ -97,7 +97,7 @@ export async function sendEmailViaBrevo(
       },
       body: JSON.stringify({
         sender: {
-          name: 'Lydo Compliance',
+          name: 'Lucena LYDO',
           email: senderEmail,
         },
         to: [{ email: toEmail, name: toName }],

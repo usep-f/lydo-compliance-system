@@ -200,7 +200,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           {showText && (
             <div className="sidebar-text-fade-in" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
               <h4 className="m-0">{title}</h4>
-              <span className="sidebar-brand-tagline">Compliance System</span>
+              <span className="sidebar-brand-tagline">Lucena LYDO</span>
             </div>
           )}
         </div>

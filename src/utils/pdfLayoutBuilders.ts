@@ -199,7 +199,7 @@ export const drawKpiScorecard = (
   const cardH = 44;
 
   let x = marginLeft;
-  drawExecutiveKpiCard(doc, x, startY, cardW, cardH, 'Overall Compliance', rateStr, 'Municipal statutory rate', [37, 99, 235]);
+  drawExecutiveKpiCard(doc, x, startY, cardW, cardH, 'Overall Compliance', rateStr, 'City statutory rate', [37, 99, 235]);
   x += cardW + gap;
 
   drawExecutiveKpiCard(
@@ -421,13 +421,13 @@ export const buildAuditDossierLayout = (doc: jsPDF, options: PdfReportOptions): 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
       doc.setTextColor(159, 18, 57);
-      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (MUNICIPAL AUDIT FINDING):', MARGIN_LEFT + 10, y + 10);
+      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (CITY AUDIT FINDING):', MARGIN_LEFT + 10, y + 10);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(...COLORS.darkSlate);
       doc.text(
-        `Leading cause of rejection across filings: "${topDenial.label}" accounting for ${topDenial.percentage}% of all denials (${topDenial.count} filings returned).`,
+        `Leading cause of disapproval across filings: "${topDenial.label}" accounting for ${topDenial.percentage}% of all filings returned for resubmission.`,
         MARGIN_LEFT + 10,
         y + 20
       );
@@ -435,12 +435,12 @@ export const buildAuditDossierLayout = (doc: jsPDF, options: PdfReportOptions): 
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // PAGE 2: CATEGORICAL DOCUMENT BREAKDOWN & DENIAL AUDIT
+  // PAGE 2: CATEGORICAL DOCUMENT BREAKDOWN & DISAPPROVAL AUDIT
   // ═════════════════════════════════════════════════════════════════════════
   if (options.sections.charts && (chartDocType || chartDenial)) {
     doc.addPage();
     y = 30;
-    y = drawSectionHeader(doc, y, 'III', 'Document Type Compliance & Rejection Audit', MARGIN_LEFT, PRINTABLE_WIDTH);
+    y = drawSectionHeader(doc, y, 'III', 'Document Type Compliance & Disapproval Audit', MARGIN_LEFT, PRINTABLE_WIDTH);
 
     const cardH = 270;
     if (chartDocType && chartDenial) {
@@ -460,15 +460,15 @@ export const buildAuditDossierLayout = (doc: jsPDF, options: PdfReportOptions): 
         y,
         halfW,
         cardH,
-        'Categorical Denial Reason Share',
+        'Categorical Disapproval Reason Share',
         chartDenial.dataUrl
       );
 
       y += cardH + 12;
     }
 
-    // Denial Breakdown Data Table
-    y = drawSectionHeader(doc, y, 'III.A', 'Categorical Rejection Register & Deficiency Log', MARGIN_LEFT, PRINTABLE_WIDTH);
+    // Disapproval Breakdown Data Table
+    y = drawSectionHeader(doc, y, 'III.A', 'Categorical Disapproval Register & Deficiency Log', MARGIN_LEFT, PRINTABLE_WIDTH);
     drawDenialBreakdownTable(doc, y, options.compliance.denialReasonShare, totalDenied, MARGIN_LEFT, PRINTABLE_WIDTH);
   }
 
@@ -624,13 +624,13 @@ export const buildExecutiveBriefLayout = (doc: jsPDF, options: PdfReportOptions)
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(159, 18, 57);
-      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (MUNICIPAL AUDIT FINDING):', MARGIN_LEFT + 12, y + 11);
+      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (CITY AUDIT FINDING):', MARGIN_LEFT + 12, y + 11);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(...COLORS.darkSlate);
       doc.text(
-        `Leading cause of rejection across filings: "${topDenial.label}" accounting for ${topDenial.percentage}% of all denials (${topDenial.count} filings returned).`,
+        `Leading cause of disapproval across filings: "${topDenial.label}" accounting for ${topDenial.percentage}% of all filings returned for resubmission.`,
         MARGIN_LEFT + 12,
         y + 22
       );
@@ -641,7 +641,7 @@ export const buildExecutiveBriefLayout = (doc: jsPDF, options: PdfReportOptions)
   if (options.sections.charts && (chartDocType || chartDenial)) {
     doc.addPage();
     y = 36;
-    y = drawSectionHeader(doc, y, 'III', 'Document Type Compliance & Rejection Audit', MARGIN_LEFT, PRINTABLE_WIDTH);
+    y = drawSectionHeader(doc, y, 'III', 'Document Type Compliance & Disapproval Audit', MARGIN_LEFT, PRINTABLE_WIDTH);
 
     const rowH = 240;
     const halfW = (PRINTABLE_WIDTH - 12) / 2;
@@ -663,14 +663,14 @@ export const buildExecutiveBriefLayout = (doc: jsPDF, options: PdfReportOptions)
         y,
         halfW,
         rowH,
-        'Categorical Denial Reason Share',
+        'Categorical Disapproval Reason Share',
         chartDenial.dataUrl
       );
 
       y += rowH + 12;
     }
 
-    y = drawSectionHeader(doc, y, 'III.A', 'Categorical Rejection Register & Deficiency Log', MARGIN_LEFT, PRINTABLE_WIDTH);
+    y = drawSectionHeader(doc, y, 'III.A', 'Categorical Disapproval Register & Deficiency Log', MARGIN_LEFT, PRINTABLE_WIDTH);
     drawDenialBreakdownTable(doc, y, options.compliance.denialReasonShare, totalDenied, MARGIN_LEFT, PRINTABLE_WIDTH);
   }
 

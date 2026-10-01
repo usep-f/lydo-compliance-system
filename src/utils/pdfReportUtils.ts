@@ -155,9 +155,9 @@ export const generateFormalPdfReport = async (options: PdfReportOptions): Promis
       heightPt: 270,
     });
 
-    // 4. Categorical Denial & Deficiency Audit Infographic
+    // 4. Categorical Disapproval & Deficiency Audit Infographic
     figures.push({
-      title: 'Categorical Denial Reason Share',
+      title: 'Categorical Disapproval Reason Share',
       dataUrl: renderDenialInfographic(options.compliance.denialReasonShare, totalDenied),
       heightPt: 270,
     });
@@ -218,5 +218,5 @@ export const generateFormalPdfReport = async (options: PdfReportOptions): Promis
   const dateTag = new Date().toISOString().split('T')[0];
   const profileTag = profile === 'dossier' ? 'Audit_Dossier' : 'Executive_Report';
 
-  doc.save(`LYDO_${profileTag}_${scopeTag}_CY${options.year}_${dateTag}.pdf`);
+  doc.save(`Lucena_LYDO_${profileTag}_${scopeTag}_CY${options.year}_${dateTag}.pdf`);
 };

@@ -10,41 +10,64 @@ interface HomeLeaderboardProps {
   userBarangay?: string | null;
 }
 
+type SortField = 'name' | 'rate';
+type SortDirection = 'asc' | 'desc';
+
 export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loading, userBarangay }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'top' | 'bottom'>('top');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Compute leaderboard dataset
-  const leaderboardDataset = useMemo(() => {
+  // Compute directory dataset across all 33 barangays with search & sorting
+  const processedDataset = useMemo(() => {
+    let dataset: { barangay: string; rate: number }[];
+
     if (analytics && analytics.barangayRanking && analytics.barangayRanking.length > 0) {
-      return analytics.barangayRanking.map(b => ({
+      dataset = analytics.barangayRanking.map(b => ({
         barangay: b.barangay,
         rate: b.complianceRate
       }));
+    } else {
+      // Fallback: list all 33 barangays so table is never empty/broken
+      dataset = BARANGAYS.map(b => ({
+        barangay: b,
+        rate: 0
+      }));
     }
-    // Fallback: list all 33 barangays so table is never empty/broken
-    return BARANGAYS.map(b => ({
-      barangay: b,
-      rate: 0
-    }));
-  }, [analytics]);
 
-  // Filtered leaderboard list based on search query and Top 5 / Bottom 5 filters
-  const filteredDataset = useMemo(() => {
+    // Filter by search query
     if (searchTerm.trim() !== '') {
-      return leaderboardDataset.filter(item => 
-        item.barangay.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase().trim();
+      dataset = dataset.filter(item => 
+        item.barangay.toLowerCase().includes(term)
       );
     }
-    if (filterType === 'top') {
-      return leaderboardDataset.slice(0, 5);
+
+    // Sort dataset with stable alphabetical tie-breaker
+    return [...dataset].sort((a, b) => {
+      if (sortField === 'name') {
+        const cmp = a.barangay.localeCompare(b.barangay);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      } else {
+        const rateDiff = sortDirection === 'desc' ? b.rate - a.rate : a.rate - b.rate;
+        if (rateDiff !== 0) return rateDiff;
+        return a.barangay.localeCompare(b.barangay);
+      }
+    });
+  }, [analytics, searchTerm, sortField, sortDirection]);
+
+  // Handle clicking column headers to toggle sort
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
-      const bottomFive = leaderboardDataset.slice(-5);
-      return [...bottomFive].reverse();
+      setSortField(field);
+      // Default to ascending for alphabetical name, descending for compliance rate
+      setSortDirection(field === 'name' ? 'asc' : 'desc');
     }
-  }, [leaderboardDataset, searchTerm, filterType]);
+  };
 
   // Open checklist detail modal for a Barangay
   const handleOpenDetail = (barangay: string) => {
@@ -63,7 +86,6 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
     const asap: { docType: string; label: string; status: string }[] = [];
 
     if (breakdown && breakdown.checklist) {
-      // Parse checklist keys
       Object.entries(breakdown.checklist).forEach(([key, status]) => {
         if (key.endsWith('_ASAP')) {
           const docType = key.replace('_ASAP', '');
@@ -73,7 +95,6 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
             status: status === 'compliant' ? 'approved' : 'missing'
           });
         } else {
-          // Scheduled
           const lastUnderscore = key.lastIndexOf('_');
           const docType = key.substring(0, lastUnderscore);
           const period = key.substring(lastUnderscore + 1);
@@ -93,7 +114,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
       scheduled,
       asap,
       perennial: {
-        resolutions: 0, // Not tracked in public analytics
+        resolutions: 0,
         accomplishments: 0
       }
     };
@@ -121,8 +142,16 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
     }
   };
 
+  // Quick preset pills active checkers
+  const isAZActive = sortField === 'name' && sortDirection === 'asc';
+  const isHighestActive = sortField === 'rate' && sortDirection === 'desc';
+  const isLowestActive = sortField === 'rate' && sortDirection === 'asc';
+
   return (
-    <section id="leaderboard" className="home-leaderboard-section bg-grid-dark position-relative overflow-hidden">
+    <section id="directory" className="home-leaderboard-section bg-grid-dark position-relative overflow-hidden">
+      {/* Anchor alias for backward compatibility */}
+      <span id="leaderboard" className="position-absolute" style={{ top: 0 }} />
+
       {/* 1. Subtle Masked Texture Overlay */}
       <div className="section-masked-texture" />
 
@@ -160,18 +189,19 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
 
       <Container className="position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
-        <div className="text-center mb-3 pb-1 sr-heading">
+        <div className="text-center mb-4 pb-1 sr-heading">
           <div className="home-section-overline" style={{ justifyContent: 'center', color: '#FBA100' }}>
             Civic Transparency
           </div>
-          <h2 className="home-section-title home-section-title-white mb-2">Barangay Compliance Leaderboard</h2>
+          <h2 className="home-section-title home-section-title-white mb-2">Barangay Compliance Directory</h2>
           <p className="home-section-subtitle home-section-subtitle-muted">
-            Search and examine the active compliance rankings and submission checklists of individual Barangay SK branches.
+            Search, filter, and examine active compliance checklists and submission statuses across all 33 Barangay SK branches.
           </p>
         </div>
 
-        {/* Directory Filters */}
+        {/* Directory Filters & Preset Controls */}
         <Row className="mb-3 pb-1 align-items-center justify-content-between g-3 sr-item">
+          {/* Search Input */}
           <Col md={6} lg={5}>
             <div className="d-flex flex-column gap-2">
               <div className="home-search-pill">
@@ -191,6 +221,7 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
                     onClick={() => setSearchTerm('')} 
                     className="btn btn-link p-0 text-secondary d-flex align-items-center justify-content-center ms-2 text-decoration-none"
                     style={{ border: 'none', background: 'transparent' }}
+                    title="Clear search"
                   >
                     <span className="material-symbols-outlined fs-5">close</span>
                   </button>
@@ -211,120 +242,173 @@ export const HomeLeaderboard: React.FC<HomeLeaderboardProps> = ({ analytics, loa
               )}
             </div>
           </Col>
-          <Col md={5} lg={4} className="d-flex justify-content-md-end align-items-center">
-            {searchTerm.trim() !== '' ? (
-              <div className="text-white-50 small fw-semibold d-flex align-items-center gap-1">
-                <span className="material-symbols-outlined fs-5">search</span>
-                <span>Search Results ({filteredDataset.length} found)</span>
-              </div>
-            ) : (
-              <div className="segmented-control shadow-sm">
+
+          {/* Quick Preset Sort Controls */}
+          <Col md={6} lg={6} className="d-flex justify-content-md-end align-items-center">
+            <div className="d-flex align-items-center gap-2 flex-wrap justify-content-md-end">
+              {searchTerm.trim() !== '' && (
+                <Badge bg="dark" className="px-2.5 py-1.5 text-white-50 fw-normal border border-secondary border-opacity-25 me-1">
+                  {processedDataset.length} of 33 found
+                </Badge>
+              )}
+              <div className="segmented-control directory-segmented-control shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setFilterType('top')}
-                  className={`btn-segmented ${filterType === 'top' ? 'active-top' : ''}`}
+                  onClick={() => { setSortField('name'); setSortDirection('asc'); }}
+                  className={`btn-segmented ${isAZActive ? 'active-preset' : ''}`}
+                  title="Sort Alphabetically A to Z"
+                >
+                  <span className="material-symbols-outlined fs-5">sort_by_alpha</span>
+                  <span>A–Z</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSortField('rate'); setSortDirection('desc'); }}
+                  className={`btn-segmented ${isHighestActive ? 'active-preset' : ''}`}
+                  title="Sort Highest Compliance First"
                 >
                   <span className="material-symbols-outlined fs-5">trending_up</span>
-                  <span>Top 5 Compliant</span>
+                  <span>Highest First</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFilterType('bottom')}
-                  className={`btn-segmented ${filterType === 'bottom' ? 'active-bottom' : ''}`}
+                  onClick={() => { setSortField('rate'); setSortDirection('asc'); }}
+                  className={`btn-segmented ${isLowestActive ? 'active-preset' : ''}`}
+                  title="Sort Lowest Compliance First"
                 >
                   <span className="material-symbols-outlined fs-5">trending_down</span>
-                  <span>Least Compliant</span>
+                  <span>Lowest First</span>
                 </button>
               </div>
-            )}
+            </div>
           </Col>
         </Row>
 
-        {/* Leaderboard Table View */}
-        <div className="table-responsive leaderboard-table-card sr-item">
-          <Table hover className="mb-0 align-middle">
-            <thead className="leaderboard-table-header">
-              <tr>
-                <th style={{ width: '80px' }} className="text-center">Rank</th>
-                <th>Barangay Name</th>
-                <th style={{ width: '180px' }} className="text-center">Compliance Rate</th>
-                <th style={{ width: '160px' }} className="text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (!analytics || !analytics.barangayRanking) ? (
+        {/* Directory Scrollable Table View */}
+        <div className="directory-table-card sr-item">
+          <div className="directory-scroll-container">
+            <Table hover className="mb-0 align-middle directory-table">
+              <thead className="directory-table-header">
                 <tr>
-                  <td colSpan={4} className="text-center py-5 text-muted">
-                    <Spinner animation="border" variant="primary" size="sm" className="me-2" />
-                    <span>Loading compliance rankings...</span>
-                  </td>
-                </tr>
-              ) : filteredDataset.length > 0 ? (
-                filteredDataset.map((item) => {
-                  const originalIndex = leaderboardDataset.findIndex(r => r.barangay === item.barangay) + 1;
-                  const isUserBrgy = item.barangay === userBarangay;
-                  return (
-                    <tr 
-                      key={item.barangay} 
-                      className="leaderboard-table-row"
-                      style={isUserBrgy ? { backgroundColor: 'rgba(0, 110, 183, 0.08)', borderLeft: '4px solid var(--primary, #006EB7)' } : undefined}
-                    >
-                      <td className="text-center fw-bold text-secondary">
-                        {originalIndex === 1 ? (
-                          <span className="badge rank-badge-gold rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
-                        ) : originalIndex === 2 ? (
-                          <span className="badge rank-badge-silver rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
-                        ) : originalIndex === 3 ? (
-                          <span className="badge rank-badge-bronze rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-                        ) : (
-                          <span className="badge rank-badge-standard rounded-circle p-2" style={{ width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {originalIndex}
-                          </span>
-                        )}
-                      </td>
-                      <td className="fw-bold text-dark">
-                        <div className="d-flex align-items-center gap-2">
-                          <span>{item.barangay}</span>
-                          {isUserBrgy && (
-                            <Badge bg="primary" className="text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
-                              Your Barangay
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-center">
-                        <Badge className={`${getBadgeColor(item.rate)} px-3 py-1.5 text-uppercase fw-bold`} style={{ fontSize: '11.5px', letterSpacing: '0.03em' }}>
-                          {item.rate}%
-                        </Badge>
-                      </td>
-                      <td className="text-center">
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm" 
-                          className="rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5"
-                          onClick={() => handleOpenDetail(item.barangay)}
-                        >
-                          <span className="material-symbols-outlined fs-6">find_in_page</span>
-                          <span>Verify Stats</span>
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={4} className="text-center py-5 text-muted">
-                    <span className="material-symbols-outlined fs-1 text-secondary mb-2">search_off</span>
-                    <div>
-                      {searchTerm.trim() !== '' 
-                        ? `No barangays match "${searchTerm}"` 
-                        : 'No compliance records available'}
+                  <th 
+                    className="directory-sortable-th ps-4" 
+                    onClick={() => handleSort('name')} 
+                    role="button" 
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSort('name'); }}
+                    title="Click to toggle alphabetical sort"
+                  >
+                    <div className="d-flex align-items-center gap-1.5 user-select-none">
+                      <span>Barangay Name</span>
+                      <span className="material-symbols-outlined directory-th-sort-icon">
+                        {sortField === 'name' 
+                          ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') 
+                          : 'unfold_more'}
+                      </span>
                     </div>
-                  </td>
+                  </th>
+                  <th 
+                    style={{ width: '220px' }} 
+                    className="text-center directory-sortable-th" 
+                    onClick={() => handleSort('rate')} 
+                    role="button" 
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSort('rate'); }}
+                    title="Click to toggle compliance rate sort"
+                  >
+                    <div className="d-flex align-items-center justify-content-center gap-1.5 user-select-none">
+                      <span>Compliance Rate</span>
+                      <span className="material-symbols-outlined directory-th-sort-icon">
+                        {sortField === 'rate' 
+                          ? (sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward') 
+                          : 'unfold_more'}
+                      </span>
+                    </div>
+                  </th>
+                  <th style={{ width: '170px' }} className="text-center pe-4">
+                    Actions
+                  </th>
                 </tr>
-              )}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {loading && (!analytics || !analytics.barangayRanking) ? (
+                  <tr>
+                    <td colSpan={3} className="text-center py-5 text-muted">
+                      <Spinner animation="border" variant="primary" size="sm" className="me-2" />
+                      <span>Loading compliance directory...</span>
+                    </td>
+                  </tr>
+                ) : processedDataset.length > 0 ? (
+                  processedDataset.map((item) => {
+                    const isUserBrgy = item.barangay === userBarangay;
+                    return (
+                      <tr 
+                        key={item.barangay} 
+                        className="directory-table-row"
+                        style={isUserBrgy ? { backgroundColor: 'rgba(0, 110, 183, 0.08)', borderLeft: '4px solid var(--primary, #006EB7)' } : undefined}
+                      >
+                        <td className="ps-4 fw-bold text-dark">
+                          <div className="d-flex align-items-center gap-2">
+                            <span>{item.barangay}</span>
+                            {isUserBrgy && (
+                              <Badge bg="primary" className="text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                                Your Barangay
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          <Badge className={`${getBadgeColor(item.rate)} px-3 py-1.5 text-uppercase fw-bold`} style={{ fontSize: '11.5px', letterSpacing: '0.03em' }}>
+                            {item.rate}%
+                          </Badge>
+                        </td>
+                        <td className="text-center pe-4">
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            className="rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5"
+                            onClick={() => handleOpenDetail(item.barangay)}
+                          >
+                            <span className="material-symbols-outlined fs-6">find_in_page</span>
+                            <span>Verify Stats</span>
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="text-center py-5 text-muted">
+                      <span className="material-symbols-outlined fs-1 text-secondary mb-2">search_off</span>
+                      <div className="mb-2">
+                        {searchTerm.trim() !== '' 
+                          ? `No barangays match "${searchTerm}"` 
+                          : 'No compliance records available'}
+                      </div>
+                      {searchTerm.trim() !== '' && (
+                        <Button 
+                          variant="outline-secondary" 
+                          size="sm" 
+                          className="rounded-pill px-3"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          Clear Search
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
+          {/* Scroll Footer Indicator */}
+          <div className="directory-table-footer d-flex align-items-center justify-content-between px-4 py-2 bg-light border-top text-muted small">
+            <span>Showing {processedDataset.length} of 33 Barangays</span>
+            <span className="text-secondary d-flex align-items-center gap-1">
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>unfold_more</span>
+              <span>Scroll to view all units</span>
+            </span>
+          </div>
         </div>
 
         {/* Barangay Compliance Detail Modal Popup */}

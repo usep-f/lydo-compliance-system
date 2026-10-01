@@ -424,7 +424,7 @@ export const AccreditationModal: React.FC<AccreditationModalProps> = ({ show, on
             Youth Organization Accreditation Application
           </Modal.Title>
           <p className="text-muted small mb-0 mt-1">
-            Submit your organization credentials for official recognition and deliberation with the Local Youth Development Office.
+            Submit your organization credentials for official recognition and deliberation with the Lucena City Local Youth Development Office (LYDO).
           </p>
         </div>
       </Modal.Header>
@@ -952,7 +952,7 @@ export const AccreditationModal: React.FC<AccreditationModalProps> = ({ show, on
                     onClick={(e) => e.stopPropagation()}
                     label={
                       <span className="small text-secondary" style={{ lineHeight: '1.55' }}>
-                        I hereby certify that all information and documents submitted are true and correct. I consent to the collection and processing of our organization's data by the Local Youth Development Office in compliance with the <strong className="text-dark">Data Privacy Act of 2012 (RA 10173)</strong>.
+                        I hereby certify that all information and documents submitted are true and correct. I consent to the collection and processing of our organization's data by the Lucena City Local Youth Development Office in compliance with the <strong className="text-dark">Data Privacy Act of 2012 (RA 10173)</strong>.
                       </span>
                     }
                   />

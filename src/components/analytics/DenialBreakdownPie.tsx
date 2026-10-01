@@ -22,8 +22,8 @@ interface DenialBreakdownPieProps {
 const DenialBreakdownPie: React.FC<DenialBreakdownPieProps> = ({
   shares,
   totalDenied,
-  title = 'Denial Breakdown',
-  subtitle = 'Category share of denied submissions',
+  title = 'Disapproval Breakdown',
+  subtitle = 'Category share of disapproved submissions',
 }) => {
   const slices: GaugeSlice[] = useMemo(() => {
     return shares
@@ -42,13 +42,13 @@ const DenialBreakdownPie: React.FC<DenialBreakdownPieProps> = ({
         subtitle={subtitle}
         slices={slices}
         centerValue={totalDenied}
-        centerLabel="Denied"
+        centerLabel="Disapproved"
         formatValue={(val) => {
           const num = Number(val);
           const pct = totalDenied > 0 ? Math.round((num / totalDenied) * 100) : 0;
           return `${num} (${pct}%)`;
         }}
-        emptyMessage="No denied submissions recorded for this period."
+        emptyMessage="No disapproved submissions recorded for this period."
         headerClass="chart-header-primary"
         icon="donut_large"
         iconClass="icon-primary"

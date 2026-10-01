@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import {
   collection,
   doc,
@@ -12,6 +12,12 @@ import {
   query,
   Timestamp
 } from 'firebase/firestore';
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject
+} from 'firebase/storage';
 
 export interface Bulletin {
   id: string;
@@ -21,6 +27,8 @@ export interface Bulletin {
   tagColor: string;
   date: Timestamp;
   memoUrl?: string;
+  imageUrl?: string;
+  imagePath?: string;
   createdAt?: Timestamp;
   eventKey?: string;
 }
@@ -71,6 +79,27 @@ export function useCMSData() {
     return unsubscribe;
   }, []);
 
+  // Storage upload helper
+  const uploadBulletinImage = async (file: File): Promise<{ downloadUrl: string; storagePath: string }> => {
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `bulletins/${Date.now()}_${cleanFileName}`;
+    const fileRef = storageRef(storage, filePath);
+    await uploadBytes(fileRef, file);
+    const downloadUrl = await getDownloadURL(fileRef);
+    return { downloadUrl, storagePath: filePath };
+  };
+
+  // Storage delete helper
+  const deleteBulletinImage = async (storagePath: string) => {
+    if (!storagePath) return;
+    try {
+      const fileRef = storageRef(storage, storagePath);
+      await deleteObject(fileRef);
+    } catch (err) {
+      console.warn('Could not delete storage image (might not exist):', err);
+    }
+  };
+
   // Admin mutation helpers
   const addBulletin = async (data: Omit<Bulletin, 'id' | 'createdAt'>) => {
     const coll = collection(db, 'cms_bulletins');
@@ -80,14 +109,20 @@ export function useCMSData() {
     });
   };
 
-  const updateBulletin = async (id: string, data: Partial<Bulletin>) => {
+  const updateBulletin = async (id: string, data: Partial<Bulletin>, oldImagePathToDelete?: string) => {
     const ref = doc(db, 'cms_bulletins', id);
     await updateDoc(ref, data);
+    if (oldImagePathToDelete) {
+      await deleteBulletinImage(oldImagePathToDelete);
+    }
   };
 
-  const deleteBulletin = async (id: string) => {
+  const deleteBulletin = async (id: string, imagePath?: string) => {
     const ref = doc(db, 'cms_bulletins', id);
     await deleteDoc(ref);
+    if (imagePath) {
+      await deleteBulletinImage(imagePath);
+    }
   };
 
   const updateFacebookUrl = async (url: string) => {
@@ -104,6 +139,9 @@ export function useCMSData() {
     addBulletin,
     updateBulletin,
     deleteBulletin,
+    uploadBulletinImage,
+    deleteBulletinImage,
     updateFacebookUrl
   };
 }
+

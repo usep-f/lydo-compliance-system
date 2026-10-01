@@ -97,7 +97,7 @@ export const initiateLogin = functions.https.onCall(async (request) => {
     headerSubtitle: 'Account Security Verification',
     recipientName: safeName,
     bodyHtml: `
-      <p>A sign-in request was initiated for your LYDO Compliance System account. Please use the verification code below to complete your login.</p>
+      <p>A sign-in request was initiated for your Lucena LYDO account. Please use the verification code below to complete your login.</p>
     `,
     otpCode: {
       code,
@@ -237,7 +237,7 @@ export const requestTwoFactorEnrollment = functions.https.onCall(async (request)
     headerSubtitle: 'Two-Factor Authentication Setup',
     recipientName: fullName,
     bodyHtml: `
-      <p>You requested to enable <strong>Two-Factor Authentication (2FA)</strong> for your LYDO Compliance System account.</p>
+      <p>You requested to enable <strong>Two-Factor Authentication (2FA)</strong> for your Lucena LYDO account.</p>
       <p>Please enter the 6-digit confirmation code below to verify your device and complete enrollment.</p>
     `,
     otpCode: {

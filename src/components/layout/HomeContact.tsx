@@ -16,7 +16,7 @@ export const HomeContact: React.FC = () => {
 
     // Simulate network submission
     setTimeout(() => {
-      addToast('Your inquiry has been sent to the LYDO Helpdesk! We will contact you soon.', 'success');
+      addToast('Your inquiry has been sent to the Lucena LYDO Helpdesk! We will contact you soon.', 'success');
       setName('');
       setEmail('');
       setSubject('');
@@ -67,7 +67,7 @@ export const HomeContact: React.FC = () => {
             <div className="p-4 p-lg-5 contact-info-card-dark h-100 d-flex flex-column justify-content-between">
               <div>
                 <h5 className="fw-bold text-white mb-4 font-headline" style={{ fontSize: '18px', letterSpacing: '-0.01em' }}>
-                  Local Youth Development Office
+                  Lucena City Local Youth Development Office
                 </h5>
                 
                 {/* Location */}

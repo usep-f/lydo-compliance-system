@@ -48,13 +48,13 @@ const EducationalMaterialsSection: React.FC<EducationalMaterialsSectionProps> = 
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
               school
             </span>
-            <span>LYDO Knowledge Hub & Resource Center</span>
+            <span>Lucena LYDO Knowledge Hub & Resource Center</span>
           </div>
           <h2 className="fw-bold text-white mb-2" style={{ fontSize: '24px' }}>
             Educational & Governance Materials
           </h2>
           <p className="text-white text-opacity-75 mb-0" style={{ fontSize: '14px', lineHeight: 1.6 }}>
-            Browse policy handbooks, financial guidelines, resolution templates, and training videos curated by the Local Youth Development Office to support your SK governance operations.
+            Browse policy handbooks, financial guidelines, resolution templates, and training videos curated by the Lucena City Local Youth Development Office to support your SK governance operations.
           </p>
         </div>
 

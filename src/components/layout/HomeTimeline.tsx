@@ -13,7 +13,7 @@ export const HomeTimeline: React.FC = () => {
       step: '2',
       title: 'Validation & Verification',
       icon: 'admin_panel_settings',
-      desc: 'LYDO administrators review your validation document inside the Admin Dashboard. Upon confirmation of your SK official status, your account is approved, and an invitation email is dispatched.'
+      desc: 'Lucena LYDO administrators review your validation document inside the Admin Dashboard. Upon confirmation of your SK official status, your account is approved, and an invitation email is dispatched.'
     },
     {
       step: '3',

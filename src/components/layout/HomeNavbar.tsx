@@ -74,7 +74,7 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({
   const navLinks = [
     { label: 'Statistics', target: 'stats' },
     { label: 'Announcements', target: 'news' },
-    { label: 'Leaderboard', target: 'leaderboard' },
+    { label: 'Directory', target: 'directory' },
     { label: 'Requirements', target: 'guidelines' },
     { label: 'FAQ', target: 'faq' },
     { label: 'Support', target: 'contact' },
@@ -105,7 +105,7 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1) rotate(0deg)'; }}
             />
-            <span style={{ letterSpacing: '-0.03em' }}>LYDO Compliance</span>
+            <span style={{ letterSpacing: '-0.03em' }}>Lucena LYDO</span>
           </Navbar.Brand>
 
           {/* Mobile toggle */}

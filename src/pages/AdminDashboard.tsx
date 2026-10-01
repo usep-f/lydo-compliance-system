@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Row, Col, Card, Button, Modal, Form, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Modal, Form, Spinner, Alert } from 'react-bootstrap';
 import { db, storage, functions, auth } from '../firebase';
 import { collection, onSnapshot, query, Timestamp, getDocs, doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
 
   // Set tab title
   useEffect(() => {
-    document.title = "LYDO | Admin Dashboard";
+    document.title = "Lucena LYDO | Admin Dashboard";
   }, []);
 
   useEffect(() => {
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
         color: '#EF4444',
         isStriped: true,
       },
-      { label: 'Denied',         value: deniedPct,              color: '#18181B' },
+      { label: 'Disapproved',     value: deniedPct,              color: '#18181B' },
     ];
   }, [compliance.overallRate, compliance.barangayRanking, pendingSubs.length, historySubs, currentYear]);
 
@@ -211,6 +211,18 @@ export default function AdminDashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUserProcessing, setIsUserProcessing] = useState(false);
   const [editForm, setEditForm] = useState({ email: '', password: '', fullName: '', barangay: '' });
+
+  // ---- Direct Account Creation State ----
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createRole, setCreateRole] = useState<'user' | 'admin'>('user');
+  const [createFullName, setCreateFullName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createBarangay, setCreateBarangay] = useState(BARANGAYS[0] || 'Barangay 1');
+  const [createPassword, setCreatePassword] = useState('');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState('');
 
   const { addToast } = useToast();
 
@@ -433,6 +445,107 @@ export default function AdminDashboard() {
     if (isUserProcessing) return;
     setShowDeleteConfirm(false);
     setSelectedUser(null);
+  };
+
+  const handleGeneratePassword = () => {
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lowercase = 'abcdefghjkmnpqrstuvwxyz';
+    const numbers = '23456789';
+    const symbols = '!@#$%^&*()_+-=';
+    
+    const u = uppercase[Math.floor(Math.random() * uppercase.length)];
+    const l = lowercase[Math.floor(Math.random() * lowercase.length)];
+    const n = numbers[Math.floor(Math.random() * numbers.length)];
+    const s = symbols[Math.floor(Math.random() * symbols.length)];
+    
+    const allChars = uppercase + lowercase + numbers + symbols;
+    let remainder = '';
+    for (let i = 0; i < 8; i++) {
+      remainder += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    const generated = (u + l + n + s + remainder)
+      .split('')
+      .sort(() => 0.5 - Math.random())
+      .join('');
+      
+    setCreatePassword(generated);
+    setShowCreatePassword(true);
+    setCopiedPassword(false);
+  };
+
+  const handleCopyPassword = () => {
+    if (!createPassword) return;
+    navigator.clipboard.writeText(createPassword);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
+  const openCreateUserModal = () => {
+    setCreateRole('user');
+    setCreateFullName('');
+    setCreateEmail('');
+    setCreateBarangay(BARANGAYS[0] || 'Barangay 1');
+    setCreatePassword('');
+    setShowCreatePassword(false);
+    setCopiedPassword(false);
+    setCreateUserError('');
+    setShowCreateUserModal(true);
+  };
+
+  const closeCreateUserModal = () => {
+    if (isCreatingUser) return;
+    setShowCreateUserModal(false);
+    setCreateUserError('');
+  };
+
+  const handleDirectCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateUserError('');
+
+    if (!createFullName.trim()) {
+      setCreateUserError('Full name is required.');
+      return;
+    }
+    if (!createEmail.trim()) {
+      setCreateUserError('Email address is required.');
+      return;
+    }
+    if (!createPassword) {
+      setCreateUserError('Initial password is required.');
+      return;
+    }
+    const validation = validatePassword(createPassword);
+    if (!validation.isValid) {
+      setCreateUserError(validation.errors.join(' '));
+      return;
+    }
+    if (createRole === 'user' && !createBarangay) {
+      setCreateUserError('Please select a barangay for the SK Official account.');
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      const createDirectUserFn = httpsCallable(functions, 'createDirectUser');
+      await createDirectUserFn({
+        fullName: createFullName.trim(),
+        email: createEmail.trim(),
+        password: createPassword,
+        role: createRole,
+        barangay: createRole === 'admin' ? 'LYDO Administrator' : createBarangay,
+      });
+
+      addToast(`Account for ${createFullName.trim()} created and activated successfully!`, 'success');
+      setShowCreateUserModal(false);
+      await fetchApprovedUsers();
+    } catch (err: unknown) {
+      console.error('Error creating user directly:', err);
+      const errMsg = (err as Error)?.message || 'Failed to create user.';
+      setCreateUserError(errMsg);
+    } finally {
+      setIsCreatingUser(false);
+    }
   };
 
   const handleUpdateUser = async () => {
@@ -1125,7 +1238,7 @@ export default function AdminDashboard() {
                             ) : item.status === 'approved' ? (
                               <span className="matrix-chip matrix-chip-compliant">Approved</span>
                             ) : (
-                              <span className="matrix-chip matrix-chip-missing">Denied</span>
+                              <span className="matrix-chip matrix-chip-missing">Disapproved</span>
                             )}
                             <button
                               type="button"
@@ -1514,8 +1627,8 @@ export default function AdminDashboard() {
         <>
           <Card className="border-0 shadow-sm mb-4">
             <Card.Body className="p-3 p-md-4">
-              <div className="row g-2 g-md-3">
-                <div className="col-6">
+              <div className="row g-2 g-md-3 align-items-center">
+                <div className="col-12 col-md-5">
                   <Form.Control
                     type="text"
                     placeholder="Search by name or email..."
@@ -1524,7 +1637,7 @@ export default function AdminDashboard() {
                     className="sfc-input w-100"
                   />
                 </div>
-                <div className="col-6">
+                <div className="col-7 col-md-4">
                   <Form.Select
                     value={userFilterBarangay}
                     onChange={(e) => setUserFilterBarangay(e.target.value)}
@@ -1536,6 +1649,16 @@ export default function AdminDashboard() {
                     ))}
                   </Form.Select>
                 </div>
+                <div className="col-5 col-md-3 text-end">
+                  <Button
+                    variant="primary"
+                    className="w-100 d-inline-flex align-items-center justify-content-center gap-1"
+                    onClick={openCreateUserModal}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person_add</span>
+                    <span>New Account</span>
+                  </Button>
+                </div>
               </div>
             </Card.Body>
           </Card>
@@ -1546,6 +1669,245 @@ export default function AdminDashboard() {
             pageSize={6}
             emptyMessage="No approved users found."
           />
+
+          {/* ---- Direct Create User / Admin Modal ---- */}
+          <Modal show={showCreateUserModal} onHide={closeCreateUserModal} backdrop="static" centered size="lg">
+            <Modal.Header closeButton={!isCreatingUser}>
+              <Modal.Title className="d-flex align-items-center gap-2">
+                <span className="material-symbols-outlined text-primary" style={{ fontSize: '24px' }}>
+                  person_add
+                </span>
+                <span>Register New Account</span>
+              </Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleDirectCreateUser}>
+              <Modal.Body className="p-4">
+                {createUserError && (
+                  <Alert variant="danger" className="mb-4 d-flex align-items-center gap-2 py-2">
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>error</span>
+                    <span style={{ fontSize: '13px' }}>{createUserError}</span>
+                  </Alert>
+                )}
+
+                {/* Role Selector */}
+                <div className="mb-4">
+                  <Form.Label className="fw-semibold text-dark mb-2" style={{ fontSize: '13px' }}>
+                    Account Role &amp; Designation
+                  </Form.Label>
+                  <Row className="g-3">
+                    <Col xs={12} sm={6}>
+                      <div
+                        onClick={() => !isCreatingUser && setCreateRole('user')}
+                        style={{
+                          cursor: isCreatingUser ? 'not-allowed' : 'pointer',
+                          padding: '14px 16px',
+                          borderRadius: '8px',
+                          border: `2px solid ${createRole === 'user' ? '#4F46E5' : '#E4E4E7'}`,
+                          backgroundColor: createRole === 'user' ? '#EEF2FF' : '#FFFFFF',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="material-symbols-outlined" style={{ color: createRole === 'user' ? '#4F46E5' : '#71717A', fontSize: '20px' }}>
+                              badge
+                            </span>
+                            <span className="fw-bold" style={{ color: createRole === 'user' ? '#4F46E5' : '#18181B', fontSize: '14px' }}>
+                              SK Official
+                            </span>
+                          </div>
+                          <Form.Check
+                            type="radio"
+                            id="role-user"
+                            name="account-role"
+                            checked={createRole === 'user'}
+                            onChange={() => setCreateRole('user')}
+                            disabled={isCreatingUser}
+                          />
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '12px', paddingLeft: '28px' }}>
+                          Standard user with barangay compliance portal access
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={12} sm={6}>
+                      <div
+                        onClick={() => !isCreatingUser && setCreateRole('admin')}
+                        style={{
+                          cursor: isCreatingUser ? 'not-allowed' : 'pointer',
+                          padding: '14px 16px',
+                          borderRadius: '8px',
+                          border: `2px solid ${createRole === 'admin' ? '#0284C7' : '#E4E4E7'}`,
+                          backgroundColor: createRole === 'admin' ? '#F0F9FF' : '#FFFFFF',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="material-symbols-outlined" style={{ color: createRole === 'admin' ? '#0284C7' : '#71717A', fontSize: '20px' }}>
+                              admin_panel_settings
+                            </span>
+                            <span className="fw-bold" style={{ color: createRole === 'admin' ? '#0284C7' : '#18181B', fontSize: '14px' }}>
+                              LYDO Administrator
+                            </span>
+                          </div>
+                          <Form.Check
+                            type="radio"
+                            id="role-admin"
+                            name="account-role"
+                            checked={createRole === 'admin'}
+                            onChange={() => setCreateRole('admin')}
+                            disabled={isCreatingUser}
+                          />
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '12px', paddingLeft: '28px' }}>
+                          Full administrative access across all modules
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+
+                <Row className="g-3 mb-3">
+                  <Col xs={12} md={6}>
+                    <FormField
+                      label="Full Name"
+                      type="text"
+                      placeholder="e.g., Juan Dela Cruz"
+                      value={createFullName}
+                      onChange={(e) => setCreateFullName(e.target.value)}
+                      disabled={isCreatingUser}
+                      required
+                    />
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <FormField
+                      label="Email Address"
+                      type="email"
+                      placeholder="e.g., official@barangay.gov.ph"
+                      value={createEmail}
+                      onChange={(e) => setCreateEmail(e.target.value)}
+                      disabled={isCreatingUser}
+                      required
+                    />
+                  </Col>
+                </Row>
+
+                {/* Barangay Selection (SK Official Only) */}
+                {createRole === 'user' ? (
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
+                      Designated Barangay <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Select
+                      value={createBarangay}
+                      onChange={(e) => setCreateBarangay(e.target.value)}
+                      disabled={isCreatingUser}
+                      className="sfc-select"
+                      required
+                    >
+                      {BARANGAYS.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                ) : (
+                  <div className="mb-3 p-3 rounded bg-light border d-flex align-items-center gap-2">
+                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px' }}>
+                      corporate_fare
+                    </span>
+                    <div>
+                      <div className="fw-semibold text-dark" style={{ fontSize: '13px' }}>Assigned Office</div>
+                      <div className="text-muted" style={{ fontSize: '12px' }}>LYDO Central Administrator</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Password Setting & Generator */}
+                <div className="mb-3">
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <Form.Label className="fw-semibold text-dark mb-0" style={{ fontSize: '13px' }}>
+                      Initial Password <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={handleGeneratePassword}
+                      disabled={isCreatingUser}
+                      className="text-decoration-none p-0 d-inline-flex align-items-center gap-1"
+                      style={{ fontSize: '12px', color: '#4F46E5', fontWeight: 600 }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>autorenew</span>
+                      Generate Secure Password
+                    </Button>
+                  </div>
+
+                  <div className="input-group">
+                    <Form.Control
+                      type={showCreatePassword ? 'text' : 'password'}
+                      placeholder="Minimum 8 characters (mixed case, number, symbol)"
+                      value={createPassword}
+                      onChange={(e) => setCreatePassword(e.target.value)}
+                      disabled={isCreatingUser}
+                      required
+                      className="sfc-input"
+                    />
+                    <Button
+                      variant="outline-secondary"
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      title={showCreatePassword ? 'Hide Password' : 'Show Password'}
+                      disabled={isCreatingUser}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                        {showCreatePassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </Button>
+                    <Button
+                      variant={copiedPassword ? 'success' : 'outline-secondary'}
+                      type="button"
+                      onClick={handleCopyPassword}
+                      disabled={!createPassword || isCreatingUser}
+                      title="Copy to clipboard"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                        {copiedPassword ? 'check' : 'content_copy'}
+                      </span>
+                    </Button>
+                  </div>
+                  {copiedPassword && (
+                    <div className="text-success small mt-1 d-flex align-items-center gap-1">
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span>
+                      Password copied to clipboard!
+                    </div>
+                  )}
+                  <div className="text-muted mt-2" style={{ fontSize: '11px' }}>
+                    Must be at least 8 characters long with uppercase, lowercase, numbers, and symbols. The account will be immediately activated without email verification delays.
+                  </div>
+                </div>
+              </Modal.Body>
+              <Modal.Footer className="px-4 py-3 bg-light border-top">
+                <Button variant="secondary" onClick={closeCreateUserModal} disabled={isCreatingUser}>
+                  Cancel
+                </Button>
+                <Button variant="primary" type="submit" disabled={isCreatingUser} className="d-inline-flex align-items-center gap-2">
+                  {isCreatingUser ? (
+                    <>
+                      <Spinner animation="border" size="sm" />
+                      <span>Creating &amp; Activating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>how_to_reg</span>
+                      <span>Create &amp; Activate Account</span>
+                    </>
+                  )}
+                </Button>
+              </Modal.Footer>
+            </Form>
+          </Modal>
 
           {/* ---- Edit User Modal ---- */}
           <Modal show={showEditModal} onHide={closeEditModal} backdrop="static" centered>

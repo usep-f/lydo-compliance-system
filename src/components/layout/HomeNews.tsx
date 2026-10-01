@@ -1,66 +1,54 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Container, Badge, Spinner } from 'react-bootstrap';
+import { Container, Badge, Spinner, Row, Col } from 'react-bootstrap';
 import { useCMSData } from '../../hooks/useCMSData';
+import { BulletinVisualBanner } from '../common/BulletinVisualBanner';
 
 export const HomeNews: React.FC = () => {
   const { bulletins, loading } = useCMSData();
   const sectionRef = useRef<HTMLElement>(null);
+  const filmstripRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [nudge, setNudge] = useState<'left' | 'right' | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [prevBulletinsLength, setPrevBulletinsLength] = useState(bulletins.length);
 
-  const [prevBulletins, setPrevBulletins] = useState(bulletins);
-
-  if (bulletins !== prevBulletins) {
-    setPrevBulletins(bulletins);
-    setCurrentIndex(0);
+  // Synchronize index if bulletins count changes
+  if (bulletins.length !== prevBulletinsLength) {
+    setPrevBulletinsLength(bulletins.length);
+    if (activeIndex >= bulletins.length) {
+      setActiveIndex(0);
+    }
   }
 
-  // Throttled window resize handler for smooth responsive calculations
+  // Auto-scroll spotlight every 5 seconds unless hovered
   useEffect(() => {
-    let rAFId: number;
-    const handleResize = () => {
-      cancelAnimationFrame(rAFId);
-      rAFId = requestAnimationFrame(() => {
-        setWindowWidth(window.innerWidth);
-      });
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(rAFId);
-    };
-  }, []);
-
-  const currentItemsToShow = windowWidth < 768 ? 1 : windowWidth < 992 ? 2 : 3;
-  const ratio = windowWidth < 768
-    ? (bulletins.length > 1 ? 1.15 : 1)
-    : windowWidth < 992
-    ? (bulletins.length > 2 ? 2.15 : Math.max(1, bulletins.length))
-    : (bulletins.length > 3 ? 3.15 : Math.max(1, bulletins.length));
-
-  const maxIndex = Math.max(0, bulletins.length - currentItemsToShow);
-  const hasOverflow = maxIndex > 0;
-
-  // Auto-correct out-of-bounds index on resize synchronously during rendering
-  if (currentIndex > maxIndex) {
-    setCurrentIndex(maxIndex);
-  }
-
-  // Autoscroll
-  useEffect(() => {
-    if (maxIndex === 0 || isHovered) return;
+    if (bulletins.length <= 1 || isHovered) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
-    }, 4000);
+      setActiveIndex((prev) => (prev >= bulletins.length - 1 ? 0 : prev + 1));
+    }, 5000);
     return () => clearInterval(interval);
-  }, [maxIndex, isHovered]);
+  }, [bulletins.length, isHovered]);
 
-  // Intersection observer for entrance animation
+  // Scroll active card into view within the container ONLY (prevents window horizontal shift)
+  useEffect(() => {
+    if (!filmstripRef.current) return;
+    const container = filmstripRef.current;
+    const activeCardEl = container.querySelector(`[data-index="${activeIndex}"]`) as HTMLElement | null;
+    if (activeCardEl) {
+      const cardLeft = activeCardEl.offsetLeft;
+      const cardWidth = activeCardEl.offsetWidth;
+      const containerWidth = container.clientWidth;
+      const targetScrollLeft = cardLeft - (containerWidth / 2) + (cardWidth / 2);
+      
+      container.scrollTo({
+        left: Math.max(0, targetScrollLeft),
+        behavior: 'smooth'
+      });
+    }
+  }, [activeIndex]);
+
+  // Intersection observer for section entrance
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -72,58 +60,39 @@ export const HomeNews: React.FC = () => {
   }, []);
 
   const handlePrev = () => {
-    if (maxIndex === 0) {
-      setNudge('left');
-      setTimeout(() => setNudge(null), 250);
-      return;
-    }
-    setCurrentIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
+    if (bulletins.length <= 1) return;
+    setActiveIndex((prev) => (prev === 0 ? bulletins.length - 1 : prev - 1));
   };
 
   const handleNext = () => {
-    if (maxIndex === 0) {
-      setNudge('right');
-      setTimeout(() => setNudge(null), 250);
-      return;
-    }
-    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    if (bulletins.length <= 1) return;
+    setActiveIndex((prev) => (prev >= bulletins.length - 1 ? 0 : prev + 1));
   };
 
-  let transformValue = `translateX(-${currentIndex * (100 / ratio)}%)`;
-  if (nudge === 'left') {
-    transformValue += ' translateX(30px)';
-  } else if (nudge === 'right') {
-    transformValue += ' translateX(-30px)';
-  }
+  const activeBulletin = bulletins[activeIndex] || bulletins[0];
 
-  // Masking effect if there are more items than we can show
-  const isAtStart = currentIndex === 0;
-  const isAtEnd = currentIndex === maxIndex;
-  
-  let maskImageStyle = 'none';
-  if (hasOverflow) {
-    if (!isAtStart && !isAtEnd) {
-      // Fade both sides
-      maskImageStyle = 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)';
-    } else if (isAtStart) {
-      // Fade right side only
-      maskImageStyle = 'linear-gradient(to right, black, black 96%, transparent)';
-    } else if (isAtEnd) {
-      // Fade left side only
-      maskImageStyle = 'linear-gradient(to right, transparent, black 4%, black)';
+  const formatDate = (ts?: any): string => {
+    if (!ts) return '';
+    try {
+      if (ts.toDate) {
+        return ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      const millis = ts.toMillis?.() || ts;
+      return new Date(millis).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return '';
     }
-  }
+  };
 
   return (
-    <section id="news" className="home-news-section bg-grid-light position-relative overflow-hidden" ref={sectionRef}>
+    <section id="news" className="home-news-section bg-grid-light position-relative overflow-hidden py-5" ref={sectionRef}>
       {/* 1. Subtle Masked Texture Overlay */}
       <div className="section-masked-texture-light" />
 
-      {/* 2. Fluid Organic Morphing Blobs (Contrasted for Light Background) */}
-      <div className="organic-blob organic-blob-blue" style={{ width: '500px', height: '500px', top: '-12%', left: '-6%' }} />
-      <div className="organic-blob organic-blob-amber" style={{ width: '450px', height: '450px', bottom: '-10%', right: '-6%' }} />
+      {/* 2. Fluid Organic Morphing Blobs */}
+      <div className="organic-blob organic-blob-blue" style={{ width: '500px', height: '500px', top: '-10%', left: '-6%' }} />
+      <div className="organic-blob organic-blob-amber" style={{ width: '450px', height: '450px', bottom: '-8%', right: '-6%' }} />
       <div className="organic-blob organic-blob-green" style={{ width: '380px', height: '380px', top: '35%', right: '18%' }} />
-      <div className="organic-blob organic-blob-purple" style={{ width: '340px', height: '340px', bottom: '25%', left: '15%' }} />
 
       {/* 3. Floating Decorative Spline Lines */}
       <svg className="floating-deco-lines" viewBox="0 0 1440 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -133,22 +102,9 @@ export const HomeNews: React.FC = () => {
             <stop offset="50%" stopColor="#00B4D8" stopOpacity="0.6" />
             <stop offset="100%" stopColor="#7CB342" stopOpacity="0.1" />
           </linearGradient>
-          <linearGradient id="news-grad-amber" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#FBA100" stopOpacity="0.1" />
-            <stop offset="50%" stopColor="#FFC133" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#006EB7" stopOpacity="0.1" />
-          </linearGradient>
         </defs>
         <path d="M-50,220 C350,80 750,450 1150,150 C1300,50 1450,300 1600,200" className="line-glow-blue" style={{ stroke: 'url(#news-grad-blue)', opacity: 0.35 }} />
-        <path d="M-80,420 C400,550 780,120 1180,380 C1350,480 1500,260 1650,320" className="line-glow-amber" style={{ stroke: 'url(#news-grad-amber)', opacity: 0.35 }} />
       </svg>
-
-      {/* 4. Floating Geometric Elements */}
-      <div className="floating-geo-shape geo-diamond geo-diamond-blue" style={{ top: '15%', left: '4%' }} />
-      <div className="floating-geo-shape-alt geo-concentric-ring geo-concentric-amber" style={{ bottom: '15%', right: '5%', width: '75px', height: '75px' }} />
-      <div className="floating-geo-drift geo-cross geo-cross-emerald" style={{ top: '18%', right: '12%' }} />
-      <div className="floating-geo-twinkle geo-sparkle geo-sparkle-amber" style={{ bottom: '25%', left: '15%' }} />
-      <div className="floating-geo-shape geo-hexagon geo-hexagon-blue" style={{ bottom: '12%', left: '5%' }} />
 
       <Container className="position-relative" style={{ zIndex: 2 }}>
         {loading ? (
@@ -167,134 +123,229 @@ export const HomeNews: React.FC = () => {
         ) : (
           <>
             {/* Section Header */}
-            <div className={`text-center mb-3 pb-1 sr-heading${visible ? ' visible' : ''}`}>
+            <div className={`text-center mb-4 pb-2 sr-heading${visible ? ' visible' : ''}`}>
               <div className="home-section-overline" style={{ justifyContent: 'center' }}>
                 Office Advisories
               </div>
               <h2 className="home-section-title mb-2">Latest Bulletins & Advisories</h2>
-              <p className="home-section-subtitle">
-                Stay informed with the latest directives, compliance circulars, and system notices released by the Local Youth Development Office.
+              <p className="home-section-subtitle mx-auto" style={{ maxWidth: '680px' }}>
+                Stay informed with the latest directives, compliance circulars, and system notices released by the Lucena City Local Youth Development Office.
               </p>
             </div>
 
-            {/* Slider Wrapper Centered */}
-            <div 
-              className={`slider-wrapper position-relative mx-auto mt-3 sr-item${visible ? ' visible' : ''}`} 
-              style={{ maxWidth: '1000px' }}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-            >
-              {/* Left Arrow Button */}
-              <button 
-                className={`btn-slider btn-slider-left${maxIndex === 0 ? ' btn-slider-disabled' : ''}`}
-                onClick={handlePrev}
-                aria-label="Previous bulletin"
-                style={{ zIndex: 10 }}
+            {/* 🌟 FEATURED HERO SPOTLIGHT STAGE */}
+            {activeBulletin && (
+              <div
+                className={`bulletin-hero-stage mx-auto p-3 p-md-4 mb-5 sr-item${visible ? ' visible' : ''}`}
+                style={{ maxWidth: '1080px' }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
               >
-                <span className="material-symbols-outlined fs-5">chevron_left</span>
-              </button>
+                <Row className="g-4 align-items-stretch">
+                  {/* Left Column: Big Center Visual */}
+                  <Col xs={12} lg={6} className="d-flex">
+                    <div className="w-100 bulletin-crossfade" key={`visual-${activeBulletin.id}`}>
+                      <BulletinVisualBanner
+                        bulletin={activeBulletin}
+                        variant="hero"
+                        style={{ minHeight: '320px', height: '100%' }}
+                      />
+                    </div>
+                  </Col>
 
-              {/* Slider Viewport Container */}
-              <div 
-                className="overflow-hidden px-1 py-3 mx-auto" 
-                style={{ 
-                  WebkitMaskImage: maskImageStyle,
-                  maskImage: maskImageStyle,
-                  transition: 'mask-image 0.4s ease, -webkit-mask-image 0.4s ease'
-                }}
-              >
-                <div 
-                  className="d-flex"
-                  style={{
-                    transform: transformValue,
-                    transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
-                  }}
-                >
-                  {bulletins.map((item) => {
-                    const dateStr = item.date?.toDate
-                      ? item.date.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : new Date((item.date as unknown as { toMillis?: () => number }).toMillis?.() || (item.date as unknown as string | number)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  {/* Right Column: Full Advisory Content & Actions */}
+                  <Col xs={12} lg={6} className="d-flex flex-column justify-content-between">
+                    <div className="bulletin-crossfade" key={`content-${activeBulletin.id}`}>
+                      {/* Meta Tags Row */}
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 pb-2 border-bottom border-light">
+                        <div className="d-flex align-items-center gap-1.5 text-muted small fw-semibold">
+                          <span className="material-symbols-outlined text-primary" style={{ fontSize: '18px' }}>
+                            calendar_month
+                          </span>
+                          <span>{formatDate(activeBulletin.date)}</span>
+                        </div>
 
-                    return (
-                      <div key={item.id} className="flex-shrink-0 px-2" style={{ width: `${100 / ratio}%` }}>
-                        <div className="premium-announcement-card d-flex flex-column justify-content-between h-100" style={{ minHeight: '260px' }}>
-                          <div>
-                            {/* Meta info header */}
-                            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-light gap-2">
-                              <div className="d-flex align-items-center gap-1.5 text-muted small fw-semibold text-nowrap flex-shrink-0" style={{ whiteSpace: 'nowrap' }}>
-                                <span className="material-symbols-outlined text-secondary flex-shrink-0" style={{ fontSize: '16px' }}>calendar_month</span>
-                                <span className="text-nowrap" style={{ whiteSpace: 'nowrap' }}>{dateStr}</span>
-                              </div>
-                              <div className="d-flex align-items-center gap-1 flex-shrink-0">
-                                <Badge className={`px-2.5 py-1 text-capitalize ${item.tagColor} border text-nowrap`} style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
-                                  {item.tag}
-                                </Badge>
-                                {item.eventKey && (
-                                  <Badge bg="secondary" className="px-1.5 py-0.5 border text-nowrap" style={{ fontSize: '8px', opacity: 0.8, whiteSpace: 'nowrap' }} title="Automated alert">
-                                    Auto
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Title */}
-                            <h5 className="premium-announcement-card-title mb-3">
-                              {item.title}
-                            </h5>
-
-                            {/* Description */}
-                            <p className="premium-announcement-card-desc mb-0">
-                              {item.desc}
-                            </p>
-                          </div>
-                          
-                          {/* Action Button */}
-                          {item.memoUrl && (
-                            <div className="d-flex align-items-center justify-content-start mt-4 pt-3 border-top border-light">
-                              <button 
-                                className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 px-3.5 py-2 rounded-pill shadow-none"
-                                onClick={() => window.open(item.memoUrl, '_blank')}
-                                style={{ 
-                                  fontSize: '12px', 
-                                  border: '1px solid rgba(0, 110, 183, 0.25)', 
-                                  backgroundColor: 'rgba(0, 110, 183, 0.03)',
-                                  fontWeight: 600
-                                }}
-                              >
-                                <span>Read More</span>
-                                <span className="material-symbols-outlined fs-6" style={{ fontVariationSettings: "'wght' 600" }}>arrow_right_alt</span>
-                              </button>
-                            </div>
+                        <div className="d-flex align-items-center gap-1.5">
+                          <Badge className={`px-2.5 py-1 text-capitalize ${activeBulletin.tagColor} border`} style={{ fontSize: '11px' }}>
+                            {activeBulletin.tag}
+                          </Badge>
+                          {activeBulletin.eventKey && (
+                            <Badge bg="secondary" className="px-2 py-0.5 border" style={{ fontSize: '9px', opacity: 0.85 }}>
+                              Automated
+                            </Badge>
                           )}
                         </div>
                       </div>
+
+                      {/* Title */}
+                      <h3 className="fw-bold font-headline mb-3 text-dark" style={{ fontSize: '22px', lineHeight: 1.35 }}>
+                        {activeBulletin.title}
+                      </h3>
+
+                      {/* Description */}
+                      <p className="text-secondary mb-4" style={{ fontSize: '14.5px', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                        {activeBulletin.desc}
+                      </p>
+                    </div>
+
+                    {/* Actions & Carousel Mini Stepper */}
+                    <div className="d-flex align-items-center justify-content-between pt-3 border-top border-light flex-wrap gap-3">
+                      <div>
+                        {activeBulletin.memoUrl ? (
+                          <button
+                            className="btn btn-primary d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill shadow-sm"
+                            onClick={() => window.open(activeBulletin.memoUrl, '_blank')}
+                            style={{ fontSize: '13px', fontWeight: 600 }}
+                          >
+                            <span>Read Full Directive</span>
+                            <span className="material-symbols-outlined fs-6">arrow_forward</span>
+                          </button>
+                        ) : (
+                          <span className="text-muted small d-inline-flex align-items-center gap-1">
+                            <span className="material-symbols-outlined fs-6 text-success">verified</span>
+                            Official Advisory
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Stepper Navigation */}
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="text-muted small fw-semibold me-1" style={{ fontSize: '12px' }}>
+                          {String(activeIndex + 1).padStart(2, '0')} / {String(bulletins.length).padStart(2, '0')}
+                        </span>
+                        <button
+                          className="bulletin-nav-btn"
+                          onClick={handlePrev}
+                          disabled={bulletins.length <= 1}
+                          aria-label="Previous advisory"
+                          style={{ width: '36px', height: '36px' }}
+                        >
+                          <span className="material-symbols-outlined fs-6">chevron_left</span>
+                        </button>
+                        <button
+                          className="bulletin-nav-btn"
+                          onClick={handleNext}
+                          disabled={bulletins.length <= 1}
+                          aria-label="Next advisory"
+                          style={{ width: '36px', height: '36px' }}
+                        >
+                          <span className="material-symbols-outlined fs-6">chevron_right</span>
+                        </button>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            )}
+
+            {/* 🎞️ SYNCHRONIZED FILMSTRIP CAROUSEL DECK */}
+            {bulletins.length > 1 && (
+              <div
+                className={`mx-auto sr-item${visible ? ' visible' : ''}`}
+                style={{ maxWidth: '1080px' }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-3 px-1">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="material-symbols-outlined text-primary fs-5">view_carousel</span>
+                    <span className="fw-bold text-dark font-headline" style={{ fontSize: '15px' }}>
+                      All Bulletins & Advisories
+                    </span>
+                    <span className="badge bg-light text-secondary border rounded-pill px-2 py-0.5 small">
+                      {bulletins.length} notices
+                    </span>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-1 text-muted small">
+                    <span>Click any item to inspect</span>
+                  </div>
+                </div>
+
+                {/* Horizontally Scrollable Filmstrip Track without scrollbar */}
+                <div
+                  ref={filmstripRef}
+                  className="d-flex gap-3 overflow-x-auto pb-2 pt-1 px-1 bulletin-filmstrip-track"
+                  style={{
+                    scrollSnapType: 'x mandatory'
+                  }}
+                >
+                  {bulletins.map((item, idx) => {
+                    const isActive = activeIndex === idx;
+
+                    return (
+                      <button
+                        key={item.id}
+                        data-index={idx}
+                        type="button"
+                        className={`bulletin-filmstrip-card flex-shrink-0 ${isActive ? 'active' : ''}`}
+                        onClick={() => setActiveIndex(idx)}
+                        style={{
+                          width: '260px',
+                          scrollSnapAlign: 'start',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {/* Mini Banner Header */}
+                        <BulletinVisualBanner
+                          bulletin={item}
+                          variant="card"
+                        />
+
+                        {/* Card Body Info */}
+                        <div className="p-3 d-flex flex-column justify-content-between flex-grow-1 w-100">
+                          <div>
+                            <div className="d-flex align-items-center justify-content-between gap-1 mb-2">
+                              <span className="text-muted small fw-medium" style={{ fontSize: '11px' }}>
+                                {formatDate(item.date)}
+                              </span>
+                              <Badge className={`px-2 py-0.5 text-capitalize ${item.tagColor} border`} style={{ fontSize: '9px' }}>
+                                {item.tag}
+                              </Badge>
+                            </div>
+
+                            <h6
+                              className="fw-bold text-dark mb-1 text-truncate"
+                              style={{ fontSize: '13px', lineHeight: 1.4 }}
+                              title={item.title}
+                            >
+                              {item.title}
+                            </h6>
+
+                            <p
+                              className="text-secondary small mb-0 text-truncate"
+                              style={{ fontSize: '11.5px' }}
+                            >
+                              {item.desc}
+                            </p>
+                          </div>
+
+                          {isActive && (
+                            <div className="mt-2.5 pt-2 border-top border-light d-flex align-items-center justify-content-between">
+                              <span className="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold d-inline-flex align-items-center gap-1" style={{ fontSize: '10px' }}>
+                                <span className="spinner-grow spinner-grow-sm text-primary" style={{ width: '6px', height: '6px' }} />
+                                Now Viewing
+                              </span>
+                              <span className="material-symbols-outlined text-primary fs-6">visibility</span>
+                            </div>
+                          )}
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
-              </div>
 
-              {/* Right Arrow Button */}
-              <button 
-                className={`btn-slider btn-slider-right${maxIndex === 0 ? ' btn-slider-disabled' : ''}`}
-                onClick={handleNext}
-                aria-label="Next bulletin"
-                style={{ zIndex: 10 }}
-              >
-                <span className="material-symbols-outlined fs-5">chevron_right</span>
-              </button>
-            </div>
-
-            {/* Carousel Pagination Indicator Dots */}
-            {maxIndex > 0 && (
-              <div className="d-flex justify-content-center gap-2 mt-4">
-                {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    className={`bulletin-dot${currentIndex === idx ? ' active' : ''}`}
-                    onClick={() => setCurrentIndex(idx)}
-                    aria-label={`Go to slide group ${idx + 1}`}
-                  />
-                ))}
+                {/* Carousel Pagination Indicator Dots */}
+                <div className="d-flex justify-content-center align-items-center gap-2 mt-3.5">
+                  {bulletins.map((_, idx) => (
+                    <button
+                      key={idx}
+                      className={`bulletin-dot${activeIndex === idx ? ' active' : ''}`}
+                      onClick={() => setActiveIndex(idx)}
+                      aria-label={`Jump to advisory ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </>

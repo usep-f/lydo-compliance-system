@@ -149,7 +149,7 @@ export default function UserDashboard() {
 
   // Set tab title
   useEffect(() => {
-    document.title = "LYDO | User Dashboard";
+    document.title = "Lucena LYDO | User Dashboard";
   }, []);
 
   // Fetch user profile info
@@ -248,7 +248,7 @@ export default function UserDashboard() {
     },
     history: {
       title: 'Submission History',
-      subtitle: 'Your past approved and denied document submissions',
+      subtitle: 'Your past approved and disapproved document submissions',
       icon: 'history',
     },
     settings: {
@@ -268,7 +268,7 @@ export default function UserDashboard() {
       color: '#EF4444',
       isStriped: true,
     },
-    { label: 'Denied',         value: analytics.deniedCount,        color: '#18181B' },
+    { label: 'Disapproved',    value: analytics.deniedCount,        color: '#18181B' },
   ], [analytics.approvedCount, analytics.pendingCount, analytics.missingDocs.length, analytics.deniedCount]);
 
   // ── Loading state ────────────────────────────────────────────────────────
@@ -322,7 +322,7 @@ export default function UserDashboard() {
               { title: 'Total Submitted', value: analytics.totalSubmitted, variant: 'primary' as const, icon: 'upload_file' },
               { title: 'Pending Review', value: analytics.pendingCount, variant: 'warning' as const, icon: 'pending_actions' },
               { title: 'Approved', value: analytics.approvedCount, variant: 'success' as const, icon: 'task_alt' },
-              { title: 'Denied', value: analytics.deniedCount, variant: 'danger' as const, icon: 'cancel' },
+              { title: 'Disapproved', value: analytics.deniedCount, variant: 'danger' as const, icon: 'cancel' },
             ].map((card, i) => (
               <Col xs={6} sm={6} md={3} key={card.title} className="kpi-animate" style={{ animationDelay: `${i * 75}ms` }}>
                 <StatCard

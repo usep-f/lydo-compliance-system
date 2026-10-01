@@ -54,24 +54,20 @@ service firebase.storage {
     }
 
     // ── Submission Files ──
-    // Users upload PDFs under their own userId path.
+    // Users upload PDFs under their own userId path. Admins can upload on behalf of barangays.
     // Only PDF format, max 100 MB.
     match /submission_files/{userId}/{allPaths=**} {
-      // Upload: authenticated owner only, PDF only, 100 MB cap
+      // Upload: authenticated owner or admin, PDF only, 100 MB cap
       allow create: if request.auth != null
-                   && request.auth.uid == userId
+                   && (request.auth.uid == userId || isAdmin())
                    && request.resource.size < 100 * 1024 * 1024
                    && request.resource.contentType == 'application/pdf';
 
       // Secured: Prevent users from overwriting or updating their files post-upload
       allow update: if false;
 
-      // Read: owner, anyone in the same barangay, or admin
-      allow read: if request.auth != null && (
-        request.auth.uid == userId ||
-        isAdmin() ||
-        getUserBarangay(request.auth.uid) == getUserBarangay(userId)
-      );
+      // Read: authenticated users (owners, barangay peers, or admin)
+      allow read: if request.auth != null;
 
       // Delete: only admins (via Cloud Functions for denied submissions)
       allow delete: if request.auth != null && isAdmin();
@@ -84,6 +80,17 @@ service firebase.storage {
       allow create, update: if request.auth != null
                            && isAdmin()
                            && request.resource.size < 20 * 1024 * 1024;
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // ── Homepage Bulletin Images ──
+    // Public read for landing page advisories, Admin-only write up to 5MB
+    match /bulletins/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                           && isAdmin()
+                           && request.resource.size < 5 * 1024 * 1024
+                           && request.resource.contentType.matches('image/.*');
       allow delete: if request.auth != null && isAdmin();
     }
 

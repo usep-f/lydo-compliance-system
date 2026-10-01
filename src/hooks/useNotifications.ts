@@ -39,6 +39,8 @@ export type NotificationType =
   | 'new_application'
   | 'new_submission'
   | 'new_accreditation'
+  | 'new_account_created'
+  | 'user_deleted'
   | 'submission_open'
   | 'submission_overdue';
 

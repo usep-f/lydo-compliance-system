@@ -43,9 +43,10 @@ const formatSubmissionDate = (val: unknown): string => {
 
 const getSubmissionStatus = (s: HistoricalSubmission | PendingSubmission): string => {
   const item = s as unknown as { status?: string; approvedAt?: unknown; deniedAt?: unknown };
+  if (item.status === 'denied') return 'disapproved';
   if (item.status) return item.status;
   if (item.approvedAt) return 'approved';
-  if (item.deniedAt) return 'denied';
+  if (item.deniedAt) return 'disapproved';
   return 'pending';
 };
 
@@ -218,7 +219,7 @@ export const drawDenialBreakdownTable = (
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(21, 128, 61);
-    doc.text('✓ 100% Submission Acceptance (Zero Rejections)', marginLeft + 12, startY + 14);
+    doc.text('✓ 100% Submission Acceptance (Zero Disapprovals)', marginLeft + 12, startY + 14);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(74, 222, 128);
@@ -226,7 +227,7 @@ export const drawDenialBreakdownTable = (
     return startY + 40;
   }
 
-  const head = [['Denial Reason / Statutory Deficiency', 'Count', 'Share (%)', 'Impact Level']];
+  const head = [['Disapproval Reason / Statutory Deficiency', 'Count', 'Share (%)', 'Impact Level']];
   const body = denialShares.map((d) => [
     d.label,
     String(d.count),

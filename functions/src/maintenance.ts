@@ -16,18 +16,21 @@ import { recomputePublicAnalytics } from './analytics';
  */
 export const purgeSystemData = functions.https.onCall(
   {
-    cors: true,
     maxInstances: 10,
     timeoutSeconds: 120,
     memory: '512MiB',
   },
   async (request) => {
     // 1. Authorization
-    if (!request.auth || !request.auth.token || request.auth.token.role !== 'admin') {
-      throw new functions.https.HttpsError('permission-denied', 'Only administrators can perform a system purge.');
+    if (!request.auth || !request.auth.token) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
     }
 
     const db = admin.firestore();
+    const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!callerDoc.exists || callerDoc.data()?.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Only administrators can perform a system purge.');
+    }
     
     try {
       console.log(`System purge initiated by Admin UID: ${request.auth.uid}`);

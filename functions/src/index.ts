@@ -24,7 +24,8 @@ export {
   updateOwnProfile,
   deleteOwnAccount,
   onApplicationCreated,
-  requestPasswordReset
+  requestPasswordReset,
+  createDirectUser
 } from './users';
 
 export { 
@@ -32,6 +33,10 @@ export {
   denySubmission, 
   onSubmissionCreated 
 } from './submissions';
+
+export {
+  adminDirectUpload
+} from './adminSubmissions';
 
 export { 
   pruneExpiredNotifications 

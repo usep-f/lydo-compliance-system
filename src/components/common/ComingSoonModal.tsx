@@ -29,7 +29,7 @@ export const ComingSoonModal: React.FC<ComingSoonModalProps> = ({
           We are currently building the <strong className="text-dark">{sectionName}</strong> section.
         </div>
         <p className="text-muted small mb-4">
-          Our team is working hard to bring this feature to the LYDO Compliance System. Stay tuned!
+          Our team is working hard to bring this feature to Lucena LYDO. Stay tuned!
         </p>
         <Button
           variant="primary"

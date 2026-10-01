@@ -126,6 +126,26 @@ export const ALL_UPLOAD_TYPES: SubmissionTypeDefinition[] = [
   ...PERENNIAL_TYPES,
 ];
 
+/** Base high-level document categories for intake forms. */
+export const BASE_DOCUMENT_TYPES: SubmissionTypeDefinition[] = [
+  ...SCHEDULED_TYPES,
+  ...ASAP_TYPES,
+  {
+    id: 'resolutions',
+    label: 'Resolutions',
+    category: 'perennial',
+    icon: 'gavel',
+    description: 'Passed resolutions throughout the year.',
+  },
+  {
+    id: 'accomplishment_report',
+    label: 'Accomplishment Report',
+    category: 'perennial',
+    icon: 'assessment',
+    description: 'Accomplishment reports categorized by youth development areas.',
+  },
+];
+
 /** Lookup map by ID for quick access. */
 export const UPLOAD_TYPE_MAP: Record<string, SubmissionTypeDefinition> =
   ALL_UPLOAD_TYPES.reduce((acc, t) => {

@@ -243,8 +243,8 @@ export const denySubmission = functions.https.onCall(
             headerSubtitle: 'Compliance Review Notification',
             recipientName: safeName,
             bodyHtml: `
-              <p>Following evaluation by the LYDO administration, your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} was <strong>denied</strong> due to discrepancies.</p>
-              <p>Please review the administrative remarks below, make the necessary corrections to your document, and re-upload the corrected PDF through the portal dashboard.</p>
+              <p>Following evaluation by the LYDO administration, your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} was <strong>disapproved</strong> due to discrepancies.</p>
+              <p>Please review the administrative remarks below, make the necessary corrections to your document, and re-upload the corrected PDF through the portal dashboard for resubmission.</p>
             `,
             detailsTable: [
               { label: 'Document Type', value: safeDocLabel },
@@ -253,7 +253,7 @@ export const denySubmission = functions.https.onCall(
             ],
             alertBox: {
               variant: 'danger',
-              title: `Denial Remarks (${safeCategoryLabel})`,
+              title: `Disapproval Remarks (${safeCategoryLabel})`,
               message: safeReason,
             },
           });
@@ -261,7 +261,7 @@ export const denySubmission = functions.https.onCall(
           await sendEmailViaBrevo(
             userEmail,
             safeName,
-            `Submission Denied — ${submissionData.documentLabel ?? 'Document'}`,
+            `Submission Disapproved (For Resubmission) — ${submissionData.documentLabel ?? 'Document'}`,
             denialEmailHtml
           );
         }
@@ -271,8 +271,8 @@ export const denySubmission = functions.https.onCall(
         const period = submissionData.period ?? '';
         await writeNotification(submissionData.userId, {
           type: 'submission_denied',
-          title: 'Submission Denied',
-          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was denied for "${safeCategory}". Remarks: ${reason}`,
+          title: 'Submission Disapproved',
+          body: `Your ${docLabel}${period ? ` (${period})` : ''} submission was disapproved for "${safeCategory}". Remarks: ${reason}. Please resubmit with corrections.`,
           metadata: {
             submissionId: request.data.submissionId,
             documentLabel: docLabel,
@@ -285,7 +285,7 @@ export const denySubmission = functions.https.onCall(
 
       await recomputePublicAnalytics(db);
 
-      return { success: true, message: 'Submission denied and notification sent.' };
+      return { success: true, message: 'Submission disapproved and notification sent.' };
     } catch (error: any) {
       console.error('Deny submission error:', error);
       throw new functions.https.HttpsError(
@@ -368,15 +368,15 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
       const safeReason = escapeHtml(verificationError);
 
       const autoRejectHtml = renderEmailLayout({
-        headerSubtitle: 'Automated Document Verification',
+        headerSubtitle: 'Automated Document Screening Notice',
         recipientName: safeName,
         bodyHtml: `
-          <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} could not be processed and has been <strong>automatically rejected</strong> by the system screening engine.</p>
+          <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} could not be processed and has been <strong>flagged for resubmission</strong> by the system screening engine.</p>
           <p>Please inspect your source document, verify that it is an intact, uncorrupted PDF file that conforms to page specifications, and re-upload through the portal.</p>
         `,
         alertBox: {
           variant: 'danger',
-          title: 'Automated Screening Error',
+          title: 'Automated Screening Notice',
           message: safeReason,
         },
       });
@@ -384,7 +384,7 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
       await sendEmailViaBrevo(
         userEmail,
         safeName,
-        `Submission Rejected — ${documentLabel ?? 'Document'}`,
+        `Document Screening Notice — Resubmission Required: ${documentLabel ?? 'Document'}`,
         autoRejectHtml
       );
     }
@@ -394,8 +394,8 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
     const cleanPeriod = period ?? '';
     await writeNotification(userId, {
       type: 'submission_denied',
-      title: 'Submission Rejected ❌',
-      body: `Your ${docLabel}${cleanPeriod ? ` (${cleanPeriod})` : ''} submission failed file verification and was auto-rejected.`,
+      title: 'Document Screening Notice',
+      body: `Your ${docLabel}${cleanPeriod ? ` (${cleanPeriod})` : ''} submission failed automated file verification and requires resubmission.`,
       metadata: {
         submissionId,
         documentLabel: docLabel,
