@@ -83,6 +83,17 @@ service firebase.storage {
       allow delete: if request.auth != null && isAdmin();
     }
 
+    // ── Homepage Bulletin Images ──
+    // Public read for landing page advisories, Admin-only write up to 5MB
+    match /bulletins/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                           && isAdmin()
+                           && request.resource.size < 5 * 1024 * 1024
+                           && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && isAdmin();
+    }
+
     // All other storage paths are denied by default.
     // No wildcard rule — unlisted paths are implicitly blocked.
   }

@@ -9,6 +9,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { usePublicAnalytics } from '../../hooks/usePublicAnalytics';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../firebase';
+import { BulletinVisualBanner } from '../common/BulletinVisualBanner';
 
 const TAG_OPTIONS = [
   'Deadlines',
@@ -45,7 +46,8 @@ export default function AdminCMSSection() {
     loading,
     addBulletin,
     updateBulletin,
-    deleteBulletin
+    deleteBulletin,
+    uploadBulletinImage
   } = useCMSData();
 
   const { addToast } = useToast();
@@ -59,6 +61,12 @@ export default function AdminCMSSection() {
   const [formDate, setFormDate] = useState('');
   const [formMemoUrl, setFormMemoUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Image Upload State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const [existingImagePath, setExistingImagePath] = useState<string | null>(null);
 
   // Delete Confirmation State
   const [bulletinToDelete, setBulletinToDelete] = useState<Bulletin | null>(null);
@@ -89,6 +97,10 @@ export default function AdminCMSSection() {
     setFormTag('Announcement');
     setFormDate(formatDateInput());
     setFormMemoUrl('');
+    setSelectedFile(null);
+    setImagePreviewUrl(null);
+    setRemoveExistingImage(false);
+    setExistingImagePath(null);
     setShowModal(true);
   };
 
@@ -99,7 +111,37 @@ export default function AdminCMSSection() {
     setFormTag(bulletin.tag);
     setFormDate(formatDateInput(bulletin.date));
     setFormMemoUrl(bulletin.memoUrl || '');
+    setSelectedFile(null);
+    setImagePreviewUrl(bulletin.imageUrl || null);
+    setRemoveExistingImage(false);
+    setExistingImagePath(bulletin.imagePath || null);
     setShowModal(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type and size (<= 5MB)
+    if (!file.type.startsWith('image/')) {
+      addToast('Please select a valid image file (JPEG, PNG, WebP).', 'warning');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('Image size exceeds 5MB limit.', 'warning');
+      return;
+    }
+
+    setSelectedFile(file);
+    setRemoveExistingImage(false);
+    const objectUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(objectUrl);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedFile(null);
+    setImagePreviewUrl(null);
+    setRemoveExistingImage(true);
   };
 
   const handleSaveBulletin = async (e: React.FormEvent) => {
@@ -111,22 +153,44 @@ export default function AdminCMSSection() {
 
     setIsSubmitting(true);
     try {
+      let finalImageUrl = selectedBulletin?.imageUrl || '';
+      let finalImagePath = selectedBulletin?.imagePath || '';
+      let oldImagePathToDelete: string | undefined = undefined;
+
+      // Handle image upload
+      if (selectedFile) {
+        if (existingImagePath) {
+          oldImagePathToDelete = existingImagePath;
+        }
+        const uploadRes = await uploadBulletinImage(selectedFile);
+        finalImageUrl = uploadRes.downloadUrl;
+        finalImagePath = uploadRes.storagePath;
+      } else if (removeExistingImage) {
+        if (existingImagePath) {
+          oldImagePathToDelete = existingImagePath;
+        }
+        finalImageUrl = '';
+        finalImagePath = '';
+      }
+
       // Parse date to mid-day Timestamp to bypass local offset anomalies
       const parsedDate = Timestamp.fromDate(new Date(`${formDate}T12:00:00`));
-      const payload = {
+      const payload: Partial<Bulletin> = {
         title: formTitle.trim(),
         desc: formDesc.trim(),
         tag: formTag,
         tagColor: getTagColorClass(formTag),
         date: parsedDate,
-        memoUrl: formMemoUrl.trim() || ''
+        memoUrl: formMemoUrl.trim() || '',
+        imageUrl: finalImageUrl,
+        imagePath: finalImagePath
       };
 
       if (selectedBulletin) {
-        await updateBulletin(selectedBulletin.id, payload);
+        await updateBulletin(selectedBulletin.id, payload, oldImagePathToDelete);
         addToast('Advisory updated successfully.', 'success');
       } else {
-        await addBulletin(payload);
+        await addBulletin(payload as Omit<Bulletin, 'id' | 'createdAt'>);
         addToast('New advisory published.', 'success');
       }
       setShowModal(false);
@@ -147,7 +211,7 @@ export default function AdminCMSSection() {
     if (!bulletinToDelete) return;
     setIsSubmitting(true);
     try {
-      await deleteBulletin(bulletinToDelete.id);
+      await deleteBulletin(bulletinToDelete.id, bulletinToDelete.imagePath);
       addToast('Advisory deleted successfully.', 'success');
       setShowDeleteConfirm(false);
     } catch (err) {
@@ -157,6 +221,18 @@ export default function AdminCMSSection() {
       setIsSubmitting(false);
       setBulletinToDelete(null);
     }
+  };
+
+  // Construct dynamic preview object for the modal
+  const previewBulletin: Bulletin = {
+    id: selectedBulletin?.id || 'preview',
+    title: formTitle.trim() || 'Official Advisory Title',
+    desc: formDesc.trim() || 'Advisory details and directives will appear here...',
+    tag: formTag,
+    tagColor: getTagColorClass(formTag),
+    date: Timestamp.now(),
+    imageUrl: imagePreviewUrl || undefined,
+    eventKey: selectedBulletin?.eventKey
   };
 
   if (loading) {
@@ -242,8 +318,9 @@ export default function AdminCMSSection() {
               <Table hover className="align-middle border-top-0 mb-0">
                 <thead>
                   <tr className="text-secondary small" style={{ borderBottom: '2px solid #F4F4F5' }}>
+                    <th style={{ width: '70px' }}>Visual</th>
                     <th style={{ width: '130px' }}>Date</th>
-                    <th style={{ width: '150px' }}>Category</th>
+                    <th style={{ width: '140px' }}>Category</th>
                     <th>Title &amp; Advisory Summary</th>
                     <th style={{ width: '150px' }} className="text-end">Actions</th>
                   </tr>
@@ -256,6 +333,9 @@ export default function AdminCMSSection() {
 
                     return (
                       <tr key={item.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                        <td>
+                          <BulletinVisualBanner bulletin={item} variant="thumbnail" />
+                        </td>
                         <td className="small text-secondary">{dateStr}</td>
                         <td>
                           <Badge className={`${item.tagColor} border px-2.5 py-1 text-capitalize`} style={{ fontSize: '10px' }}>
@@ -269,7 +349,7 @@ export default function AdminCMSSection() {
                         </td>
                         <td>
                           <div className="fw-semibold text-dark mb-0.5" style={{ fontSize: '14px' }}>{item.title}</div>
-                          <div className="text-secondary small text-truncate" style={{ maxWidth: '500px' }}>{item.desc}</div>
+                          <div className="text-secondary small text-truncate" style={{ maxWidth: '450px' }}>{item.desc}</div>
                         </td>
                         <td>
                           <div className="d-flex gap-2 justify-content-end">
@@ -300,14 +380,55 @@ export default function AdminCMSSection() {
       </Card>
 
       {/* ── Create / Edit Modal ── */}
-      <Modal show={showModal} onHide={() => !isSubmitting && setShowModal(false)} backdrop="static" centered>
+      <Modal show={showModal} onHide={() => !isSubmitting && setShowModal(false)} backdrop="static" centered size="lg">
         <Modal.Header closeButton={!isSubmitting}>
           <Modal.Title className="font-headline fs-5 fw-bold">
             {selectedBulletin ? 'Edit Advisory' : 'Publish Homepage Advisory'}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSaveBulletin}>
-          <Modal.Body>
+          <Modal.Body className="p-4">
+            {/* Live Visual Banner Preview */}
+            <div className="mb-4">
+              <Form.Label className="form-label d-flex align-items-center justify-content-between">
+                <span>Visual Representation Preview</span>
+                <span className="text-muted small">
+                  {imagePreviewUrl ? 'Custom Image Attached' : 'Auto-Themed Preset Banner'}
+                </span>
+              </Form.Label>
+              <div className="rounded-3 overflow-hidden border border-light shadow-sm" style={{ maxHeight: '180px' }}>
+                <BulletinVisualBanner bulletin={previewBulletin} variant="card" style={{ height: '140px' }} />
+              </div>
+            </div>
+
+            {/* Image Upload Input */}
+            <Form.Group className="mb-3">
+              <Form.Label className="form-label">Attach Cover Photo / Banner (Optional)</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={handleFileChange}
+                  disabled={isSubmitting}
+                />
+                {imagePreviewUrl && (
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={handleRemoveImage}
+                    disabled={isSubmitting}
+                    className="d-inline-flex align-items-center gap-1 flex-shrink-0"
+                  >
+                    <span className="material-symbols-outlined fs-6">delete</span>
+                    <span>Remove</span>
+                  </Button>
+                )}
+              </div>
+              <Form.Text className="text-muted small">
+                PNG, JPEG, or WebP (up to 5MB). If left empty, an official Lucena LYDO category banner is automatically assigned.
+              </Form.Text>
+            </Form.Group>
+
             <FormField
               label="Advisory Title"
               type="text"
@@ -375,7 +496,7 @@ export default function AdminCMSSection() {
               Cancel
             </Button>
             <Button variant="primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Publish Advisory'}
+              {isSubmitting ? 'Saving...' : selectedBulletin ? 'Update Advisory' : 'Publish Advisory'}
             </Button>
           </Modal.Footer>
         </Form>
