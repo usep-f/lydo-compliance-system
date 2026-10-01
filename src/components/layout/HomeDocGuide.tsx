@@ -36,7 +36,7 @@ const guideCategories = [
     iconStyle: { background: 'rgba(124,179,66,0.1)', color: '#558B2F' },
     badgeStyle: { background: 'rgba(124,179,66,0.08)', color: '#3B6E16', border: '1px solid rgba(124,179,66,0.25)' },
     docs: [
-      { name: 'Legislative Resolutions', desc: 'Ongoing submission of approved municipal and local youth legislation.' },
+      { name: 'Legislative Resolutions', desc: 'Ongoing submission of approved local and city youth legislation.' },
       { name: 'Accomplishment Reports', desc: 'Periodic logs documenting progress in education, health, and economic empowerment.' },
       { name: 'Project Evaluations', desc: 'Assesses the impact and fiscal execution of individual youth developmental projects.' }
     ]
@@ -101,7 +101,7 @@ export const HomeDocGuide: React.FC = () => {
           </div>
           <h2 className="home-section-title mb-2">Required Compliance Documents</h2>
           <p className="home-section-subtitle">
-            Understand the documentation framework and reporting milestones established by the Local Youth Development Office.
+            Understand the documentation framework and reporting milestones established by the Lucena City Local Youth Development Office.
           </p>
         </div>
 

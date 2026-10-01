@@ -149,7 +149,7 @@ export default function UserDashboard() {
 
   // Set tab title
   useEffect(() => {
-    document.title = "LYDO | User Dashboard";
+    document.title = "Lucena LYDO | User Dashboard";
   }, []);
 
   // Fetch user profile info

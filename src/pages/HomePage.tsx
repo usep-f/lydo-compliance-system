@@ -35,7 +35,7 @@ export default function HomePage() {
 
   // Set tab title
   useEffect(() => {
-    document.title = "LYDO | Home";
+    document.title = "Lucena LYDO | Home";
   }, []);
 
   // 1. URL search parameter checking for redirect modal triggers

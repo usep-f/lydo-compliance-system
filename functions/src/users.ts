@@ -216,7 +216,7 @@ export const approveUser = functions.https.onCall(
       await writeNotification(userRecord.uid, {
         type: 'account_approved',
         title: 'Account Approved 🎉',
-        body: 'Your SK Official account has been approved. Welcome to the LYDO Compliance System!',
+        body: 'Your SK Official account has been approved. Welcome to Lucena LYDO!',
       });
 
       await recomputePublicAnalytics(db);
@@ -298,7 +298,7 @@ export const denyUser = functions.https.onCall(
           recipientName: safeApplicantName,
           bodyHtml: `
             <p>Thank you for your interest. Following evaluation by the Lucena Youth Development Office, we regret to inform you that your SK Official registration application was not approved.</p>
-            <p style="font-size: 13px; color: #64748b;">If you believe this is an error or require further assistance, please coordinate directly with the LYDO administrator.</p>
+            <p style="font-size: 13px; color: #64748b;">If you believe this is an error or require further assistance, please coordinate directly with the Lucena LYDO administrator.</p>
           `,
           alertBox: {
             variant: 'danger',
@@ -310,7 +310,7 @@ export const denyUser = functions.https.onCall(
         await sendEmailViaBrevo(
           applicantData.email,
           safeApplicantName,
-          'Application Denied - Lydo Compliance System',
+          'Application Denied - Lucena LYDO',
           denialEmailHtml
         );
       }
@@ -629,7 +629,7 @@ export const updateOwnProfile = functions.https.onCall(
               headerSubtitle: 'Email Change Verification',
               recipientName: safeEscapedName,
               bodyHtml: `
-                <p>You recently requested to update your registered email address for the LYDO Compliance System to this address (<strong>${escapeHtml(cleanEmail)}</strong>).</p>
+                <p>You recently requested to update your registered email address for Lucena LYDO to this address (<strong>${escapeHtml(cleanEmail)}</strong>).</p>
                 <p>To confirm and complete this change, please <a href="${link}" style="color: #0284c7; font-weight: 600; text-decoration: underline;">click here to verify your new email address</a>.</p>
                 <p style="font-size: 13px; color: #64748b; margin-top: 14px;">If you did not initiate this request, you can safely ignore this message and your current email will remain unchanged.</p>
               `,
@@ -712,14 +712,14 @@ export const updateOwnProfile = functions.https.onCall(
             headerSubtitle: 'Account Security Alert',
             recipientName: safeEscapedName,
             bodyHtml: `
-              <p>This is a confirmation that your LYDO Compliance System account profile details were recently updated.</p>
+              <p>This is a confirmation that your Lucena LYDO account profile details were recently updated.</p>
               <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 18px; margin: 16px 0;">
                 <div style="font-weight: 600; color: #0f172a; margin-bottom: 6px; font-size: 13px;">Modified Account Fields:</div>
                 <ul style="margin: 0; padding-left: 20px; color: #334155; font-size: 13px;">
                   ${changeListHtml}
                 </ul>
               </div>
-              <p style="font-size: 13px; color: #64748b;">If you did not authorize these modifications, please contact the LYDO system administrator immediately.</p>
+              <p style="font-size: 13px; color: #64748b;">If you did not authorize these modifications, please contact the Lucena LYDO administrator immediately.</p>
             `,
             alertBox: {
               variant: 'warning',
@@ -811,7 +811,7 @@ export const deleteOwnAccount = functions.https.onCall(
           headerSubtitle: 'Account Deletion Notice',
           recipientName: safeEscapedName,
           bodyHtml: `
-            <p>Your LYDO Compliance System user account has been permanently deleted as requested.</p>
+            <p>Your Lucena LYDO user account has been permanently deleted as requested.</p>
             <p>Please note that in accordance with municipal regulations and administrative auditing protocols, all historical compliance documents previously submitted under your barangay will remain archived in the official records.</p>
             <p>Thank you for your service and participation in the compliance program.</p>
           `,
@@ -922,7 +922,7 @@ export const requestPasswordReset = functions.https.onCall(
           headerSubtitle: 'Password Reset Request',
           recipientName: safeUserName,
           bodyHtml: `
-            <p>We received a request to reset the password associated with your LYDO Compliance System account.</p>
+            <p>We received a request to reset the password associated with your Lucena LYDO account.</p>
             <p>To proceed and choose a new password, please <a href="${customResetLink}" style="color: #0284c7; font-weight: 600; text-decoration: underline;">click here to reset your password</a>.</p>
             <p style="font-size: 13px; color: #64748b; margin-top: 14px;">If you did not request a password reset, you can safely ignore this email — your account remains secure and your password will not change.</p>
           `,
@@ -1147,7 +1147,7 @@ export const createDirectUser = functions.https.onCall(
       // 7. Write in-app welcome notification to the new user
       await writeNotification(userRecord.uid, {
         type: 'account_approved',
-        title: 'Welcome to LYDO Compliance System 🎉',
+        title: 'Welcome to Lucena LYDO 🎉',
         body: `Your ${role === 'admin' ? 'Administrator' : 'SK Official'} account has been activated.`,
       });
 
@@ -1175,10 +1175,10 @@ export const createDirectUser = functions.https.onCall(
         headerSubtitle: 'Account Activation Notice',
         recipientName: safeRecipientName,
         bodyHtml: `
-          <p>An official account has been created for you on the <strong>LYDO Compliance System</strong>.</p>
+          <p>An official account has been created for you on <strong>Lucena LYDO</strong>.</p>
           <p>Your account is fully activated and ready for immediate login at the official portal:</p>
           <p><a href="https://lydo-compliance-system-ce8c3.firebaseapp.com/" style="color: #0284c7; font-weight: 600; text-decoration: underline;">https://lydo-compliance-system-ce8c3.firebaseapp.com/</a></p>
-          <p style="font-size: 13px; color: #64748b; margin-top: 14px;">Please sign in using your registered email (<strong>${escapeHtml(cleanEmail)}</strong>) and the initial password provided to you by the LYDO office. You can update your password at any time in your User Settings after signing in.</p>
+          <p style="font-size: 13px; color: #64748b; margin-top: 14px;">Please sign in using your registered email (<strong>${escapeHtml(cleanEmail)}</strong>) and the initial password provided to you by the Lucena LYDO office. You can update your password at any time in your User Settings after signing in.</p>
         `,
         detailsTable: [
           { label: 'Full Name', value: safeRecipientName },
@@ -1196,7 +1196,7 @@ export const createDirectUser = functions.https.onCall(
       await sendEmailViaBrevo(
         cleanEmail,
         safeRecipientName,
-        `Welcome to LYDO Compliance System — ${roleLabel} Account Ready`,
+        `Welcome to Lucena LYDO — ${roleLabel} Account Ready`,
         welcomeEmailHtml
       );
 

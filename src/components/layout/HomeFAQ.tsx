@@ -5,7 +5,7 @@ export const HomeFAQ: React.FC = () => {
   const faqs = [
     {
       q: 'How long does the SK registration verification take?',
-      a: 'Registration applications are reviewed manually by Local Youth Development Office (LYDO) staff. Verification typically takes 24 to 48 business hours. You will receive an automated email confirmation once approved, containing a link to set up your password.'
+      a: 'Registration applications are reviewed manually by Lucena City Local Youth Development Office (LYDO) staff. Verification typically takes 24 to 48 business hours. You will receive an automated email confirmation once approved, containing a link to set up your password.'
     },
     {
       q: 'What file formats are accepted for compliance documents?',

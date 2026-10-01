@@ -117,7 +117,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
 
             {/* Sub-description */}
             <p className="hero-subtext hero-animate hero-anim-2">
-              The official compliance system of the Local Youth Development Office. Streamlining Sangguniang Kabataan governance with modern digital tools for transparency, accountability, and youth empowerment.
+              The official compliance system of the Lucena City Local Youth Development Office. Streamlining Sangguniang Kabataan governance across Lucena City with modern digital tools for transparency, accountability, and youth empowerment.
             </p>
 
             {/* CTAs */}

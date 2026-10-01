@@ -9,7 +9,7 @@ export default function SetupPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "LYDO | Setup Password";
+    document.title = "Lucena LYDO | Setup Password";
   }, []);
 
   const oobCode = searchParams.get('oobCode');
@@ -36,7 +36,7 @@ export default function SetupPasswordPage() {
                 />
               </div>
               <h2 className="text-primary fw-bold headline-text mb-1" style={{ letterSpacing: '-0.02em' }}>
-                Lydo Compliance
+                Lucena LYDO
               </h2>
               <p className="text-muted small">Official SK Account Activation</p>
             </div>
@@ -51,7 +51,7 @@ export default function SetupPasswordPage() {
                 {!isValidCode ? (
                   <Alert variant="danger" className="text-center py-3 px-4 rounded-3 border-0 shadow-sm" style={{ background: '#FEF2F2', color: '#991B1B' }}>
                     <div className="fw-bold mb-1">Invalid or Missing Setup Link</div>
-                    <div className="small">Please check the confirmation email sent to your inbox or contact the LYDO Administrator.</div>
+                    <div className="small">Please check the confirmation email sent to your inbox or contact the Lucena LYDO Administrator.</div>
                   </Alert>
                 ) : (
                   <PasswordSetupForm oobCode={oobCode!} onSuccess={handleSuccess} mode="setup" />

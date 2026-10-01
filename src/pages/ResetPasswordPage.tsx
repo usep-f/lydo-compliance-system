@@ -9,7 +9,7 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "LYDO | Reset Password";
+    document.title = "Lucena LYDO | Reset Password";
   }, []);
   
   const oobCode = searchParams.get('oobCode');
@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <h2 className="text-primary fw-bold headline-text mb-1" style={{ letterSpacing: '-0.02em' }}>
-                Lydo Compliance
+                Lucena LYDO
               </h2>
               <p className="text-muted small">Account Recovery & Credential Reset</p>
             </div>
@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
               <Card.Body className="p-4 p-md-5">
                 <div className="text-center mb-4">
                   <h3 className="h5 fw-bold text-dark mb-1">Reset Your Password</h3>
-                  <p className="text-muted small mb-0">Enter a new secure password for your LYDO portal account.</p>
+                  <p className="text-muted small mb-0">Enter a new secure password for your Lucena LYDO portal account.</p>
                 </div>
                 
                 {!isValidCode ? (

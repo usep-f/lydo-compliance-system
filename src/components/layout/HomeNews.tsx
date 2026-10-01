@@ -173,7 +173,7 @@ export const HomeNews: React.FC = () => {
               </div>
               <h2 className="home-section-title mb-2">Latest Bulletins & Advisories</h2>
               <p className="home-section-subtitle">
-                Stay informed with the latest directives, compliance circulars, and system notices released by the Local Youth Development Office.
+                Stay informed with the latest directives, compliance circulars, and system notices released by the Lucena City Local Youth Development Office.
               </p>
             </div>
 

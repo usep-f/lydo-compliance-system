@@ -114,7 +114,7 @@ export default function AdminDashboard() {
 
   // Set tab title
   useEffect(() => {
-    document.title = "LYDO | Admin Dashboard";
+    document.title = "Lucena LYDO | Admin Dashboard";
   }, []);
 
   useEffect(() => {

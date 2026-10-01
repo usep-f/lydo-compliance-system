@@ -16,7 +16,7 @@ export const HomeFooter: React.FC = () => {
         <div className="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 text-center text-md-start">
           <div>
             <div className="fw-semibold text-white mb-1" style={{ fontSize: '14px', fontFamily: 'var(--font-headline)', letterSpacing: '-0.02em' }}>
-              LYDO Compliance System
+              Lucena LYDO Compliance System
             </div>
             <div style={{ fontSize: '12px' }}>
               Copyright &copy; {currentYear} Lucena City Local Youth Development Office. All Rights Reserved.

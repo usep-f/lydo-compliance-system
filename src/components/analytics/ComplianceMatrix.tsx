@@ -111,7 +111,7 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
               type="button"
               className="bfc-btn-export"
               onClick={() => exportAnalyticsSummaryCsv(currentYear, selectedBarangay || 'all', compliance)}
-              title={selectedBarangay ? `Export ${selectedBarangay} Profile CSV` : "Export Municipal Compliance & Matrix CSV for All Barangays"}
+              title={selectedBarangay ? `Export ${selectedBarangay} Profile CSV` : "Export Compliance & Matrix CSV for All Barangays"}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
               {selectedBarangay ? 'Export Barangay Profile CSV' : 'Export All Barangays CSV'}
@@ -157,7 +157,7 @@ const ComplianceMatrix: React.FC<ComplianceMatrixProps> = ({
               type="button"
               className="bfc-btn-export"
               onClick={() => exportAnalyticsSummaryCsv(currentYear, selectedBarangay || 'all', compliance)}
-              title={selectedBarangay ? `Export ${selectedBarangay} Profile CSV` : "Export Municipal Compliance & Matrix CSV for All Barangays"}
+              title={selectedBarangay ? `Export ${selectedBarangay} Profile CSV` : "Export Compliance & Matrix CSV for All Barangays"}
             >
               <span className="material-symbols-outlined">download</span>
               {selectedBarangay ? 'Export Barangay Profile CSV' : 'Export All Barangays CSV'}

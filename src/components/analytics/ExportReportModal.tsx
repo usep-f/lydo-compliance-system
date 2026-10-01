@@ -229,7 +229,7 @@ const ScopeFilterCard: React.FC<{
               onChange={(e) => setSelectedBarangay(e.target.value)}
               style={{ borderRadius: '8px', fontSize: '12px', borderColor: '#CBD5E1' }}
             >
-              <option value="all">All Barangays (Municipal Overview)</option>
+              <option value="all">All Barangays (City-wide Overview)</option>
               {BARANGAYS.map((b) => (
                 <option key={b} value={b}>
                   {b}

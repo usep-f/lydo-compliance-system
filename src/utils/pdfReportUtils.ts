@@ -218,5 +218,5 @@ export const generateFormalPdfReport = async (options: PdfReportOptions): Promis
   const dateTag = new Date().toISOString().split('T')[0];
   const profileTag = profile === 'dossier' ? 'Audit_Dossier' : 'Executive_Report';
 
-  doc.save(`LYDO_${profileTag}_${scopeTag}_CY${options.year}_${dateTag}.pdf`);
+  doc.save(`Lucena_LYDO_${profileTag}_${scopeTag}_CY${options.year}_${dateTag}.pdf`);
 };

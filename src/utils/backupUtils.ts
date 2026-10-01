@@ -23,7 +23,7 @@ export const triggerSystemBackup = async () => {
   link.setAttribute('href', url);
   
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  link.setAttribute('download', `LYDO_System_Backup_${timestamp}.json`);
+  link.setAttribute('download', `Lucena_LYDO_System_Backup_${timestamp}.json`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();

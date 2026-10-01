@@ -82,13 +82,13 @@ const buildBarangaySummaryRow = (
   return cols.map(escapeCsv).join(',');
 };
 
-/** Builds CSV rows for municipal-wide analytics summary */
+/** Builds CSV rows for city-wide analytics summary */
 const buildAllBarangaysRows = (
   year: number,
   compliance: ComplianceData
 ): string[] => {
   const rows: string[] = [
-    escapeCsv(`LYDO MUNICIPAL COMPLIANCE & ANALYTICS SUMMARY`),
+    escapeCsv(`LUCENA LYDO COMPLIANCE & ANALYTICS SUMMARY`),
     escapeCsv(`CALENDAR YEAR: ${year}`),
     escapeCsv(`OVERALL COMPLIANCE RATE: ${compliance.overallRate}%`),
     escapeCsv(`FULLY COMPLIANT BARANGAYS: ${compliance.fullyCompliantCount} / ${compliance.totalBarangays}`),
@@ -112,11 +112,11 @@ const buildAllBarangaysRows = (
     rows.push(buildBarangaySummaryRow(b, compliance.barangayPerennialSummary));
   });
 
-  // Municipal Full Compliance Matrix Register
+  // Full Compliance Matrix Register
   if (compliance.matrixData && compliance.matrixData.length > 0) {
     rows.push(
       '',
-      escapeCsv('--- MUNICIPAL COMPLIANCE MATRIX REGISTER (ALL BARANGAYS) ---'),
+      escapeCsv('--- COMPLIANCE MATRIX REGISTER (ALL BARANGAYS) ---'),
       ['Category', 'Barangay', 'Document Type', 'Period', 'Status'].map(escapeCsv).join(',')
     );
 
@@ -130,12 +130,12 @@ const buildAllBarangaysRows = (
     });
   }
 
-  // Municipal Perennial Totals
+  // Perennial Totals
   if (compliance.overallPerennialSummary) {
     const overall = compliance.overallPerennialSummary;
     rows.push(
       '',
-      escapeCsv('--- MUNICIPAL PERENNIAL CATEGORY TOTALS ---'),
+      escapeCsv('--- PERENNIAL CATEGORY TOTALS ---'),
       ['Category / Document', 'Approved', 'Pending', 'Disapproved', 'Total Submitted'].map(escapeCsv).join(','),
       [
         'Resolutions',
@@ -241,7 +241,7 @@ export const exportAnalyticsSummaryCsv = (
     : buildSingleBarangayRows(scope, year, compliance);
 
   const cleanScope = isAll ? 'All_Barangays' : scope.replace(/\s+/g, '_');
-  const filename = `LYDO_Analytics_Summary_${cleanScope}_${year}.csv`;
+  const filename = `Lucena_LYDO_Analytics_Summary_${cleanScope}_${year}.csv`;
   downloadCsv(rows.join('\n'), filename);
 };
 
@@ -299,7 +299,7 @@ export const exportFilteredSubmissionsCsv = (
 
   const rows = [headers, ...submissions.map(buildSubmissionCsvRow)];
   const dateStr = new Date().toISOString().split('T')[0];
-  downloadCsv(rows.join('\n'), `LYDO_Submissions_${filenameSuffix}_${dateStr}.csv`);
+  downloadCsv(rows.join('\n'), `Lucena_LYDO_Submissions_${filenameSuffix}_${dateStr}.csv`);
 };
 
 // ---------------------------------------------------------------------------

@@ -199,7 +199,7 @@ export const drawKpiScorecard = (
   const cardH = 44;
 
   let x = marginLeft;
-  drawExecutiveKpiCard(doc, x, startY, cardW, cardH, 'Overall Compliance', rateStr, 'Municipal statutory rate', [37, 99, 235]);
+  drawExecutiveKpiCard(doc, x, startY, cardW, cardH, 'Overall Compliance', rateStr, 'City statutory rate', [37, 99, 235]);
   x += cardW + gap;
 
   drawExecutiveKpiCard(
@@ -421,7 +421,7 @@ export const buildAuditDossierLayout = (doc: jsPDF, options: PdfReportOptions): 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
       doc.setTextColor(159, 18, 57);
-      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (MUNICIPAL AUDIT FINDING):', MARGIN_LEFT + 10, y + 10);
+      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (CITY AUDIT FINDING):', MARGIN_LEFT + 10, y + 10);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
@@ -624,7 +624,7 @@ export const buildExecutiveBriefLayout = (doc: jsPDF, options: PdfReportOptions)
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(159, 18, 57);
-      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (MUNICIPAL AUDIT FINDING):', MARGIN_LEFT + 12, y + 11);
+      doc.text('PRIMARY GOVERNANCE BOTTLENECK DETECTED (CITY AUDIT FINDING):', MARGIN_LEFT + 12, y + 11);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
