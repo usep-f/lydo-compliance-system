@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// PDF Pre-Screening — Client-side PDF validation using pdf-lib
+// Document Pre-Screening — Client-side validation for PDF, Word, and Excel files
 // ---------------------------------------------------------------------------
 
 import { PDFDocument } from 'pdf-lib';
@@ -20,26 +20,55 @@ export interface PdfScreeningResult {
 /** Maximum allowed file size in bytes (100 MB). */
 export const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
-/** Allowed MIME type for uploads. */
+/** Allowed file extensions. */
+export const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.xlsx'] as const;
+
+/** Comma-separated allowed extensions for HTML input accept attributes. */
+export const ALLOWED_EXTENSION = '.pdf,.docx,.xlsx';
+
+/** Allowed MIME types for uploads. */
+export const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+] as const;
+
+/** Primary default MIME type. */
 export const ALLOWED_MIME_TYPE = 'application/pdf';
 
-/** Allowed file extension. */
-export const ALLOWED_EXTENSION = '.pdf';
+/**
+ * Resolves the appropriate MIME type for a file based on extension and browser-provided type.
+ */
+export function getMimeTypeForFile(file: { name: string; type?: string }): string {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  if (name.endsWith('.xlsx')) {
+    return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  }
+  return 'application/pdf';
+}
 
 /**
- * Validates a file before upload:
- * - Checks extension is .pdf
- * - Checks MIME type is application/pdf
- * - Checks file size ≤ 100 MB
- * Returns an error message if invalid, or null if valid.
+ * Validates basic file constraints (extension, MIME type if set, file size).
+ * Returns an error string if invalid, or null if valid.
  */
 export function validateFileBasics(file: File): string | null {
-  if (!file.name.toLowerCase().endsWith(ALLOWED_EXTENSION)) {
-    return 'Only PDF files are accepted. Please select a .pdf file.';
+  const lowerName = file.name.toLowerCase();
+  const hasAllowedExt = ALLOWED_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+
+  if (!hasAllowedExt) {
+    return 'Only PDF, Word (.docx), and Excel (.xlsx) files are accepted.';
   }
 
-  if (file.type && file.type !== ALLOWED_MIME_TYPE) {
-    return 'Invalid file type. Only PDF documents (application/pdf) are accepted.';
+  // If MIME type is present and not generic stream, verify it is allowed
+  if (
+    file.type &&
+    file.type !== 'application/octet-stream' &&
+    !ALLOWED_MIME_TYPES.includes(file.type as (typeof ALLOWED_MIME_TYPES)[number])
+  ) {
+    return 'Invalid file type. Only PDF, Word (.docx), and Excel (.xlsx) documents are accepted.';
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -48,50 +77,49 @@ export function validateFileBasics(file: File): string | null {
   }
 
   if (file.size === 0) {
-    return 'File is empty. Please select a valid PDF document.';
+    return 'File is empty. Please select a valid document.';
   }
 
   return null;
 }
 
 /**
- * Parses a PDF file using pdf-lib and extracts metadata.
- * This runs entirely client-side — no server call needed.
- *
- * For scanned documents: title/author will be empty, pageCount and
- * producer will still be available. This is expected and normal.
+ * Builds screening result for Office documents (.docx and .xlsx).
  */
-export async function screenPdfFile(file: File): Promise<PdfScreeningResult> {
-  // Step 1: Basic validation
-  const basicError = validateFileBasics(file);
-  if (basicError) {
-    return {
-      isValid: false,
-      pageCount: 0,
-      fileSize: file.size,
-      metadata: { title: '', author: '', producer: '', creationDate: '' },
-      error: basicError,
-    };
-  }
+function screenOfficeDocument(file: File): PdfScreeningResult {
+  const lowerName = file.name.toLowerCase();
+  const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+  const isDocx = lowerName.endsWith('.docx');
 
+  return {
+    isValid: true,
+    pageCount: 1,
+    fileSize: file.size,
+    metadata: {
+      title: baseName,
+      author: '',
+      producer: isDocx ? 'Microsoft Word Document' : 'Microsoft Excel Spreadsheet',
+      creationDate: file.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString(),
+    },
+  };
+}
+
+/**
+ * Parses and validates a PDF file buffer using pdf-lib.
+ */
+async function parsePdfDocument(file: File): Promise<PdfScreeningResult> {
   try {
-    // Step 2: Read the file into an ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-
-    // Step 3: Parse with pdf-lib (validates PDF structure)
     const pdfDoc = await PDFDocument.load(arrayBuffer, {
-      // Don't throw on encrypted or damaged PDFs — we'll handle gracefully
       ignoreEncryption: true,
     });
 
-    // Step 4: Extract metadata
     const pageCount = pdfDoc.getPageCount();
     const title = pdfDoc.getTitle() ?? '';
     const author = pdfDoc.getAuthor() ?? '';
     const producer = pdfDoc.getProducer() ?? '';
     const creationDate = pdfDoc.getCreationDate()?.toISOString() ?? '';
 
-    // Step 5: Sanity check — 0-page PDF is suspicious
     if (pageCount === 0) {
       return {
         isValid: false,
@@ -118,6 +146,33 @@ export async function screenPdfFile(file: File): Promise<PdfScreeningResult> {
     };
   }
 }
+
+/**
+ * Screens an uploaded document file client-side.
+ * Parses PDFs via pdf-lib; validates sizes and attributes for Office documents.
+ */
+export async function screenPdfFile(file: File): Promise<PdfScreeningResult> {
+  const basicError = validateFileBasics(file);
+  if (basicError) {
+    return {
+      isValid: false,
+      pageCount: 0,
+      fileSize: file.size,
+      metadata: { title: '', author: '', producer: '', creationDate: '' },
+      error: basicError,
+    };
+  }
+
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith('.docx') || lowerName.endsWith('.xlsx')) {
+    return screenOfficeDocument(file);
+  }
+
+  return parsePdfDocument(file);
+}
+
+/** Alias for screenPdfFile to reflect general document screening. */
+export const screenDocumentFile = screenPdfFile;
 
 /**
  * Formats a file size in bytes to a human-readable string.

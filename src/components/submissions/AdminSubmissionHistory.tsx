@@ -227,6 +227,7 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
         onHide={closeDetails}
         title={`History: ${selectedSub?.documentLabel || ''}`}
         fileUrl={fileUrl}
+        fileName={selectedSub?.fileName}
         fileLoading={fileLoading}
         locked={false}
         hidePreview={selectedSub?.status === 'denied'}
@@ -330,7 +331,11 @@ const AdminSubmissionHistory: React.FC<AdminSubmissionHistoryProps> = ({
               <span className="material-symbols-outlined me-2" style={{ verticalAlign: 'middle' }}>
                 download
               </span>
-              Download PDF
+              {selectedSub?.fileName?.toLowerCase().endsWith('.docx')
+                ? 'Download Word'
+                : selectedSub?.fileName?.toLowerCase().endsWith('.xlsx')
+                ? 'Download Excel'
+                : 'Download PDF'}
             </Button>
             <Button variant="outline-secondary" size="lg" onClick={closeDetails}>
               Close

@@ -244,7 +244,7 @@ export const denySubmission = functions.https.onCall(
             recipientName: safeName,
             bodyHtml: `
               <p>Following evaluation by the LYDO administration, your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} was <strong>disapproved</strong> due to discrepancies.</p>
-              <p>Please review the administrative remarks below, make the necessary corrections to your document, and re-upload the corrected PDF through the portal dashboard for resubmission.</p>
+              <p>Please review the administrative remarks below, make the necessary corrections to your document, and re-upload the corrected document through the portal dashboard for resubmission.</p>
             `,
             detailsTable: [
               { label: 'Document Type', value: safeDocLabel },
@@ -328,11 +328,11 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
       const [buffer] = await file.download();
       const verification = await verifyPdfBuffer(buffer, Number(pageCount || 0));
       if (!verification.isValid) {
-        verificationError = verification.error || 'Invalid PDF structure.';
+        verificationError = verification.error || 'Invalid document structure.';
       }
     }
   } catch (err: any) {
-    console.error('PDF validation exception:', err);
+    console.error('Document validation exception:', err);
     verificationError = `Failed to process or parse document: ${err.message || 'Unknown error'}`;
   }
 
@@ -372,7 +372,7 @@ export const onSubmissionCreated = onDocumentCreated('pending_submissions/{submi
         recipientName: safeName,
         bodyHtml: `
           <p>Your submission for <strong>${safeDocLabel}</strong>${safePeriod ? ` (${safePeriod})` : ''} could not be processed and has been <strong>flagged for resubmission</strong> by the system screening engine.</p>
-          <p>Please inspect your source document, verify that it is an intact, uncorrupted PDF file that conforms to page specifications, and re-upload through the portal.</p>
+          <p>Please inspect your source document, verify that it is an intact, uncorrupted PDF, Word (.docx), or Excel (.xlsx) file, and re-upload through the portal.</p>
         `,
         alertBox: {
           variant: 'danger',

@@ -7,26 +7,47 @@ export interface ServerScreeningResult {
 }
 
 /**
- * Validates a PDF file buffer server-side:
- * - Checks for %PDF magic bytes
- * - Verifies structural integrity by attempting to load it using pdf-lib
- * - Verifies that the parsed page count matches the expectedPageCount reported by the client
+ * Validates a document file buffer server-side:
+ * - Detects Office OpenXML files (.docx, .xlsx) via ZIP header magic bytes (PK\x03\x04)
+ * - Detects PDF files via %PDF magic bytes and validates structural integrity using pdf-lib
+ * - Verifies that the parsed page count matches the expectedPageCount reported by the client for PDFs
  */
 export async function verifyPdfBuffer(
   buffer: Buffer,
   expectedPageCount: number
 ): Promise<ServerScreeningResult> {
-  // 1. Verify magic bytes (%PDF)
+  if (!buffer || buffer.length < 4) {
+    return {
+      isValid: false,
+      error: 'File is empty or corrupt.',
+    };
+  }
+
+  // 1. Detect Office OpenXML documents (.docx, .xlsx) via ZIP magic bytes (PK\x03\x04)
+  const isOfficeOpenXml =
+    buffer[0] === 0x50 &&
+    buffer[1] === 0x4b &&
+    buffer[2] === 0x03 &&
+    buffer[3] === 0x04;
+
+  if (isOfficeOpenXml) {
+    return {
+      isValid: true,
+      pageCount: expectedPageCount > 0 ? expectedPageCount : 1,
+    };
+  }
+
+  // 2. Detect PDF documents via %PDF magic bytes
   const magic = buffer.toString('utf8', 0, 4);
   if (magic !== '%PDF') {
     return {
       isValid: false,
-      error: 'Invalid file signature. File is not a valid PDF document.',
+      error: 'Invalid file signature. Only PDF, Word (.docx), and Excel (.xlsx) files are supported.',
     };
   }
 
   try {
-    // 2. Parse PDF structure
+    // 3. Parse PDF structure
     const pdfDoc = await PDFDocument.load(buffer, {
       ignoreEncryption: true,
     });
@@ -39,7 +60,7 @@ export async function verifyPdfBuffer(
       };
     }
 
-    // 3. Match page count
+    // 4. Match page count for PDFs
     if (pageCount !== expectedPageCount) {
       return {
         isValid: false,
@@ -55,3 +76,6 @@ export async function verifyPdfBuffer(
     };
   }
 }
+
+/** Alias for verifyPdfBuffer to reflect general document screening. */
+export const verifyDocumentBuffer = verifyPdfBuffer;

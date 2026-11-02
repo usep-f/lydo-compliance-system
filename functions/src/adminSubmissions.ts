@@ -47,6 +47,14 @@ function validateDirectUploadPayload(payload: AdminDirectUploadPayload): void {
   if (!payload.period || typeof payload.period !== 'string') {
     throw new functions.https.HttpsError('invalid-argument', 'Valid period is required.');
   }
+  if (!payload.fileName || typeof payload.fileName !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Valid file name is required.');
+  }
+  const lowerName = payload.fileName.toLowerCase();
+  const hasAllowedExt = lowerName.endsWith('.pdf') || lowerName.endsWith('.docx') || lowerName.endsWith('.xlsx');
+  if (!hasAllowedExt) {
+    throw new functions.https.HttpsError('invalid-argument', 'Only .pdf, .docx, and .xlsx files are supported.');
+  }
   if (!payload.year || typeof payload.year !== 'number') {
     throw new functions.https.HttpsError('invalid-argument', 'Valid year is required.');
   }

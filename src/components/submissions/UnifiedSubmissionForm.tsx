@@ -172,11 +172,11 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
       if (result.isValid) {
         setScreening(result);
       } else {
-        setFileError(result.error || 'Invalid PDF file.');
+        setFileError(result.error || 'Invalid document file.');
         setFile(null);
       }
     } catch (err: unknown) {
-      setFileError((err as Error).message || 'Failed to screen PDF file.');
+      setFileError((err as Error).message || 'Failed to screen document file.');
       setFile(null);
     }
   }, []);
@@ -340,7 +340,7 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
               <FileDropZone
                 onFileSelect={handleFileSelect}
                 onError={setFileError}
-                accept=".pdf"
+                accept=".pdf,.docx,.xlsx"
                 disabled={
                   !baseType || 
                   isFullySubmitted || 
@@ -355,7 +355,22 @@ const UnifiedSubmissionForm: React.FC<UnifiedSubmissionFormProps> = ({
               <div className="bg-light rounded p-3 d-flex align-items-center justify-content-between border">
                 <div className="d-flex align-items-center gap-3 min-w-0">
                   <div className="bg-primary bg-opacity-10 rounded p-2 text-primary d-flex flex-shrink-0">
-                    <span className="material-symbols-outlined">picture_as_pdf</span>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        color: file.name.toLowerCase().endsWith('.xlsx')
+                          ? '#107C41'
+                          : file.name.toLowerCase().endsWith('.docx')
+                          ? '#2B579A'
+                          : '#DC2626',
+                      }}
+                    >
+                      {file.name.toLowerCase().endsWith('.xlsx')
+                        ? 'table_chart'
+                        : file.name.toLowerCase().endsWith('.docx')
+                        ? 'article'
+                        : 'picture_as_pdf'}
+                    </span>
                   </div>
                   <div className="min-w-0">
                     <div className="fw-semibold text-truncate" style={{ maxWidth: '300px' }}>{file.name}</div>

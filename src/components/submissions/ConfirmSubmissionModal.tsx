@@ -4,7 +4,7 @@ import { ref, uploadBytesResumable } from 'firebase/storage';
 import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { storage, db } from '../../firebase';
 import LoadingButton from '../common/LoadingButton';
-import { formatFileSize } from '../../utils/pdfScreening';
+import { formatFileSize, getMimeTypeForFile } from '../../utils/pdfScreening';
 import type { PdfScreeningResult } from '../../utils/pdfScreening';
 import type { SubmissionTypeDefinition } from '../../constants/submissionTypes';
 import { formatPeriodLabel } from '../../utils/periodUtils';
@@ -58,7 +58,7 @@ const ConfirmSubmissionModal: React.FC<ConfirmSubmissionModalProps> = ({
     const storagePath = `submission_files/${userId}/${year}/${barangay}/${documentType.id}/${Date.now()}_${safeName}`;
     const fileRef = ref(storage, storagePath);
     const uploadTask = uploadBytesResumable(fileRef, file, {
-      contentType: 'application/pdf',
+      contentType: file.type || getMimeTypeForFile(file),
     });
 
     uploadTask.on(

@@ -9,7 +9,7 @@ import {
   ACCOMPLISHMENT_CATEGORIES,
   type Frequency 
 } from '../../constants/submissionTypes';
-import { screenPdfFile, formatFileSize, type PdfScreeningResult } from '../../utils/pdfScreening';
+import { screenPdfFile, formatFileSize, getMimeTypeForFile, type PdfScreeningResult } from '../../utils/pdfScreening';
 import { getSubmittablePeriods, formatPeriodLabel } from '../../utils/periodUtils';
 import FileDropZone from '../common/FileDropZone';
 import LoadingButton from '../common/LoadingButton';
@@ -92,11 +92,11 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
       if (result.isValid) {
         setScreening(result);
       } else {
-        setFileError(result.error || 'Invalid PDF file.');
+        setFileError(result.error || 'Invalid document file.');
         setFile(null);
       }
     } catch (err: unknown) {
-      setFileError((err as Error).message || 'Failed to screen PDF file.');
+      setFileError((err as Error).message || 'Failed to screen document file.');
       setFile(null);
     }
   }, []);
@@ -137,7 +137,7 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
       return;
     }
     if (!file || !screening || !screening.isValid) {
-      setSubmitError('Please attach a verified PDF document.');
+      setSubmitError('Please attach a verified document.');
       return;
     }
 
@@ -163,7 +163,7 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
 
       const fileRef = ref(storage, storagePath);
       const uploadTask = uploadBytesResumable(fileRef, file, {
-        contentType: 'application/pdf',
+        contentType: file.type || getMimeTypeForFile(file),
       });
 
       await new Promise<void>((resolve, reject) => {
@@ -386,13 +386,13 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
           {/* File Upload Zone */}
           <Form.Group className="mb-3">
             <Form.Label className="fw-semibold text-muted small text-uppercase">
-              Attach Scanned PDF <span className="text-danger">*</span>
+              Attach Scanned Document <span className="text-danger">*</span>
             </Form.Label>
             {!file && (
               <FileDropZone
                 onFileSelect={handleFileSelect}
                 onError={setFileError}
-                accept=".pdf"
+                accept=".pdf,.docx,.xlsx"
                 disabled={isUploading || !selectedBarangay || !selectedBaseTypeId}
               />
             )}
@@ -410,8 +410,22 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
               >
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <div className="d-flex align-items-center gap-2 min-w-0">
-                    <span className="material-symbols-outlined text-danger" style={{ fontSize: '28px' }}>
-                      picture_as_pdf
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: '28px',
+                        color: file.name.toLowerCase().endsWith('.xlsx')
+                          ? '#107C41'
+                          : file.name.toLowerCase().endsWith('.docx')
+                          ? '#2B579A'
+                          : '#DC2626',
+                      }}
+                    >
+                      {file.name.toLowerCase().endsWith('.xlsx')
+                        ? 'table_chart'
+                        : file.name.toLowerCase().endsWith('.docx')
+                        ? 'article'
+                        : 'picture_as_pdf'}
                     </span>
                     <div className="min-w-0">
                       <div className="fw-semibold text-dark text-truncate" style={{ maxWidth: '320px' }}>
@@ -443,7 +457,7 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                       verified
                     </span>
-                    <span>PDF structure verified and screened</span>
+                    <span>Document structure verified and screened</span>
                   </div>
                 )}
               </div>
@@ -481,3 +495,4 @@ const AdminDirectUploadModal: React.FC<AdminDirectUploadModalProps> = ({
 };
 
 export default AdminDirectUploadModal;
+

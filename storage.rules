@@ -54,14 +54,18 @@ service firebase.storage {
     }
 
     // ── Submission Files ──
-    // Users upload PDFs under their own userId path. Admins can upload on behalf of barangays.
-    // Only PDF format, max 100 MB.
+    // Users upload documents under their own userId path. Admins can upload on behalf of barangays.
+    // Allowed formats: PDF, DOCX, XLSX. Max 100 MB.
     match /submission_files/{userId}/{allPaths=**} {
-      // Upload: authenticated owner or admin, PDF only, 100 MB cap
+      // Upload: authenticated owner or admin, PDF/DOCX/XLSX, 100 MB cap
       allow create: if request.auth != null
                    && (request.auth.uid == userId || isAdmin())
                    && request.resource.size < 100 * 1024 * 1024
-                   && request.resource.contentType == 'application/pdf';
+                   && request.resource.contentType in [
+                     'application/pdf',
+                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                   ];
 
       // Secured: Prevent users from overwriting or updating their files post-upload
       allow update: if false;

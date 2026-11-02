@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback } from 'react';
 import { formatFileSize, ALLOWED_EXTENSION, MAX_FILE_SIZE_BYTES } from '../../utils/pdfScreening';
 
 interface FileDropZoneProps {
-  /** Accepted file extensions, e.g., ".pdf" */
+  /** Accepted file extensions, e.g., ".pdf,.docx,.xlsx" */
   accept?: string;
   /** Maximum file size in MB */
   maxSizeMB?: number;
@@ -22,13 +22,27 @@ interface FileDropZoneProps {
   onClear?: () => void;
 }
 
+function getSelectedFileIcon(fileName: string): { icon: string; color: string } {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.xlsx')) {
+    return { icon: 'table_chart', color: '#107C41' };
+  }
+  if (lower.endsWith('.docx')) {
+    return { icon: 'article', color: '#2B579A' };
+  }
+  if (lower.endsWith('.pdf')) {
+    return { icon: 'picture_as_pdf', color: '#DC2626' };
+  }
+  return { icon: 'description', color: '#16A34A' };
+}
+
 const FileDropZone: React.FC<FileDropZoneProps> = ({
   accept = ALLOWED_EXTENSION,
   maxSizeMB = MAX_FILE_SIZE_BYTES / (1024 * 1024),
   onFileSelect,
   onError,
   disabled = false,
-  label = 'Drop your PDF file here',
+  label = 'Drop your PDF, Word (.docx), or Excel (.xlsx) file here',
   helpText,
   selectedFile = null,
   onClear,
@@ -38,13 +52,22 @@ const FileDropZone: React.FC<FileDropZoneProps> = ({
 
   const validateAndSelect = useCallback(
     (file: File) => {
-      // Extension check
-      if (!file.name.toLowerCase().endsWith(accept)) {
-        onError(`Only ${accept.toUpperCase().replace('.', '')} files are accepted.`);
+      const acceptedExts = accept
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+
+      const fileNameLower = file.name.toLowerCase();
+      const matchesExt = acceptedExts.some((ext) =>
+        ext.startsWith('.') ? fileNameLower.endsWith(ext) : fileNameLower.endsWith(`.${ext}`)
+      );
+
+      if (!matchesExt) {
+        const formattedExts = acceptedExts.map((e) => e.toUpperCase().replace('.', '')).join(', ');
+        onError(`Only ${formattedExts} files are accepted.`);
         return;
       }
 
-      // Size check
       if (file.size > maxSizeMB * 1024 * 1024) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
         onError(`File is too large (${sizeMB} MB). Maximum is ${maxSizeMB} MB.`);
@@ -100,7 +123,6 @@ const FileDropZone: React.FC<FileDropZoneProps> = ({
     if (files && files.length > 0) {
       validateAndSelect(files[0]);
     }
-    // Reset input so the same file can be re-selected
     e.target.value = '';
   };
 
@@ -108,6 +130,8 @@ const FileDropZone: React.FC<FileDropZoneProps> = ({
     e.stopPropagation();
     onClear?.();
   };
+
+  const fileIconInfo = selectedFile ? getSelectedFileIcon(selectedFile.name) : null;
 
   return (
     <div
@@ -142,13 +166,13 @@ const FileDropZone: React.FC<FileDropZoneProps> = ({
         disabled={disabled}
       />
 
-      {selectedFile ? (
+      {selectedFile && fileIconInfo ? (
         <>
           <span
-            className="material-symbols-outlined text-success mb-2"
-            style={{ fontSize: '32px' }}
+            className="material-symbols-outlined mb-2"
+            style={{ fontSize: '32px', color: fileIconInfo.color }}
           >
-            description
+            {fileIconInfo.icon}
           </span>
           <div className="fw-semibold text-dark mb-1" style={{ fontSize: '14px' }}>
             {selectedFile.name}
@@ -187,7 +211,7 @@ const FileDropZone: React.FC<FileDropZoneProps> = ({
             {isDragging ? 'Drop file here' : label}
           </div>
           <div className="text-muted" style={{ fontSize: '12px' }}>
-            {helpText || `or click to browse • PDF only • Max ${maxSizeMB} MB`}
+            {helpText || `or click to browse • PDF, DOCX, XLSX • Max ${maxSizeMB} MB`}
           </div>
         </>
       )}

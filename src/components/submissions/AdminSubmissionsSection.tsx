@@ -312,6 +312,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
         onHide={closeReview}
         title={`Review: ${selectedSub?.documentLabel || ''}`}
         fileUrl={fileUrl}
+        fileName={selectedSub?.fileName}
         fileLoading={fileLoading}
         locked={isProcessing}
         onDownload={handleDownload}
@@ -364,7 +365,7 @@ const AdminSubmissionsSection: React.FC<AdminSubmissionsSectionProps> = ({
 
             {selectedSub?.pdfMetadata?.producer && (
               <div className="mb-3">
-                <div className="overline-text text-muted mb-1">PDF Producer</div>
+                <div className="overline-text text-muted mb-1">Document Producer / Format</div>
                 <div className="text-muted" style={{ fontSize: '12px' }}>
                   {selectedSub.pdfMetadata.producer}
                 </div>

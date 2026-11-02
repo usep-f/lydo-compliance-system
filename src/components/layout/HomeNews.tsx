@@ -71,13 +71,13 @@ export const HomeNews: React.FC = () => {
 
   const activeBulletin = bulletins[activeIndex] || bulletins[0];
 
-  const formatDate = (ts?: any): string => {
+  const formatDate = (ts?: { toDate?: () => Date; toMillis?: () => number } | Date | number | string | null): string => {
     if (!ts) return '';
     try {
-      if (ts.toDate) {
+      if (typeof ts === 'object' && ts !== null && 'toDate' in ts && typeof ts.toDate === 'function') {
         return ts.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
-      const millis = ts.toMillis?.() || ts;
+      const millis = (typeof ts === 'object' && ts !== null && 'toMillis' in ts && typeof ts.toMillis === 'function') ? ts.toMillis() : (ts as string | number | Date);
       return new Date(millis).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     } catch {
       return '';
